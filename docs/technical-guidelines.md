@@ -122,6 +122,25 @@ Commands receive all dependencies (config, repo client, embeddings adapter) via 
 | **Human** | Default | Colored, formatted text via `chalk`; spinners via `ora` |
 | **Machine** | `--json` flag | Newline-delimited JSON or single JSON object; no ANSI codes |
 
+### Human Output Color Policy
+
+When output is not `--json`, CLI responses should use a consistent semantic color palette for fast visual parsing:
+
+| Semantic role | Color (chalk) | Example |
+|---------------|----------------|---------|
+| Success | `green` | Entry written, operation complete |
+| Warning | `yellow` | Partial results, fallback config used |
+| Error | `red` | Validation failure, API/network failure |
+| Info | `cyan` | Query scope, selected repo, progress notes |
+| Metadata labels | `gray` | `repo`, `tags`, `confidence`, `timestamp` |
+| Emphasis | `bold` (plus semantic color) | Primary action/result line |
+
+Rules:
+- Colors are enabled only in human mode; `--json` output must be plain JSON with no ANSI escape codes.
+- Respect terminal capabilities: disable colors when `NO_COLOR` is set or when output is not a TTY.
+- Do not rely on color alone to convey meaning; always include explicit text labels (`ERROR`, `WARNING`, `SUCCESS`).
+- Keep palette stable across commands so agents and humans can predict output structure.
+
 ```typescript
 // lib/output.ts — usage pattern
 output.result(data, { json: flags.json });
@@ -137,6 +156,26 @@ output.error(err, { json: flags.json });
 | `2` | System error (Qdrant unreachable, embeddings API error) |
 
 All errors must produce a message to `stderr`. JSON mode must output `{ "error": "...", "code": "..." }` to `stderr`.
+
+### Error Catalog
+
+The MVP error hierarchy should use a small, stable set of machine-readable codes:
+
+| Error code | Exit code | Meaning |
+|------------|-----------|---------|
+| `CONFIG_NOT_FOUND` | `1` | Local `memo.config.json` is missing in a command that requires repo context |
+| `CONFIG_INVALID` | `1` | `memo.config.json` exists but fails schema validation |
+| `MISSING_CREDENTIAL` | `1` | Required environment variable is absent |
+| `VALIDATION_FAILED` | `1` | CLI input or payload validation failed |
+| `REPO_CONTEXT_UNRESOLVED` | `1` | Repo/org defaults could not be resolved from config or flags |
+| `ENTRY_NOT_FOUND` | `1` | Lookup returned no matching entry when a concrete result was required |
+| `QDRANT_UNREACHABLE` | `2` | Qdrant is unavailable or network connectivity failed |
+| `QDRANT_OPERATION_FAILED` | `2` | Qdrant responded but the operation could not be completed |
+| `EMBEDDING_API_ERROR` | `2` | Embeddings provider call failed |
+| `COLLECTION_BOOTSTRAP_FAILED` | `2` | First-run auto-creation or index creation for `decisions` failed |
+| `UNEXPECTED_ERROR` | `2` | Fallback for uncategorized runtime failures |
+
+`MemoError` should carry `code`, `exitCode`, and a human-readable message. Unknown exceptions are wrapped as `UNEXPECTED_ERROR`.
 
 ### Streaming / Long Operations
 
@@ -156,6 +195,13 @@ Memo has no authentication layer of its own. Access control is delegated entirel
 ### No Multi-Tenancy in v1
 
 The CLI operates as a single-user/single-org tool. All entries in the `decisions` collection are co-located; the `repo` and `org` fields are the logical isolation mechanism.
+
+### Shared-Cluster Access Policy (v1)
+
+- Memo has no internal user identity or permission model in v1.
+- Configuration is repository-scoped, but any repo using Memo can read/write for any configured repo.
+- Access control is enforced only at infrastructure boundaries (Qdrant credentials + network-level controls).
+- Team-level RBAC/ACL is explicitly deferred beyond MVP.
 
 ---
 
@@ -199,7 +245,14 @@ node_modules/
 - **Collection name:** `decisions` (single collection for all repos/orgs)
 - **Distance metric:** Cosine (appropriate for text embeddings)
 - **Vector size:** 1536 (OpenAI `text-embedding-3-small`); configurable per provider
-- **Payload indexing:** Index `repo`, `org`, `entry_type`, `source`, `tags` for compound filtered queries
+- **Payload indexing:** Index `repo`, `org`, `entry_type`, `source`, `tags`, `timestamp_utc` for compound filtered queries and chronological listing
+
+### Collection Bootstrap
+
+- The `decisions` collection is auto-created on first write, search, or list if it does not already exist.
+- Bootstrap includes collection creation, vector configuration, and payload index creation.
+- Bootstrap is idempotent: repeated checks must not fail if the collection already exists.
+- If bootstrap cannot complete, fail with `COLLECTION_BOOTSTRAP_FAILED`.
 
 ### Entry Payload Schema
 
@@ -211,7 +264,6 @@ const EntryPayload = z.object({
   repo:            z.string().min(1),
   org:             z.string().optional(),
   domain:          z.string().optional(),
-  team:            z.string().optional(),
   story:           z.string().optional(),
   commit:          z.string().optional(),
   timestamp_utc:   z.string().datetime(),               // auto-generated
@@ -225,6 +277,22 @@ const EntryPayload = z.object({
 });
 ```
 
+### Entry Semantics
+
+- `entry_type` allowed values in MVP:
+  - `decision`: a task or story decision written by an agent or user
+  - `integration_point`: how another system or module is integrated or consumed
+  - `structure`: architectural or module-level structure captured during bootstrap or documentation
+- `source` semantics in MVP:
+  - `agent`: normal post-task or story write
+  - `manual`: human-curated or Copilot-assisted bootstrap write
+  - `scan`: reserved for the future fully automated `memo scan` command
+- `confidence` is not passed as a CLI flag in MVP. It is inferred by the command path:
+  - `agent` writes default to `high`
+  - `manual` bootstrap writes default to `medium`
+  - future automated `scan` writes default to `low` unless upgraded by scan heuristics
+- `relates_to` is an optional CLI input and should be provided when the decision explicitly affects or references other repositories.
+
 ### Naming Conventions
 
 - Collection fields: `snake_case`.
@@ -235,6 +303,23 @@ const EntryPayload = z.object({
 
 If rationale exceeds 512 tokens (~2000 characters), embed a compressed summary (`title: tags + main decision`) and store the full text in the payload. This improves search precision without losing information.
 
+### Embedding Text Composition
+
+- Standard write-path embedding input uses a derived string with three parts:
+  1. a transient title derived from the main decision sentence,
+  2. normalized tags,
+  3. the full rationale text.
+- This title is computed for embedding quality only and is not persisted as a payload field in MVP.
+- For `memo search`, the search vector input is built from the natural-language query plus any provided `--tags` values.
+
+### Schema Evolution Policy (Flexible + Backward-Compatible)
+
+- Additive changes are the default (new optional fields only).
+- Existing required fields in v1 payloads must remain readable in later versions.
+- Readers must ignore unknown fields and preserve them during pass-through operations.
+- Writers may include a `schema_version` field when introduced; absence is interpreted as `v1`.
+- Dedicated migration tooling is deferred; compatibility is handled in runtime serializers/parsers.
+
 ---
 
 ## 8. Integration Methods
@@ -244,6 +329,15 @@ If rationale exceeds 512 tokens (~2000 characters), embed a compressed summary (
 - Use `@qdrant/js-client-rest` via the `QdrantRepository` wrapper (`lib/qdrant.ts`).
 - All collection operations (upsert, search, scroll, delete) are encapsulated in `QdrantRepository`.
 - Commands never import the Qdrant client directly.
+
+### Search and List Semantics
+
+- `memo search` applies exact-match conditions as Qdrant pre-filters before vector search.
+- Pre-filters include `repo`, `org`/company scope, `entry_type` when later added, and `tags` when provided.
+- The search vector is built from the query string plus normalized tag terms when `--tags` is present.
+- Search responses in JSON mode must include all payload fields plus `similarity`.
+- `memo list` uses `order_by` on indexed `timestamp_utc` in descending order.
+- Date filters for `memo list` are applied as pre-filters on `timestamp_utc`.
 
 ### Embeddings Adapter
 
@@ -280,6 +374,18 @@ All external API calls (Qdrant, embeddings, LLM) use exponential backoff:
 - Base delay: 500ms, multiplier: 2x
 - Retryable: 429 (rate limit), 503 (unavailable), network errors
 - Non-retryable: 400 (bad request), 401 (auth error)
+
+### Central Org Config Distribution
+
+- MVP commands rely on a local `memo.config.json` created by `memo setup init` in each repository.
+- The local config defines the repo identity and defaults used by `write`, `search`, and `list`.
+- A central configuration file is expected to be HTTP-accessible in multi-repo deployments.
+- Resolution order:
+  1. Local `memo.config.json`
+  2. Central HTTP config (if configured)
+  3. Environment overrides
+- Central config URL should be provided via `MEMO_CONFIG_URL` and fetched with short timeout + local cache.
+- If HTTP fetch fails, CLI falls back to local config and emits a warning (error in strict mode if later enabled).
 
 ---
 
@@ -402,6 +508,51 @@ memo-cli/
 - Qdrant client mocked via a `MockQdrantRepository` implementing the same interface.
 - Embeddings adapter mocked with a fixed-dimension zero vector for determinism.
 - LLM adapter mocked with canned responses per test case.
+
+### MVP Pilot: Agent-Assisted Minimal Scan Test
+
+Before implementing full `memo scan` automation, run an initial pilot that uses Copilot to infer definitions and persists them through `memo write`.
+
+**Pilot objective:** validate that inferred architecture definitions are writeable, searchable, and useful with minimal tooling.
+
+**Pilot setup:**
+
+- Target sample: 20-50 files from a single bounded module/repo.
+- Input artifacts: `README`, routing/API files, schema/migrations, and `package.json`.
+- Copilot prompt output format: strict JSON objects with fields `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`.
+
+**Execution flow:**
+
+1. Generate candidate definitions with Copilot from the selected artifacts.
+2. Validate each object against a local Zod schema before writing.
+3. Write entries using `memo write --json` with:
+  - `source=manual`
+  - `entry_type=structure` or `integration_point`
+4. Run validation queries with `memo search` and assess retrieval relevance.
+
+### JSON Output Contracts (MVP)
+
+- `memo write --json` returns the stored entry object in full plus operation metadata:
+  - all payload fields
+  - `created: boolean`
+  - `updated: boolean`
+  - `dedupe_key_sha256`
+- `memo search --json` returns:
+  - `query`
+  - `filters`
+  - `results`, where each result includes all payload fields plus `similarity`
+- `memo list --json` returns:
+  - `filters`
+  - `results`, where each result includes all payload fields
+- Human mode may abbreviate output for readability, but JSON mode is the full machine contract.
+
+**Initial acceptance thresholds:**
+
+- At least 5 successful writes, 0 invalid payload writes.
+- At least 80% of validation queries return relevant results in top-3.
+- Total pilot runtime under 15 minutes.
+
+If thresholds are met, proceed to full `memo scan` implementation (filesystem walker + LLM orchestration + confidence pipeline).
 
 ---
 
@@ -675,6 +826,51 @@ pnpm version patch   # or minor / major
 # 3. Push tag — triggers publish workflow
 git push && git push --tags
 ```
+
+### Proposed Auto-Write Implementation (Post-MVP)
+
+Auto-write is not part of MVP, but the recommended implementation path is:
+
+1. **Local git hook path**
+- Add optional helper command: `memo hooks post-commit`.
+- Hook captures commit hash and file diff, asks the agent for rationale with a strict prompt template, then executes `memo write`.
+
+2. **CI fallback path**
+- GitHub Actions job runs on merged PRs and calls `memo hooks ci-write`.
+- CI-generated entries use conservative metadata (`confidence=low`, tag `generated_by:ci`) when rationale quality is uncertain.
+
+3. **Deduplication and idempotency**
+- Use canonical dedupe string format:
+  - `v1|<repo>|<commit>|<story_or_na>|<entry_type>|<source>`
+  - `story_or_na` must be `na` when story/task ID is unavailable.
+  - `repo` is lowercased and trimmed; `commit` is full SHA when available, else `na`.
+- Persist a hashed key in payload for indexing and lookup:
+  - `dedupe_key_sha256 = sha256(canonical_dedupe_string)`
+  - also store `dedupe_key_version = "v1"`.
+- Lookup strategy before write:
+  1. Try exact `dedupe_key_sha256` match.
+  2. If no match and commit is available, fallback query by `repo + commit + entry_type`.
+  3. If still no match, create a new entry.
+
+**Update semantics (when key exists):**
+
+| Field | Rule |
+|------|------|
+| `timestamp_utc` | Update to current write time |
+| `rationale` | Replace only if incoming text is longer or has higher confidence; otherwise keep existing |
+| `tags` | Union, dedupe, then cap at 5 tags (prefer incoming tags first) |
+| `files_modified` | Union, dedupe, preserve relative paths |
+| `confidence` | Keep max confidence (`high > medium > low`) |
+| `source` | Keep existing unless incoming source is `agent` and existing is `manual`/`scan` |
+| `relates_to` | Union, dedupe |
+
+- Never mutate immutable identity fields on update: `id`, `repo`, `commit` (when non-empty), `dedupe_key_sha256`, `dedupe_key_version`.
+- If immutable fields conflict, do not update; create a new entry and set `supersedes=<previous_id>` when applicable.
+- Updates must be idempotent: repeated writes of identical payload produce no additional semantic changes.
+
+4. **Operational safeguards**
+- Support `--dry-run`, `--json`, and `--no-write` for validation.
+- All hook failures must never block commits by default; strict blocking mode can be enabled later.
 
 ---
 

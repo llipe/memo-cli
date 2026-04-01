@@ -55,7 +55,7 @@ AI agents have no memory between sessions and no visibility into the broader cod
 
 **Greenfield — v1.0 in active development.**
 
-No prior codebase exists. The repository (`memo-cli`) is being initialized. The functional specification (`def-funcional-original.md`) defines the full intended feature set. Implementation follows a 5-phase roadmap (see Section 6).
+No prior codebase exists. The repository (`memo-cli`) is being initialized.
 
 ---
 
@@ -67,7 +67,7 @@ Memo becomes the shared long-term memory layer for AI-assisted software developm
 
 ### MVP Proposal — Phase 1
 
-The MVP delivers the core loop: **an agent can write a decision and retrieve it later**. This alone eliminates the #1 problem — agents starting from scratch every session — and proves the architecture end-to-end before investing in multi-repo, scan, or ecosystem features.
+The MVP delivers the core loop: **an agent can write a decision and retrieve it later**. To accelerate adoption in existing repositories, MVP also includes a **minimal scan bootstrap** where an AI agent infers initial architecture definitions and stores them via `memo write`.
 
 **In scope:**
 
@@ -77,8 +77,10 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 | **`memo write`** | Save a decision with full payload, Zod validation, embedding generation, Qdrant upsert | The write path — core value |
 | **`memo search`** | Semantic vector search with `--repo` filter, `--scope company`, `--tags`, `--limit` | The read path — core value |
 | **`memo list`** | Chronological listing with `--repo`, `--from`, `--to`, `--limit` | Audit trail; useful from day one |
+| **`memo setup`** | Initialize local `memo.config.json` in a repository, define repo identity, and enable repo/org defaults for other commands | Required to make repo-aware behavior explicit in MVP |
+| **Minimal `memo scan` bootstrap** | Agent-assisted scan prompt that infers definitions from selected files and persists them through `memo write` with `source: manual` and `entry_type: structure`/`integration_point` | Delivers scan value early without full filesystem walker/LLM orchestration |
 | **Output modes** | Human-readable (default) + `--json` for agents | Agents must be able to parse results |
-| **Config basics** | `.env` credential loading, `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY` | Minimum config to connect |
+| **Config basics** | `.env` credential loading plus local `memo.config.json` created by `memo setup` | MVP commands rely on explicit local repo/org/domain defaults |
 | **OpenAI adapter** | `text-embedding-3-small` as the default embeddings provider | Ship one provider; others come later |
 | **Error handling** | Typed `MemoError` hierarchy, deterministic exit codes (0/1/2) | Agent-friendly failure signals |
 | **Tests** | Unit tests for `lib/` + integration tests for `write`, `search`, `list` commands | Quality gate from the start |
@@ -87,10 +89,9 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 
 | Deferred | Reason |
 |----------|--------|
-| `memo scan` | Requires LLM adapter, filesystem walker, complex prompts — Phase 3 |
+| Full `memo scan` automation | Full filesystem walker, artifact prioritization, autonomous chunking, confidence scoring, and bulk upserts remain Phase 3 |
 | `memo ask` | Depends on `memo.config.json` relationships and combined entry logic — Phase 4 |
-| `memo setup` | Config management is Phase 2; MVP uses manual `.env` + simple config |
-| `memo.config.json` registry | Multi-repo relationships are Phase 2 |
+| Central org config registry | HTTP-distributed shared config remains Phase 2; MVP starts with local `memo.config.json` only |
 | Additional embedding providers (Voyage, Cohere, Ollama) | OpenAI is sufficient for MVP; adapter interface ships, implementations follow |
 | Telemetry | Nice-to-have; defer to Phase 2+ |
 | Long-rationale summarization | Optimization; full text embedding works acceptably at MVP scale |
@@ -101,8 +102,26 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 2. An agent can run `memo search "authentication strategy" --repo my-app` and get relevant results with rationale text.
 3. A developer can run `memo list --repo my-app --limit 10` and see recent decisions in chronological order.
 4. All three commands work with `--json` flag producing parseable output.
-5. CI pipeline is green (lint + type-check + tests + build).
-6. Package is installable via `npm install -g @memo-ai/cli` and the `memo` binary runs.
+5. A developer can run `memo setup init` inside a repo and create a valid local `memo.config.json` used as the default repo/org context by other commands.
+6. A Copilot-driven minimal scan can produce at least 5 valid baseline entries (`source: manual`, `entry_type: structure|integration_point`) for a target repo.
+7. CI pipeline is green (lint + type-check + tests + build).
+8. Package is installable via `npm install -g @memo-ai/cli` and the `memo` binary runs.
+
+**Initial MVP test proposal for minimal scan:**
+
+1. Pick a small reference repository/module (20-50 files).
+2. Ask Copilot to analyze a bounded set of artifacts (`README`, routes/controllers, schema/migrations, package.json) using a fixed extraction prompt.
+3. Require Copilot output in a strict JSON schema per inferred definition:
+	- `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`
+4. Convert each JSON item into `memo write` commands and execute them with `--json`.
+5. Run `memo search` queries that validate retrieval quality (for example: auth flow, event publishing, API contracts).
+6. Pass criteria:
+	- At least 5 entries written successfully
+	- 0 invalid payload writes
+	- Top-3 results judged relevant in at least 4 of 5 validation queries
+	- End-to-end run time under 15 minutes for the pilot sample
+
+This validates the minimal scan concept before building full `memo scan` automation.
 
 **Estimated scope:** ~8–12 user stories, targeting Phases 1 of the roadmap.
 
@@ -110,8 +129,8 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 
 | Phase | Scope | Target |
 |-------|-------|--------|
-| 1 — Core (MVP) | `memo write`, `memo search`, `memo list`, Qdrant + embeddings, OpenAI adapter | Weeks 1–2 |
-| 2 — Config & Relationships | `memo.config.json`, `memo setup`, multi-repo resolution, additional providers | Week 3 |
+| 1 — Core (MVP) | `memo setup`, local `memo.config.json`, `memo write`, `memo search`, `memo list`, minimal agent-assisted scan bootstrap, Qdrant + embeddings, OpenAI adapter | Weeks 1–2 |
+| 2 — Config & Relationships | Central config distribution, multi-repo resolution, additional providers | Week 3 |
 | 3 — Scan | `memo scan` — codebase archaeology + LLM analysis | Week 4 |
 | 4 — Ask & Ecosystem | `memo ask` — cross-repo integration queries | Week 5 |
 | 5 — Adoption | Initial org scans, team rollout, agent system prompt finalization, telemetry | Week 6 |
@@ -177,13 +196,28 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 - Teams have adopted or are adopting an AI coding assistant as part of their workflow.
 - Decision rationale written by the agent is sufficiently precise for future semantic retrieval.
 - The `decisions` collection schema will remain stable within v1.x.
+- In v1, there is no user identity model inside Memo; any repository using the shared config can read/write across any configured repo.
+- A central org config endpoint will be available over HTTP at deployment time.
 
 ---
 
-## 12. Open Questions
+## 12. Decisions and Remaining Open Questions
 
-- **Multi-tenancy:** How will shared Qdrant instances handle access control if multiple teams share one cluster?
-- **Web UI:** Is a read-only browser interface for `memo list` / `memo search` on the roadmap?
-- **Schema versioning:** What is the migration strategy if the entry payload schema changes in v2?
-- **Agent auto-write:** Should later versions support automatic `memo write` hooks via git commit hooks or CI triggers?
-- **Org-level central config:** Where is the "central" `memo.config.json` hosted and accessed from in multi-repo setups?
+### Confirmed Decisions
+
+- **Multi-tenancy / access model (v1):** Memo has no concept of end users or team-level ACLs. Configuration is repository-scoped, and repositories using Memo can read/write entries for any configured repo in the shared cluster.
+- **Web UI roadmap:** A read-only browser interface for `memo list` / `memo search` is on the roadmap. In MVP, all write/modify operations remain CLI-only.
+- **Schema versioning direction:** v2 migration strategy is not defined yet. Schema evolution must stay flexible and backward-compatible by default.
+- **Org-level central config:** Central `memo.config.json` is expected to be HTTP-accessible; final hosting details are decided at deployment.
+
+### Proposed Implementation Path: Agent Auto-Write (Post-MVP)
+
+1. **Git hook mode (local):** add an optional `post-commit` hook that calls a helper (`memo hooks post-commit`) to gather commit hash + changed files, request a rationale from the active agent prompt, and execute `memo write`.
+2. **CI mode (fallback):** add a GitHub Actions job that runs on merged PRs, builds a rationale from PR title/body + changed files, and writes a low-confidence entry with `source=manual` or `source=scan` and a `generated_by=ci` tag.
+3. **Idempotency:** compute a deterministic dedupe key (`repo + commit + story`) to prevent duplicate writes across hook and CI flows.
+4. **Safety controls:** include `--dry-run`, `--confirm`, and `--json` modes, with telemetry events for hook success/failure.
+
+### Remaining Open Questions
+
+- What minimum metadata should auto-write require when story/task IDs are unavailable?
+- Should CI-generated entries be editable in place by a follow-up agent write, or appended as a new revision?
