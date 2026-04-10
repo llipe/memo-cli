@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import setup from './commands/setup.js';
 import search from './commands/search.js';
 import write from './commands/write.js';
+import list from './commands/list.js';
 import { MemoError } from './lib/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,7 +24,7 @@ program
 program.addCommand(setup);
 program.addCommand(write);
 program.addCommand(search);
-// program.addCommand(list);    // S-006
+program.addCommand(list);
 
 program.parseAsync(process.argv).catch((err: unknown) => {
   const memoErr =

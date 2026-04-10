@@ -26,7 +26,7 @@ const PAYLOAD_INDEXES = [
   { field: 'entry_type', schema: 'keyword' },
   { field: 'source', schema: 'keyword' },
   { field: 'tags', schema: 'keyword' },
-  { field: 'timestamp_utc', schema: 'integer' },
+  { field: 'timestamp_utc', schema: 'datetime' },
   { field: 'commit', schema: 'keyword' },
   { field: 'dedupe_key_sha256', schema: 'keyword' },
 ] as const;
@@ -131,6 +131,7 @@ export class QdrantRepository {
           filter,
           limit,
           with_payload: true,
+          order_by: { key: 'timestamp_utc', direction: 'desc' },
         }),
       );
       return (
