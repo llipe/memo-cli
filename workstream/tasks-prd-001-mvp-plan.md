@@ -94,27 +94,27 @@
   - [x] 2.16 Verify Acceptance Criterion: `memo setup validate` exits 0/1 correctly
   - [x] 2.17 Run tests: `pnpm run test -- --testPathPattern=config && pnpm run test -- --testPathPattern=setup`
 
-- [ ] 3.0 Implement Story S-003 — Issue #3 - https://github.com/llipe/memo-cli/issues/3: Foundation Libraries — Errors, Output, Qdrant, Embeddings
-  - [ ] 3.1 Implement `MemoError` class in `src/lib/errors.ts` — `code: ErrorCode`, `exitCode: 0 | 1 | 2`, human message; all error codes: `CONFIG_NOT_FOUND`, `CONFIG_INVALID`, `MISSING_CREDENTIAL`, `VALIDATION_FAILED`, `QDRANT_UNREACHABLE`, `QDRANT_OPERATION_FAILED`, `EMBEDDING_API_ERROR`, `COLLECTION_BOOTSTRAP_FAILED`, `UNEXPECTED_ERROR`
-  - [ ] 3.2 Implement global error handler in `src/index.ts` — catch `MemoError` → exit with `exitCode`; wrap unknown → `UNEXPECTED_ERROR`
-  - [ ] 3.3 Implement `lib/output.ts` — `result()`, `error()`, `info()`, `warn()` methods; human mode (chalk, `ora` spinner); JSON mode (clean JSON to stdout, errors to stderr); respect `NO_COLOR` and non-TTY
-  - [ ] 3.4 Implement `lib/retry.ts` — generic retry wrapper (3 attempts, exponential backoff 500ms×2)
-  - [ ] 3.5 Implement `QdrantRepository` in `lib/qdrant.ts` — constructor validates `QDRANT_URL`; methods: `ensureCollection()`, `upsert()`, `search()`, `scroll()`, `getByDedupeKey()`
-  - [ ] 3.6 Implement `ensureCollection()` — creates `decisions` collection (1536 dims, cosine) + all payload indexes idempotently; fails with `COLLECTION_BOOTSTRAP_FAILED` on unreachable
-  - [ ] 3.7 Implement `EmbeddingsAdapter` interface in `lib/embeddings.ts` — `embed(text: string): Promise<number[]>`, `dimensions: number`
-  - [ ] 3.8 Implement `OpenAIEmbeddingsAdapter` in `src/adapters/openai-embeddings.ts` — uses `text-embedding-3-small`, validates `EMBEDDINGS_API_KEY` on construction
-  - [ ] 3.9 Implement `createEmbeddingsAdapter()` factory — reads `EMBEDDINGS_PROVIDER` env var, defaults to `openai`
-  - [ ] 3.10 Implement `MEMO_DEBUG=true` verbose stderr logging
-  - [ ] 3.11 Write unit tests: `tests/unit/lib/errors.test.ts` — MemoError wrapping, error code coverage, unknown exception wrapping
-  - [ ] 3.12 Write unit tests: `tests/unit/lib/output.test.ts` — human vs JSON mode, NO_COLOR compliance, no ANSI in JSON
-  - [ ] 3.13 Write unit tests: `tests/unit/lib/qdrant.test.ts` — QdrantRepository method contracts (mocked client)
-  - [ ] 3.14 Write unit tests: `tests/unit/adapters/openai-embeddings.test.ts` — adapter interface compliance, missing credential error
-  - [ ] 3.15 Write integration tests: `tests/integration/lib/qdrant.test.ts` — ensureCollection creates collection on fresh Qdrant, idempotent on repeat, COLLECTION_BOOTSTRAP_FAILED on unreachable
-  - [ ] 3.16 Verify Acceptance Criterion: `MemoError` carries `code`, `exitCode`, and message
-  - [ ] 3.17 Verify Acceptance Criterion: output.ts never mixes ANSI into JSON
-  - [ ] 3.18 Verify Acceptance Criterion: ensureCollection is idempotent
-  - [ ] 3.19 Verify Acceptance Criterion: retry policy (3 attempts, exponential backoff)
-  - [ ] 3.20 Run tests: `pnpm run test -- --testPathPattern="errors|output|qdrant|embeddings"`
+- [x] 3.0 Implement Story S-003 — Issue #3 - https://github.com/llipe/memo-cli/issues/3: Foundation Libraries — Errors, Output, Qdrant, Embeddings
+  - [x] 3.1 Implement `MemoError` class in `src/lib/errors.ts` — `code: ErrorCode`, `exitCode: 0 | 1 | 2`, human message; all error codes: `CONFIG_NOT_FOUND`, `CONFIG_INVALID`, `MISSING_CREDENTIAL`, `VALIDATION_FAILED`, `QDRANT_UNREACHABLE`, `QDRANT_OPERATION_FAILED`, `EMBEDDING_API_ERROR`, `COLLECTION_BOOTSTRAP_FAILED`, `UNEXPECTED_ERROR`
+  - [x] 3.2 Implement global error handler in `src/index.ts` — catch `MemoError` → exit with `exitCode`; wrap unknown → `UNEXPECTED_ERROR`
+  - [x] 3.3 Implement `lib/output.ts` — `result()`, `error()`, `info()`, `warn()` methods; human mode (chalk, `ora` spinner); JSON mode (clean JSON to stdout, errors to stderr); respect `NO_COLOR` and non-TTY
+  - [x] 3.4 Implement `lib/retry.ts` — generic retry wrapper (3 attempts, exponential backoff 500ms×2)
+  - [x] 3.5 Implement `QdrantRepository` in `lib/qdrant.ts` — constructor validates `QDRANT_URL`; methods: `ensureCollection()`, `upsert()`, `search()`, `scroll()`, `getByDedupeKey()`
+  - [x] 3.6 Implement `ensureCollection()` — creates `decisions` collection (1536 dims, cosine) + all payload indexes idempotently; fails with `COLLECTION_BOOTSTRAP_FAILED` on unreachable
+  - [x] 3.7 Implement `EmbeddingsAdapter` interface in `lib/embeddings.ts` — `embed(text: string): Promise<number[]>`, `dimensions: number`
+  - [x] 3.8 Implement `OpenAIEmbeddingsAdapter` in `src/adapters/openai-embeddings.ts` — uses `text-embedding-3-small`, validates `EMBEDDINGS_API_KEY` on construction
+  - [x] 3.9 Implement `createEmbeddingsAdapter()` factory — reads `EMBEDDINGS_PROVIDER` env var, defaults to `openai`
+  - [x] 3.10 Implement `MEMO_DEBUG=true` verbose stderr logging
+  - [x] 3.11 Write unit tests: `tests/unit/lib/errors.test.ts` — MemoError wrapping, error code coverage, unknown exception wrapping
+  - [x] 3.12 Write unit tests: `tests/unit/lib/output.test.ts` — human vs JSON mode, NO_COLOR compliance, no ANSI in JSON
+  - [x] 3.13 Write unit tests: `tests/unit/lib/qdrant.test.ts` — QdrantRepository method contracts (mocked client)
+  - [x] 3.14 Write unit tests: `tests/unit/adapters/openai-embeddings.test.ts` — adapter interface compliance, missing credential error
+  - [x] 3.15 Write integration tests: `tests/integration/lib/qdrant.test.ts` — ensureCollection creates collection on fresh Qdrant, idempotent on repeat, COLLECTION_BOOTSTRAP_FAILED on unreachable
+  - [x] 3.16 Verify Acceptance Criterion: `MemoError` carries `code`, `exitCode`, and message
+  - [x] 3.17 Verify Acceptance Criterion: output.ts never mixes ANSI into JSON
+  - [x] 3.18 Verify Acceptance Criterion: ensureCollection is idempotent
+  - [x] 3.19 Verify Acceptance Criterion: retry policy (3 attempts, exponential backoff)
+  - [x] 3.20 Run tests: `pnpm run test -- --testPathPattern="errors|output|qdrant|embeddings"`
 
 - [ ] 4.0 Implement Story S-004 — Issue #4 - https://github.com/llipe/memo-cli/issues/4: `memo write` — Decision Capture with Duplicate Detection
   - [ ] 4.1 Implement `EntryPayload` Zod schema in `src/types/entry.ts` — all fields, tags `min(2).max(5)`, rationale `min(1).max(5000)`, entry_type enum, source enum

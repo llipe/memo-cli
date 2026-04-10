@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import setup from './commands/setup.js';
+import write from './commands/write.js';
 import { MemoError } from './lib/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,7 +20,7 @@ program
   .version(pkg.version);
 
 program.addCommand(setup);
-// program.addCommand(write);   // S-004
+program.addCommand(write);
 // program.addCommand(search);  // S-005
 // program.addCommand(list);    // S-006
 
