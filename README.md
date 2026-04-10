@@ -76,6 +76,15 @@ pnpm run build
 
 ## Quick Start
 
+### Global Install (from npm)
+
+```bash
+npm install -g @memo-ai/cli
+memo --version
+```
+
+### First-Run Example
+
 ```bash
 # Initialize memo config for this repository
 memo setup init
