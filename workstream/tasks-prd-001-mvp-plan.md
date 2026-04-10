@@ -33,6 +33,9 @@
 - `scripts/run-jest.mjs` — Jest argument-forwarding wrapper for scoped test commands
 - `docs/bootstrap-guide.md` — Bootstrap prompt documentation
 - `scripts/validate-bootstrap.ts` — Bootstrap JSON validation script
+- `tests/unit/scripts/bootstrap-schema.test.ts` — Bootstrap schema validation unit tests
+- `tests/unit/scripts/fixtures/bootstrap-valid.json` — Valid bootstrap sample input
+- `tests/unit/scripts/fixtures/bootstrap-invalid.json` — Invalid bootstrap sample input
 - `tests/unit/lib/errors.test.ts`
 - `tests/unit/lib/output.test.ts`
 - `tests/unit/lib/config.test.ts`
@@ -181,17 +184,17 @@
   - [x] 6.14 Verify Acceptance Criterion: empty results return exit 0 with count 0
   - [x] 6.15 Run tests: `pnpm run test -- --testPathPattern="list"`
 
-- [ ] 7.0 Implement Story S-007 — Issue #7 - https://github.com/llipe/memo-cli/issues/7: Bootstrap Prompt Documentation & Validation Workflow
-  - [ ] 7.1 Write `docs/bootstrap-guide.md` — prompt template, artifact selection guide (which files to pick: README, architecture docs, config files, key modules), 3 worked conversion examples (JSON → `memo write --source manual --json`)
-  - [ ] 7.2 Add verification section to guide — 3 example `memo search` queries to validate bootstrap entries
-  - [ ] 7.3 Create `scripts/validate-bootstrap.ts` — bootstrap Zod schema (subset of EntryPayload: `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`); read JSON file arg; validate each item; exit 0/1
-  - [ ] 7.4 Implement human-readable validation error output — field path + expected value
-  - [ ] 7.5 Write unit tests for bootstrap Zod schema (valid items, missing fields, wrong entry_types, tag count out of range, extra fields rejected)
-  - [ ] 7.6 Test script against sample valid and invalid JSON files
-  - [ ] 7.7 Link bootstrap guide from `README.md`
-  - [ ] 7.8 Verify Acceptance Criterion: `docs/bootstrap-guide.md` exists with full prompt template
-  - [ ] 7.9 Verify Acceptance Criterion: `scripts/validate-bootstrap.ts` exits 0 on valid input and 1 with detailed errors on invalid
-  - [ ] 7.10 Run tests: `pnpm run test -- --testPathPattern="bootstrap"`
+- [x] 7.0 Implement Story S-007 — Issue #7 - https://github.com/llipe/memo-cli/issues/7: Bootstrap Prompt Documentation & Validation Workflow
+  - [x] 7.1 Write `docs/bootstrap-guide.md` — prompt template, artifact selection guide (which files to pick: README, architecture docs, config files, key modules), 3 worked conversion examples (JSON → `memo write --source manual --json`)
+  - [x] 7.2 Add verification section to guide — 3 example `memo search` queries to validate bootstrap entries
+  - [x] 7.3 Create `scripts/validate-bootstrap.ts` — bootstrap Zod schema (subset of EntryPayload: `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`); read JSON file arg; validate each item; exit 0/1
+  - [x] 7.4 Implement human-readable validation error output — field path + expected value
+  - [x] 7.5 Write unit tests for bootstrap Zod schema (valid items, missing fields, wrong entry_types, tag count out of range, extra fields rejected)
+  - [x] 7.6 Test script against sample valid and invalid JSON files
+  - [x] 7.7 Link bootstrap guide from `README.md`
+  - [x] 7.8 Verify Acceptance Criterion: `docs/bootstrap-guide.md` exists with full prompt template
+  - [x] 7.9 Verify Acceptance Criterion: `scripts/validate-bootstrap.ts` exits 0 on valid input and 1 with detailed errors on invalid
+  - [x] 7.10 Run tests: `pnpm run test -- --testPathPattern="bootstrap"`
 
 - [ ] 8.0 Implement Story S-008 — Issue #8 - https://github.com/llipe/memo-cli/issues/8: First Release — Package Build, Publish, and Install Verification
   - [ ] 8.1 Finalize `package.json`: `files: ["dist", "README.md", "LICENSE"]`, `bin`, `engines`, `version: "1.0.0"`, `publishConfig: { "access": "public" }`
