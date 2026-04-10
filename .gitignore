@@ -1,0 +1,26 @@
+# Environment files — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
+# Test output
+coverage/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
