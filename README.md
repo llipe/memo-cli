@@ -102,6 +102,10 @@ memo search "how do we persist decisions" --json
 memo list --limit 10
 ```
 
+Bootstrap onboarding workflow:
+
+- See `docs/bootstrap-guide.md` for the prompt template, JSON conversion examples, and validation steps.
+
 ---
 
 ## Project Structure
