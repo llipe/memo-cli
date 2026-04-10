@@ -68,28 +68,39 @@ Memo CLI is a lightweight, agent-first command-line tool built to be fast, compo
 
 ## 3. Architecture Patterns
 
-### System Architecture
+### System Architecture (v1.0 — Implemented)
 
 ```
 CLI Entry (src/index.ts)
     └── Commander root program
-        ├── commands/write.ts      → WriteCommand
-        ├── commands/search.ts     → SearchCommand
-        ├── commands/ask.ts        → AskCommand
-        ├── commands/list.ts       → ListCommand
-        ├── commands/scan.ts       → ScanCommand
-        └── commands/setup.ts     → SetupCommand
+        ├── commands/setup.ts      → SetupCommand (init / show / validate)
+        ├── commands/write.ts      → WriteCommand (with duplicate detection)
+        ├── commands/search.ts     → SearchCommand (semantic + pre-filters)
+        └── commands/list.ts       → ListCommand (chronological + date range)
 
 lib/
-  ├── qdrant.ts          → QdrantRepository (all Qdrant I/O)
-  ├── embeddings.ts      → EmbeddingsAdapter interface + factory
-  ├── llm.ts             → LLMAdapter interface + factory (for scan)
-  ├── config.ts          → Config loader (memo.config.json + env)
-  ├── registry.ts        → Related-repo resolution
-  ├── output.ts          → Human/JSON output formatter
-  ├── telemetry.ts       → Opt-in telemetry client
-  └── errors.ts          → Typed error hierarchy + exit codes
+  ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll)
+  ├── embeddings.ts        → EmbeddingsAdapter interface + factory
+  ├── config.ts            → Config loader (memo.config.json + env)
+  ├── registry.ts          → Related-repo resolution for cross-repo scope
+  ├── output.ts            → Human/JSON output formatter (chalk, ora)
+  ├── errors.ts            → Typed MemoError hierarchy + exit codes
+  ├── dedupe.ts            → Deduplication key generation + merge strategies
+  ├── search-filters.ts    → Qdrant pre-filter builder for search
+  ├── list-filters.ts      → Qdrant pre-filter builder for list (with date range)
+  ├── retry.ts             → Generic exponential backoff retry wrapper
+  └── debug.ts             → Conditional debug logging to stderr
+
+adapters/
+  └── openai-embeddings.ts → OpenAI text-embedding-3-small provider
+
+types/
+  ├── entry.ts             → EntryPayload Zod schema + TypeScript type
+  ├── config.ts            → MemoConfig Zod schema + TypeScript type
+  └── cli.ts               → Shared CLI flag interfaces (placeholder)
 ```
+
+> **Note:** `ask.ts`, `scan.ts`, `llm.ts`, `telemetry.ts`, and additional embedding adapters (Voyage, Cohere, Ollama) are planned for future phases and are not implemented in v1.0.
 
 ### Key Patterns
 
@@ -396,41 +407,47 @@ memo-cli/
 ├── src/
 │   ├── index.ts                  ← CLI entry point; Commander root setup
 │   ├── commands/
-│   │   ├── write.ts
-│   │   ├── search.ts
-│   │   ├── ask.ts
-│   │   ├── list.ts
-│   │   ├── scan.ts
-│   │   └── setup.ts
+│   │   ├── setup.ts              ← memo setup (init / show / validate)
+│   │   ├── write.ts              ← memo write (with duplicate detection)
+│   │   ├── search.ts             ← memo search (semantic + pre-filters)
+│   │   └── list.ts               ← memo list (chronological + date range)
 │   ├── lib/
 │   │   ├── qdrant.ts             ← QdrantRepository
 │   │   ├── embeddings.ts         ← EmbeddingsAdapter interface + factory
-│   │   ├── llm.ts                ← LLMAdapter interface + factory
 │   │   ├── config.ts             ← Config loader and resolver
 │   │   ├── registry.ts           ← Related-repo resolution
 │   │   ├── output.ts             ← Human/JSON output formatter
-│   │   ├── telemetry.ts          ← Opt-in telemetry client
-│   │   └── errors.ts             ← MemoError hierarchy + exit codes
+│   │   ├── errors.ts             ← MemoError hierarchy + exit codes
+│   │   ├── dedupe.ts             ← Deduplication key generation + merge strategies
+│   │   ├── search-filters.ts     ← Qdrant pre-filter builder (search)
+│   │   ├── list-filters.ts       ← Qdrant pre-filter builder (list, date range)
+│   │   ├── retry.ts              ← Exponential backoff retry wrapper
+│   │   └── debug.ts              ← Conditional debug logging (MEMO_DEBUG)
 │   ├── adapters/
-│   │   ├── openai-embeddings.ts
-│   │   ├── voyage-embeddings.ts
-│   │   ├── cohere-embeddings.ts
-│   │   ├── ollama-embeddings.ts
-│   │   └── openai-llm.ts
+│   │   └── openai-embeddings.ts  ← OpenAI text-embedding-3-small
 │   └── types/
-│       ├── entry.ts              ← EntryPayload, EntryType, Source, Confidence
-│       ├── config.ts             ← MemoConfig, RepoConfig
-│       └── cli.ts                ← Shared CLI flag interfaces
+│       ├── entry.ts              ← EntryPayload Zod schema
+│       ├── config.ts             ← MemoConfig Zod schema
+│       └── cli.ts                ← Shared CLI flag interfaces (placeholder)
+├── scripts/
+│   ├── run-jest.mjs              ← Jest argument forwarder
+│   └── validate-bootstrap.ts     ← Bootstrap JSON schema validator
 ├── tests/
+│   ├── __mocks__/                ← ESM-only package stubs (chalk, ora)
 │   ├── unit/
 │   │   ├── lib/
-│   │   └── adapters/
+│   │   ├── adapters/
+│   │   ├── commands/
+│   │   └── scripts/
 │   └── integration/
-│       └── commands/
+│       ├── commands/
+│       └── lib/
+├── docs/                         ← Product and technical documentation
+├── workstream/                   ← Planning artifacts (PRD, spec, stories, tasks)
 ├── dist/                         ← Compiled output (gitignored)
-├── memo.config.json              ← Local repo registry (committed)
 ├── .env.example                  ← Example credentials file (committed)
 ├── .env                          ← Actual credentials (gitignored)
+├── .github/workflows/            ← CI + publish workflows
 ├── tsconfig.json
 ├── jest.config.ts
 ├── eslint.config.ts

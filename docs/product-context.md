@@ -53,9 +53,22 @@ AI agents have no memory between sessions and no visibility into the broader cod
 
 ## 5. Current State
 
-**Greenfield — v1.0 in active development.**
+**v1.0 — MVP complete.**
 
-No prior codebase exists. The repository (`memo-cli`) is being initialized.
+The MVP (Phase 1) has been fully implemented and merged. All eight user stories (S-001 through S-008) are delivered:
+
+| Story | Scope | Status |
+|-------|-------|--------|
+| S-001 | Project setup (TypeScript, pnpm, CI, npm skeleton) | ✅ Complete |
+| S-002 | `memo setup` (init / show / validate) | ✅ Complete |
+| S-003 | Foundation libraries (errors, output, qdrant, embeddings, retry) | ✅ Complete |
+| S-004 | `memo write` with duplicate detection | ✅ Complete |
+| S-005 | `memo search` with semantic + pre-filters | ✅ Complete |
+| S-006 | `memo list` with date-range filtering | ✅ Complete |
+| S-007 | Bootstrap documentation and validation | ✅ Complete |
+| S-008 | First release packaging and publish workflow | ✅ Complete |
+
+The package is published as `@memo-ai/cli` on npm. CI/CD pipelines are green. The publish workflow triggers on semver tag push.
 
 ---
 
