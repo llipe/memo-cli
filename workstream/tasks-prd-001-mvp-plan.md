@@ -116,29 +116,29 @@
   - [x] 3.19 Verify Acceptance Criterion: retry policy (3 attempts, exponential backoff)
   - [x] 3.20 Run tests: `pnpm run test -- --testPathPattern="errors|output|qdrant|embeddings"`
 
-- [ ] 4.0 Implement Story S-004 — Issue #4 - https://github.com/llipe/memo-cli/issues/4: `memo write` — Decision Capture with Duplicate Detection
-  - [ ] 4.1 Implement `EntryPayload` Zod schema in `src/types/entry.ts` — all fields, tags `min(2).max(5)`, rationale `min(1).max(5000)`, entry_type enum, source enum
-  - [ ] 4.2 Implement `buildDedupeKey()` in `src/lib/dedupe.ts` — canonical `v1|<repo>|<commit>|<story_or_na>|<entry_type>|<source>` → SHA-256
-  - [ ] 4.3 Implement `sourceToConfidence()` — `agent→high`, `manual→medium`
-  - [ ] 4.4 Implement embed text composition helper — `<title from first sentence>\n<normalized tags>\n<rationale>`
-  - [ ] 4.5 Implement duplicate resolution merge functions in `src/lib/dedupe.ts`: `consolidate()`, `update()`, `replace()`, `createNew()`
-  - [ ] 4.6 Implement interactive duplicate resolution prompt in `lib/output.ts` — chalk colors, `↑/↓` keyboard navigation, `Enter` to confirm, TTY guard
-  - [ ] 4.7 Implement write command orchestration in `src/commands/write.ts`: parse flags → load config context → validate payload → compute dedupe key → lookup existing → resolve duplicate (interactive or `--on-duplicate`) → embed → upsert → output result
-  - [ ] 4.8 Implement `--confidence` flag rejection with clear error
-  - [ ] 4.9 Implement `--on-duplicate consolidate|update|replace|create-new` flag for agent-safe direct action
-  - [ ] 4.10 Implement `--json` output: full entry payload + `created`, `updated`, `duplicate_detected`
-  - [ ] 4.11 Implement auto-collection-bootstrap on first write (call `ensureCollection()`)
-  - [ ] 4.12 Implement `REPO_CONTEXT_UNRESOLVED` when no config and no `--repo` flag
-  - [ ] 4.13 Register `memo write` in `src/index.ts` with all flag definitions
-  - [ ] 4.14 Write unit tests: `tests/unit/lib/dedupe.test.ts` — dedupe key generation, confidence inference, tag/rationale validation
-  - [ ] 4.15 Write unit tests: `tests/unit/commands/write.test.ts` — consolidate/update/replace/create-new merge logic
-  - [ ] 4.16 Write integration tests: `tests/integration/commands/write.test.ts` — full write flow (mock Qdrant), duplicate detection for all 4 actions, `--json` contract, `REPO_CONTEXT_UNRESOLVED` error
-  - [ ] 4.17 Verify Acceptance Criterion: `memo write --rationale "..." --tags "a,b"` succeeds with local config
-  - [ ] 4.18 Verify Acceptance Criterion: dedupe_key_sha256 is computed and stored
-  - [ ] 4.19 Verify Acceptance Criterion: `--on-duplicate` skips interactive prompt
-  - [ ] 4.20 Verify Acceptance Criterion: `--confidence` rejected with clear error
-  - [ ] 4.21 Verify Acceptance Criterion: tags 2–5 enforced, rationale ≤5000 chars
-  - [ ] 4.22 Run tests: `pnpm run test -- --testPathPattern="write|dedupe"`
+- [x] 4.0 Implement Story S-004 — Issue #4 - https://github.com/llipe/memo-cli/issues/4: `memo write` — Decision Capture with Duplicate Detection
+  - [x] 4.1 Implement `EntryPayload` Zod schema in `src/types/entry.ts` — all fields, tags `min(2).max(5)`, rationale `min(1).max(5000)`, entry_type enum, source enum
+  - [x] 4.2 Implement `buildDedupeKey()` in `src/lib/dedupe.ts` — canonical `v1|<repo>|<commit>|<story_or_na>|<entry_type>|<source>` → SHA-256
+  - [x] 4.3 Implement `sourceToConfidence()` — `agent→high`, `manual→medium`
+  - [x] 4.4 Implement embed text composition helper — `<title from first sentence>\n<normalized tags>\n<rationale>`
+  - [x] 4.5 Implement duplicate resolution merge functions in `src/lib/dedupe.ts`: `consolidate()`, `update()`, `replace()`, `createNew()`
+  - [x] 4.6 Implement interactive duplicate resolution prompt in `lib/output.ts` — chalk colors, `↑/↓` keyboard navigation, `Enter` to confirm, TTY guard
+  - [x] 4.7 Implement write command orchestration in `src/commands/write.ts`: parse flags → load config context → validate payload → compute dedupe key → lookup existing → resolve duplicate (interactive or `--on-duplicate`) → embed → upsert → output result
+  - [x] 4.8 Implement `--confidence` flag rejection with clear error
+  - [x] 4.9 Implement `--on-duplicate consolidate|update|replace|create-new` flag for agent-safe direct action
+  - [x] 4.10 Implement `--json` output: full entry payload + `created`, `updated`, `duplicate_detected`
+  - [x] 4.11 Implement auto-collection-bootstrap on first write (call `ensureCollection()`)
+  - [x] 4.12 Implement `REPO_CONTEXT_UNRESOLVED` when no config and no `--repo` flag
+  - [x] 4.13 Register `memo write` in `src/index.ts` with all flag definitions
+  - [x] 4.14 Write unit tests: `tests/unit/lib/dedupe.test.ts` — dedupe key generation, confidence inference, tag/rationale validation
+  - [x] 4.15 Write unit tests: `tests/unit/commands/write.test.ts` — consolidate/update/replace/create-new merge logic
+  - [x] 4.16 Write integration tests: `tests/integration/commands/write.test.ts` — full write flow (mock Qdrant), duplicate detection for all 4 actions, `--json` contract, `REPO_CONTEXT_UNRESOLVED` error
+  - [x] 4.17 Verify Acceptance Criterion: `memo write --rationale "..." --tags "a,b"` succeeds with local config
+  - [x] 4.18 Verify Acceptance Criterion: dedupe_key_sha256 is computed and stored
+  - [x] 4.19 Verify Acceptance Criterion: `--on-duplicate` skips interactive prompt
+  - [x] 4.20 Verify Acceptance Criterion: `--confidence` rejected with clear error
+  - [x] 4.21 Verify Acceptance Criterion: tags 2–5 enforced, rationale ≤5000 chars
+  - [x] 4.22 Run tests: `pnpm run test -- --testPathPattern="write|dedupe"`
 
 - [ ] 5.0 Implement Story S-005 — Issue #5 - https://github.com/llipe/memo-cli/issues/5: `memo search` — Semantic Search with Pre-filters
   - [ ] 5.1 Implement `buildSearchFilters()` in `src/lib/search-filters.ts` — single repo, multi-tag AND (`must`), related scope (`should`), entry_type filter, source filter
