@@ -17,10 +17,14 @@ const config: Config = {
       },
     ],
   },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/index.ts',
-  ],
+  // chalk@5 and ora@8 are ESM-only; map to CommonJS stubs for Jest.
+  // Strip .js extensions from relative imports so CJS resolution finds the .ts source.
+  moduleNameMapper: {
+    '^chalk$': '<rootDir>/tests/__mocks__/chalk.cjs',
+    '^ora$': '<rootDir>/tests/__mocks__/ora.cjs',
+    '^(\\.{1,2}/.+)\\.js$': '$1',
+  },
+  collectCoverageFrom: ['src/**/*.ts', '!src/index.ts'],
   coverageThreshold: {
     global: {
       lines: 80,
