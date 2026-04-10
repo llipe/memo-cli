@@ -1,0 +1,201 @@
+# Implementation Plan — PRD-001 MVP Core Loop
+
+## Relevant Files
+
+- `package.json` — Package config, bin, engines, scripts
+- `tsconfig.json` — TypeScript compiler options
+- `eslint.config.ts` — ESLint v9 flat config
+- `.prettierrc` — Prettier config
+- `jest.config.ts` — Jest config (ts-jest)
+- `src/index.ts` — CLI entry point (Commander root + global error handler)
+- `src/commands/setup.ts` — `memo setup init|show|validate`
+- `src/commands/write.ts` — `memo write` with duplicate detection
+- `src/commands/search.ts` — `memo search` semantic search + pre-filters
+- `src/commands/list.ts` — `memo list` chronological listing
+- `src/lib/errors.ts` — `MemoError` hierarchy + error catalog
+- `src/lib/config.ts` — Config loader, writer, validator
+- `src/lib/output.ts` — Human/JSON output formatter, interactive prompts
+- `src/lib/qdrant.ts` — `QdrantRepository` (bootstrap, upsert, search, scroll)
+- `src/lib/embeddings.ts` — `EmbeddingsAdapter` interface + factory
+- `src/lib/retry.ts` — Retry with exponential backoff
+- `src/lib/registry.ts` — Related-repo resolution helper
+- `src/adapters/openai-embeddings.ts` — OpenAI embeddings implementation
+- `src/types/entry.ts` — `EntryPayload` Zod schema + types
+- `src/types/config.ts` — `MemoConfig` Zod schema + types
+- `src/types/cli.ts` — Shared CLI flag interfaces
+- `.github/workflows/ci.yml` — CI pipeline (typecheck, lint, test, build, audit)
+- `.github/workflows/publish.yml` — npm publish on semver tag push
+- `.env.example` — Environment variable documentation
+- `.gitignore` — Ignore rules
+- `README.md` — Setup instructions + Quick Start
+- `docs/bootstrap-guide.md` — Bootstrap prompt documentation
+- `scripts/validate-bootstrap.ts` — Bootstrap JSON validation script
+- `tests/unit/lib/errors.test.ts`
+- `tests/unit/lib/output.test.ts`
+- `tests/unit/lib/config.test.ts`
+- `tests/unit/lib/qdrant.test.ts`
+- `tests/unit/lib/dedupe.test.ts`
+- `tests/unit/lib/search-filters.test.ts`
+- `tests/unit/lib/list-filters.test.ts`
+- `tests/unit/adapters/openai-embeddings.test.ts`
+- `tests/unit/commands/write.test.ts`
+- `tests/unit/commands/search.test.ts`
+- `tests/unit/commands/list.test.ts`
+- `tests/integration/commands/setup.test.ts`
+- `tests/integration/commands/write.test.ts`
+- `tests/integration/commands/search.test.ts`
+- `tests/integration/commands/list.test.ts`
+- `tests/integration/lib/qdrant.test.ts`
+
+## Tasks
+
+- [ ] 1.0 Implement Story S-001 — Issue #1 - https://github.com/llipe/memo-cli/issues/1: Project Setup & Development Environment
+  - [ ] 1.1 Initialize `package.json` with name `@memo-ai/cli`, `bin`, `engines`, scripts (`build`, `lint`, `test`, `typecheck`), and `publishConfig`
+  - [ ] 1.2 Install runtime dependencies: `commander`, `@qdrant/js-client-rest`, `openai`, `zod`, `dotenv`, `chalk`, `ora`, `uuid`
+  - [ ] 1.3 Install dev dependencies: `typescript`, `ts-jest`, `jest`, `@types/jest`, `eslint`, `typescript-eslint`, `eslint-config-prettier`, `prettier`, `husky`, `lint-staged`, `@types/node`, `@types/uuid`
+  - [ ] 1.4 Create `tsconfig.json` with `strict: true`, `NodeNext` module resolution, `outDir: "dist"`, `rootDir: "src"`
+  - [ ] 1.5 Create `eslint.config.ts` with typescript-eslint strict + prettier rules
+  - [ ] 1.6 Create `.prettierrc` (2-space indent, single quotes, trailing commas)
+  - [ ] 1.7 Create `jest.config.ts` with ts-jest preset
+  - [ ] 1.8 Set up Husky + lint-staged pre-commit hook for `*.ts` files
+  - [ ] 1.9 Create `src/index.ts` — Commander root program with `--version`, `--help`, and placeholder command registration
+  - [ ] 1.10 Create empty command stubs: `src/commands/setup.ts`, `write.ts`, `search.ts`, `list.ts`
+  - [ ] 1.11 Create empty lib stubs: `src/lib/errors.ts`, `config.ts`, `output.ts`, `qdrant.ts`, `embeddings.ts`, `retry.ts`, `registry.ts`
+  - [ ] 1.12 Create type stubs: `src/types/entry.ts`, `config.ts`, `cli.ts`
+  - [ ] 1.13 Create `src/adapters/openai-embeddings.ts` stub
+  - [ ] 1.14 Create `.env.example` with `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY`, `EMBEDDINGS_PROVIDER`
+  - [ ] 1.15 Create `.gitignore` (exclude `.env`, `dist/`, `node_modules/`, `coverage/`)
+  - [ ] 1.16 Create `.github/workflows/ci.yml` (typecheck, lint, test, build, audit on push/PR)
+  - [ ] 1.17 Update `README.md` with local setup instructions (Node 24, pnpm 9, env config, build, test)
+  - [ ] 1.18 Verify: `pnpm install` with committed lockfile
+  - [ ] 1.19 Verify: `pnpm run build` compiles to `dist/` with no errors
+  - [ ] 1.20 Verify: `pnpm run lint` passes with zero warnings
+  - [ ] 1.21 Verify: `pnpm run test` runs Jest and reports passing
+  - [ ] 1.22 Verify: `pnpm run typecheck` completes without errors
+  - [ ] 1.23 Verify: `./dist/index.js --help` is reachable after build
+  - [ ] 1.24 Verify Acceptance Criterion: CI workflow exists and passes
+
+- [ ] 2.0 Implement Story S-002 — Issue #2 - https://github.com/llipe/memo-cli/issues/2: `memo setup` — Repository Initialization and Config Management
+  - [ ] 2.1 Implement `MemoConfig` Zod schema in `src/types/config.ts` — `schema_version`, `repo`, `org`, `domain`, `relates_to`, `defaults`; kebab-case regex; `relates_to` no duplicates and not equal to `repo`
+  - [ ] 2.2 Implement `lib/config.ts`: `loadConfig()` (read + parse `memo.config.json`), `writeConfig()`, `validateConfig()` with unknown-key passthrough
+  - [ ] 2.3 Implement `setup init` interactive wizard — chalk colors, `╔/╚` box, `cyan` labels, `gray` defaults, inline validation, config preview + confirmation prompt
+  - [ ] 2.4 Implement `setup init` non-interactive path — `--repo`, `--org`, `--domain`, `--relates-to` flags skip prompts and write immediately
+  - [ ] 2.5 Implement `setup init --json` — output written config as JSON to stdout
+  - [ ] 2.6 Implement git remote auto-detect — `git remote get-url origin` → derive repo name as suggested default in interactive mode
+  - [ ] 2.7 Implement overwrite protection — detect existing `memo.config.json`, warn + prompt for confirmation
+  - [ ] 2.8 Implement `setup show` — load and print effective config (human + `--json`)
+  - [ ] 2.9 Implement `setup validate` — load, validate, exit 0 (valid) or exit 1 with `CONFIG_INVALID`
+  - [ ] 2.10 Wire all three subcommands into `src/commands/setup.ts` and register in `src/index.ts`
+  - [ ] 2.11 Write unit tests: `tests/unit/lib/config.test.ts` — schema validation (valid/invalid fields, duplicates, unknown keys, kebab-case regex, defaults)
+  - [ ] 2.12 Write integration tests: `tests/integration/commands/setup.test.ts` — init writes file, `--json` output, validate exit codes, show output
+  - [ ] 2.13 Verify Acceptance Criterion: `memo setup init` creates valid config in empty directory
+  - [ ] 2.14 Verify Acceptance Criterion: interactive preview and confirmation prompt
+  - [ ] 2.15 Verify Acceptance Criterion: non-interactive mode skips prompts
+  - [ ] 2.16 Verify Acceptance Criterion: `memo setup validate` exits 0/1 correctly
+  - [ ] 2.17 Run tests: `pnpm run test -- --testPathPattern=config && pnpm run test -- --testPathPattern=setup`
+
+- [ ] 3.0 Implement Story S-003 — Issue #3 - https://github.com/llipe/memo-cli/issues/3: Foundation Libraries — Errors, Output, Qdrant, Embeddings
+  - [ ] 3.1 Implement `MemoError` class in `src/lib/errors.ts` — `code: ErrorCode`, `exitCode: 0 | 1 | 2`, human message; all error codes: `CONFIG_NOT_FOUND`, `CONFIG_INVALID`, `MISSING_CREDENTIAL`, `VALIDATION_FAILED`, `QDRANT_UNREACHABLE`, `QDRANT_OPERATION_FAILED`, `EMBEDDING_API_ERROR`, `COLLECTION_BOOTSTRAP_FAILED`, `UNEXPECTED_ERROR`
+  - [ ] 3.2 Implement global error handler in `src/index.ts` — catch `MemoError` → exit with `exitCode`; wrap unknown → `UNEXPECTED_ERROR`
+  - [ ] 3.3 Implement `lib/output.ts` — `result()`, `error()`, `info()`, `warn()` methods; human mode (chalk, `ora` spinner); JSON mode (clean JSON to stdout, errors to stderr); respect `NO_COLOR` and non-TTY
+  - [ ] 3.4 Implement `lib/retry.ts` — generic retry wrapper (3 attempts, exponential backoff 500ms×2)
+  - [ ] 3.5 Implement `QdrantRepository` in `lib/qdrant.ts` — constructor validates `QDRANT_URL`; methods: `ensureCollection()`, `upsert()`, `search()`, `scroll()`, `getByDedupeKey()`
+  - [ ] 3.6 Implement `ensureCollection()` — creates `decisions` collection (1536 dims, cosine) + all payload indexes idempotently; fails with `COLLECTION_BOOTSTRAP_FAILED` on unreachable
+  - [ ] 3.7 Implement `EmbeddingsAdapter` interface in `lib/embeddings.ts` — `embed(text: string): Promise<number[]>`, `dimensions: number`
+  - [ ] 3.8 Implement `OpenAIEmbeddingsAdapter` in `src/adapters/openai-embeddings.ts` — uses `text-embedding-3-small`, validates `EMBEDDINGS_API_KEY` on construction
+  - [ ] 3.9 Implement `createEmbeddingsAdapter()` factory — reads `EMBEDDINGS_PROVIDER` env var, defaults to `openai`
+  - [ ] 3.10 Implement `MEMO_DEBUG=true` verbose stderr logging
+  - [ ] 3.11 Write unit tests: `tests/unit/lib/errors.test.ts` — MemoError wrapping, error code coverage, unknown exception wrapping
+  - [ ] 3.12 Write unit tests: `tests/unit/lib/output.test.ts` — human vs JSON mode, NO_COLOR compliance, no ANSI in JSON
+  - [ ] 3.13 Write unit tests: `tests/unit/lib/qdrant.test.ts` — QdrantRepository method contracts (mocked client)
+  - [ ] 3.14 Write unit tests: `tests/unit/adapters/openai-embeddings.test.ts` — adapter interface compliance, missing credential error
+  - [ ] 3.15 Write integration tests: `tests/integration/lib/qdrant.test.ts` — ensureCollection creates collection on fresh Qdrant, idempotent on repeat, COLLECTION_BOOTSTRAP_FAILED on unreachable
+  - [ ] 3.16 Verify Acceptance Criterion: `MemoError` carries `code`, `exitCode`, and message
+  - [ ] 3.17 Verify Acceptance Criterion: output.ts never mixes ANSI into JSON
+  - [ ] 3.18 Verify Acceptance Criterion: ensureCollection is idempotent
+  - [ ] 3.19 Verify Acceptance Criterion: retry policy (3 attempts, exponential backoff)
+  - [ ] 3.20 Run tests: `pnpm run test -- --testPathPattern="errors|output|qdrant|embeddings"`
+
+- [ ] 4.0 Implement Story S-004 — Issue #4 - https://github.com/llipe/memo-cli/issues/4: `memo write` — Decision Capture with Duplicate Detection
+  - [ ] 4.1 Implement `EntryPayload` Zod schema in `src/types/entry.ts` — all fields, tags `min(2).max(5)`, rationale `min(1).max(5000)`, entry_type enum, source enum
+  - [ ] 4.2 Implement `buildDedupeKey()` in `src/lib/dedupe.ts` — canonical `v1|<repo>|<commit>|<story_or_na>|<entry_type>|<source>` → SHA-256
+  - [ ] 4.3 Implement `sourceToConfidence()` — `agent→high`, `manual→medium`
+  - [ ] 4.4 Implement embed text composition helper — `<title from first sentence>\n<normalized tags>\n<rationale>`
+  - [ ] 4.5 Implement duplicate resolution merge functions in `src/lib/dedupe.ts`: `consolidate()`, `update()`, `replace()`, `createNew()`
+  - [ ] 4.6 Implement interactive duplicate resolution prompt in `lib/output.ts` — chalk colors, `↑/↓` keyboard navigation, `Enter` to confirm, TTY guard
+  - [ ] 4.7 Implement write command orchestration in `src/commands/write.ts`: parse flags → load config context → validate payload → compute dedupe key → lookup existing → resolve duplicate (interactive or `--on-duplicate`) → embed → upsert → output result
+  - [ ] 4.8 Implement `--confidence` flag rejection with clear error
+  - [ ] 4.9 Implement `--on-duplicate consolidate|update|replace|create-new` flag for agent-safe direct action
+  - [ ] 4.10 Implement `--json` output: full entry payload + `created`, `updated`, `duplicate_detected`
+  - [ ] 4.11 Implement auto-collection-bootstrap on first write (call `ensureCollection()`)
+  - [ ] 4.12 Implement `REPO_CONTEXT_UNRESOLVED` when no config and no `--repo` flag
+  - [ ] 4.13 Register `memo write` in `src/index.ts` with all flag definitions
+  - [ ] 4.14 Write unit tests: `tests/unit/lib/dedupe.test.ts` — dedupe key generation, confidence inference, tag/rationale validation
+  - [ ] 4.15 Write unit tests: `tests/unit/commands/write.test.ts` — consolidate/update/replace/create-new merge logic
+  - [ ] 4.16 Write integration tests: `tests/integration/commands/write.test.ts` — full write flow (mock Qdrant), duplicate detection for all 4 actions, `--json` contract, `REPO_CONTEXT_UNRESOLVED` error
+  - [ ] 4.17 Verify Acceptance Criterion: `memo write --rationale "..." --tags "a,b"` succeeds with local config
+  - [ ] 4.18 Verify Acceptance Criterion: dedupe_key_sha256 is computed and stored
+  - [ ] 4.19 Verify Acceptance Criterion: `--on-duplicate` skips interactive prompt
+  - [ ] 4.20 Verify Acceptance Criterion: `--confidence` rejected with clear error
+  - [ ] 4.21 Verify Acceptance Criterion: tags 2–5 enforced, rationale ≤5000 chars
+  - [ ] 4.22 Run tests: `pnpm run test -- --testPathPattern="write|dedupe"`
+
+- [ ] 5.0 Implement Story S-005 — Issue #5 - https://github.com/llipe/memo-cli/issues/5: `memo search` — Semantic Search with Pre-filters
+  - [ ] 5.1 Implement `buildSearchFilters()` in `src/lib/search-filters.ts` — single repo, multi-tag AND (`must`), related scope (`should`), entry_type filter, source filter
+  - [ ] 5.2 Implement vector composition logic — `embed(query + " " + tags.join(" "))` when tags provided
+  - [ ] 5.3 Implement related-scope repo list resolution in `src/lib/registry.ts` — reads config `relates_to` array
+  - [ ] 5.4 Implement `QdrantRepository.search()` method (if not already complete from S-003)
+  - [ ] 5.5 Implement search command orchestration in `src/commands/search.ts`: parse flags → resolve context → build filters → embed query → search → format output
+  - [ ] 5.6 Implement human output for search results — `cyan` labels, `bold` rationale lead, `gray` metadata, similarity as `Math.round(score * 100)%`
+  - [ ] 5.7 Implement human empty-results display — show active filters + broadening tip
+  - [ ] 5.8 Implement `--json` output: `query`, `filters`, `results` array (all payload + `similarity`), `count`, `message` on empty
+  - [ ] 5.9 Implement auto-bootstrap on first search
+  - [ ] 5.10 Register `memo search` in `src/index.ts` with all flag definitions
+  - [ ] 5.11 Write unit tests: `tests/unit/lib/search-filters.test.ts` — filter builder for all flag combos
+  - [ ] 5.12 Write unit tests: `tests/unit/commands/search.test.ts` — vector composition, command orchestration
+  - [ ] 5.13 Write integration tests: `tests/integration/commands/search.test.ts` — search with mock results, empty results, `--json` contract, related scope expansion
+  - [ ] 5.14 Verify Acceptance Criterion: multi-tag AND semantics
+  - [ ] 5.15 Verify Acceptance Criterion: `--scope related` expands to `relates_to` repos
+  - [ ] 5.16 Verify Acceptance Criterion: empty results return exit 0 with empty array
+  - [ ] 5.17 Run tests: `pnpm run test -- --testPathPattern="search"`
+
+- [ ] 6.0 Implement Story S-006 — Issue #6 - https://github.com/llipe/memo-cli/issues/6: `memo list` — Chronological Entry Listing
+  - [ ] 6.1 Implement `QdrantRepository.scroll()` with `order_by: { key: "timestamp_utc", direction: "desc" }` and filter support
+  - [ ] 6.2 Implement `buildListFilters()` in `src/lib/list-filters.ts` — repo, org, entry_type, source, scope, date range (`--from`/`--to` as Qdrant range filter)
+  - [ ] 6.3 Implement list command orchestration in `src/commands/list.ts`: parse flags → resolve context → build filters → scroll → format output
+  - [ ] 6.4 Implement human output for list results — table-style, `gray` meta labels, `cyan` repo, `bold` rationale snippet, timestamps
+  - [ ] 6.5 Implement human empty-results display with count 0 and message
+  - [ ] 6.6 Implement `--json` output: `filters` and `results` array with all payload fields
+  - [ ] 6.7 Implement auto-bootstrap on first list
+  - [ ] 6.8 Register `memo list` in `src/index.ts` with all flag definitions (`--from`, `--to`, `--repo`, `--org`, `--entry-type`, `--source`, `--scope`, `--limit`, `--json`)
+  - [ ] 6.9 Write unit tests: `tests/unit/lib/list-filters.test.ts` — date range filter, list filter composition
+  - [ ] 6.10 Write unit tests: `tests/unit/commands/list.test.ts` — command orchestration, filter composition
+  - [ ] 6.11 Write integration tests: `tests/integration/commands/list.test.ts` — `--json` contract, empty list, `--from`/`--to`, `--entry-type` filter
+  - [ ] 6.12 Verify Acceptance Criterion: entries ordered by `timestamp_utc` descending
+  - [ ] 6.13 Verify Acceptance Criterion: `--limit` defaults to 20
+  - [ ] 6.14 Verify Acceptance Criterion: empty results return exit 0 with count 0
+  - [ ] 6.15 Run tests: `pnpm run test -- --testPathPattern="list"`
+
+- [ ] 7.0 Implement Story S-007 — Issue #7 - https://github.com/llipe/memo-cli/issues/7: Bootstrap Prompt Documentation & Validation Workflow
+  - [ ] 7.1 Write `docs/bootstrap-guide.md` — prompt template, artifact selection guide (which files to pick: README, architecture docs, config files, key modules), 3 worked conversion examples (JSON → `memo write --source manual --json`)
+  - [ ] 7.2 Add verification section to guide — 3 example `memo search` queries to validate bootstrap entries
+  - [ ] 7.3 Create `scripts/validate-bootstrap.ts` — bootstrap Zod schema (subset of EntryPayload: `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`); read JSON file arg; validate each item; exit 0/1
+  - [ ] 7.4 Implement human-readable validation error output — field path + expected value
+  - [ ] 7.5 Write unit tests for bootstrap Zod schema (valid items, missing fields, wrong entry_types, tag count out of range, extra fields rejected)
+  - [ ] 7.6 Test script against sample valid and invalid JSON files
+  - [ ] 7.7 Link bootstrap guide from `README.md`
+  - [ ] 7.8 Verify Acceptance Criterion: `docs/bootstrap-guide.md` exists with full prompt template
+  - [ ] 7.9 Verify Acceptance Criterion: `scripts/validate-bootstrap.ts` exits 0 on valid input and 1 with detailed errors on invalid
+  - [ ] 7.10 Run tests: `pnpm run test -- --testPathPattern="bootstrap"`
+
+- [ ] 8.0 Implement Story S-008 — Issue #8 - https://github.com/llipe/memo-cli/issues/8: First Release — Package Build, Publish, and Install Verification
+  - [ ] 8.1 Finalize `package.json`: `files: ["dist", "README.md", "LICENSE"]`, `bin`, `engines`, `version: "1.0.0"`, `publishConfig: { "access": "public" }`
+  - [ ] 8.2 Ensure `src/index.ts` has `#!/usr/bin/env node` shebang at top of source (compiled to `dist/index.js`)
+  - [ ] 8.3 Create `.github/workflows/publish.yml` — trigger on `v*.*.*` tag push; steps: install, build, test, `npm publish --access public` with `NODE_AUTH_TOKEN`
+  - [ ] 8.4 Verify: `pnpm run build` produces `dist/index.js` with shebang
+  - [ ] 8.5 Verify: `npm pack --dry-run` includes only `dist/`, `README.md`, `LICENSE`
+  - [ ] 8.6 Verify: `pnpm audit --audit-level=high` passes with zero high/critical
+  - [ ] 8.7 Update `README.md` with Quick Start section (global install + first-run example)
+  - [ ] 8.8 Verify Acceptance Criterion: `memo --version` returns correct semver
+  - [ ] 8.9 Verify Acceptance Criterion: `memo --help` lists all commands
+  - [ ] 8.10 Verify Acceptance Criterion: publish workflow runs on tag push
