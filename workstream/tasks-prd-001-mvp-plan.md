@@ -49,31 +49,31 @@
 
 ## Tasks
 
-- [ ] 1.0 Implement Story S-001 — Issue #1 - https://github.com/llipe/memo-cli/issues/1: Project Setup & Development Environment
-  - [ ] 1.1 Initialize `package.json` with name `@memo-ai/cli`, `bin`, `engines`, scripts (`build`, `lint`, `test`, `typecheck`), and `publishConfig`
-  - [ ] 1.2 Install runtime dependencies: `commander`, `@qdrant/js-client-rest`, `openai`, `zod`, `dotenv`, `chalk`, `ora`, `uuid`
-  - [ ] 1.3 Install dev dependencies: `typescript`, `ts-jest`, `jest`, `@types/jest`, `eslint`, `typescript-eslint`, `eslint-config-prettier`, `prettier`, `husky`, `lint-staged`, `@types/node`, `@types/uuid`
-  - [ ] 1.4 Create `tsconfig.json` with `strict: true`, `NodeNext` module resolution, `outDir: "dist"`, `rootDir: "src"`
-  - [ ] 1.5 Create `eslint.config.ts` with typescript-eslint strict + prettier rules
-  - [ ] 1.6 Create `.prettierrc` (2-space indent, single quotes, trailing commas)
-  - [ ] 1.7 Create `jest.config.ts` with ts-jest preset
-  - [ ] 1.8 Set up Husky + lint-staged pre-commit hook for `*.ts` files
-  - [ ] 1.9 Create `src/index.ts` — Commander root program with `--version`, `--help`, and placeholder command registration
-  - [ ] 1.10 Create empty command stubs: `src/commands/setup.ts`, `write.ts`, `search.ts`, `list.ts`
-  - [ ] 1.11 Create empty lib stubs: `src/lib/errors.ts`, `config.ts`, `output.ts`, `qdrant.ts`, `embeddings.ts`, `retry.ts`, `registry.ts`
-  - [ ] 1.12 Create type stubs: `src/types/entry.ts`, `config.ts`, `cli.ts`
-  - [ ] 1.13 Create `src/adapters/openai-embeddings.ts` stub
-  - [ ] 1.14 Create `.env.example` with `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY`, `EMBEDDINGS_PROVIDER`
-  - [ ] 1.15 Create `.gitignore` (exclude `.env`, `dist/`, `node_modules/`, `coverage/`)
-  - [ ] 1.16 Create `.github/workflows/ci.yml` (typecheck, lint, test, build, audit on push/PR)
-  - [ ] 1.17 Update `README.md` with local setup instructions (Node 24, pnpm 9, env config, build, test)
-  - [ ] 1.18 Verify: `pnpm install` with committed lockfile
-  - [ ] 1.19 Verify: `pnpm run build` compiles to `dist/` with no errors
-  - [ ] 1.20 Verify: `pnpm run lint` passes with zero warnings
-  - [ ] 1.21 Verify: `pnpm run test` runs Jest and reports passing
-  - [ ] 1.22 Verify: `pnpm run typecheck` completes without errors
-  - [ ] 1.23 Verify: `./dist/index.js --help` is reachable after build
-  - [ ] 1.24 Verify Acceptance Criterion: CI workflow exists and passes
+- [x] 1.0 Implement Story S-001 — Issue #1 - https://github.com/llipe/memo-cli/issues/1: Project Setup & Development Environment
+  - [x] 1.1 Initialize `package.json` with name `@memo-ai/cli`, `bin`, `engines`, scripts (`build`, `lint`, `test`, `typecheck`), and `publishConfig`
+  - [x] 1.2 Install runtime dependencies: `commander`, `@qdrant/js-client-rest`, `openai`, `zod`, `dotenv`, `chalk`, `ora`, `uuid`
+  - [x] 1.3 Install dev dependencies: `typescript`, `ts-jest`, `jest`, `@types/jest`, `eslint`, `typescript-eslint`, `eslint-config-prettier`, `prettier`, `husky`, `lint-staged`, `@types/node`, `@types/uuid`
+  - [x] 1.4 Create `tsconfig.json` with `strict: true`, `NodeNext` module resolution, `outDir: "dist"`, `rootDir: "src"`
+  - [x] 1.5 Create `eslint.config.ts` with typescript-eslint strict + prettier rules
+  - [x] 1.6 Create `.prettierrc` (2-space indent, single quotes, trailing commas)
+  - [x] 1.7 Create `jest.config.ts` with ts-jest preset
+  - [x] 1.8 Set up Husky + lint-staged pre-commit hook for `*.ts` files
+  - [x] 1.9 Create `src/index.ts` — Commander root program with `--version`, `--help`, and placeholder command registration
+  - [x] 1.10 Create empty command stubs: `src/commands/setup.ts`, `write.ts`, `search.ts`, `list.ts`
+  - [x] 1.11 Create empty lib stubs: `src/lib/errors.ts`, `config.ts`, `output.ts`, `qdrant.ts`, `embeddings.ts`, `retry.ts`, `registry.ts`
+  - [x] 1.12 Create type stubs: `src/types/entry.ts`, `config.ts`, `cli.ts`
+  - [x] 1.13 Create `src/adapters/openai-embeddings.ts` stub
+  - [x] 1.14 Create `.env.example` with `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY`, `EMBEDDINGS_PROVIDER`
+  - [x] 1.15 Create `.gitignore` (exclude `.env`, `dist/`, `node_modules/`, `coverage/`)
+  - [x] 1.16 Create `.github/workflows/ci.yml` (typecheck, lint, test, build, audit on push/PR)
+  - [x] 1.17 Update `README.md` with local setup instructions (Node 24, pnpm 9, env config, build, test)
+  - [x] 1.18 Verify: `pnpm install` with committed lockfile
+  - [x] 1.19 Verify: `pnpm run build` compiles to `dist/` with no errors
+  - [x] 1.20 Verify: `pnpm run lint` passes with zero warnings
+  - [x] 1.21 Verify: `pnpm run test` runs Jest and reports passing
+  - [x] 1.22 Verify: `pnpm run typecheck` completes without errors
+  - [x] 1.23 Verify: `./dist/index.js --help` is reachable after build
+  - [x] 1.24 Verify Acceptance Criterion: CI workflow exists and passes
 
 - [ ] 2.0 Implement Story S-002 — Issue #2 - https://github.com/llipe/memo-cli/issues/2: `memo setup` — Repository Initialization and Config Management
   - [ ] 2.1 Implement `MemoConfig` Zod schema in `src/types/config.ts` — `schema_version`, `repo`, `org`, `domain`, `relates_to`, `defaults`; kebab-case regex; `relates_to` no duplicates and not equal to `repo`
