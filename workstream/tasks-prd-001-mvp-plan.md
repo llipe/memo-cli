@@ -196,7 +196,7 @@
   - [x] 7.9 Verify Acceptance Criterion: `scripts/validate-bootstrap.ts` exits 0 on valid input and 1 with detailed errors on invalid
   - [x] 7.10 Run tests: `pnpm run test -- --testPathPattern="bootstrap"`
 
-- [ ] 8.0 Implement Story S-008 — Issue #8 - https://github.com/llipe/memo-cli/issues/8: First Release — Package Build, Publish, and Install Verification
+- [x] 8.0 Implement Story S-008 — Issue #8 - https://github.com/llipe/memo-cli/issues/8: First Release — Package Build, Publish, and Install Verification
   - [x] 8.1 Finalize `package.json`: `files: ["dist", "README.md", "LICENSE"]`, `bin`, `engines`, `version: "1.0.0"`, `publishConfig: { "access": "public" }`
   - [x] 8.2 Ensure `src/index.ts` has `#!/usr/bin/env node` shebang at top of source (compiled to `dist/index.js`)
   - [x] 8.3 Create `.github/workflows/publish.yml` — trigger on `v*.*.*` tag push; steps: install, build, test, `npm publish --access public` with `NODE_AUTH_TOKEN`
@@ -206,4 +206,4 @@
   - [x] 8.7 Update `README.md` with Quick Start section (global install + first-run example)
   - [x] 8.8 Verify Acceptance Criterion: `memo --version` returns correct semver
   - [x] 8.9 Verify Acceptance Criterion: `memo --help` lists all commands
-  - [ ] 8.10 Verify Acceptance Criterion: publish workflow runs on tag push
+  - [x] 8.10 Verify Acceptance Criterion: publish workflow runs on tag push
