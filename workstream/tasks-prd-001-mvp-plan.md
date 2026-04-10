@@ -75,24 +75,24 @@
   - [x] 1.23 Verify: `./dist/index.js --help` is reachable after build
   - [x] 1.24 Verify Acceptance Criterion: CI workflow exists and passes
 
-- [ ] 2.0 Implement Story S-002 — Issue #2 - https://github.com/llipe/memo-cli/issues/2: `memo setup` — Repository Initialization and Config Management
-  - [ ] 2.1 Implement `MemoConfig` Zod schema in `src/types/config.ts` — `schema_version`, `repo`, `org`, `domain`, `relates_to`, `defaults`; kebab-case regex; `relates_to` no duplicates and not equal to `repo`
-  - [ ] 2.2 Implement `lib/config.ts`: `loadConfig()` (read + parse `memo.config.json`), `writeConfig()`, `validateConfig()` with unknown-key passthrough
-  - [ ] 2.3 Implement `setup init` interactive wizard — chalk colors, `╔/╚` box, `cyan` labels, `gray` defaults, inline validation, config preview + confirmation prompt
-  - [ ] 2.4 Implement `setup init` non-interactive path — `--repo`, `--org`, `--domain`, `--relates-to` flags skip prompts and write immediately
-  - [ ] 2.5 Implement `setup init --json` — output written config as JSON to stdout
-  - [ ] 2.6 Implement git remote auto-detect — `git remote get-url origin` → derive repo name as suggested default in interactive mode
-  - [ ] 2.7 Implement overwrite protection — detect existing `memo.config.json`, warn + prompt for confirmation
-  - [ ] 2.8 Implement `setup show` — load and print effective config (human + `--json`)
-  - [ ] 2.9 Implement `setup validate` — load, validate, exit 0 (valid) or exit 1 with `CONFIG_INVALID`
-  - [ ] 2.10 Wire all three subcommands into `src/commands/setup.ts` and register in `src/index.ts`
-  - [ ] 2.11 Write unit tests: `tests/unit/lib/config.test.ts` — schema validation (valid/invalid fields, duplicates, unknown keys, kebab-case regex, defaults)
-  - [ ] 2.12 Write integration tests: `tests/integration/commands/setup.test.ts` — init writes file, `--json` output, validate exit codes, show output
-  - [ ] 2.13 Verify Acceptance Criterion: `memo setup init` creates valid config in empty directory
-  - [ ] 2.14 Verify Acceptance Criterion: interactive preview and confirmation prompt
-  - [ ] 2.15 Verify Acceptance Criterion: non-interactive mode skips prompts
-  - [ ] 2.16 Verify Acceptance Criterion: `memo setup validate` exits 0/1 correctly
-  - [ ] 2.17 Run tests: `pnpm run test -- --testPathPattern=config && pnpm run test -- --testPathPattern=setup`
+- [x] 2.0 Implement Story S-002 — Issue #2 - https://github.com/llipe/memo-cli/issues/2: `memo setup` — Repository Initialization and Config Management
+  - [x] 2.1 Implement `MemoConfig` Zod schema in `src/types/config.ts` — `schema_version`, `repo`, `org`, `domain`, `relates_to`, `defaults`; kebab-case regex; `relates_to` no duplicates and not equal to `repo`
+  - [x] 2.2 Implement `lib/config.ts`: `loadConfig()` (read + parse `memo.config.json`), `writeConfig()`, `validateConfig()` with unknown-key passthrough
+  - [x] 2.3 Implement `setup init` interactive wizard — chalk colors, `╔/╚` box, `cyan` labels, `gray` defaults, inline validation, config preview + confirmation prompt
+  - [x] 2.4 Implement `setup init` non-interactive path — `--repo`, `--org`, `--domain`, `--relates-to` flags skip prompts and write immediately
+  - [x] 2.5 Implement `setup init --json` — output written config as JSON to stdout
+  - [x] 2.6 Implement git remote auto-detect — `git remote get-url origin` → derive repo name as suggested default in interactive mode
+  - [x] 2.7 Implement overwrite protection — detect existing `memo.config.json`, warn + prompt for confirmation
+  - [x] 2.8 Implement `setup show` — load and print effective config (human + `--json`)
+  - [x] 2.9 Implement `setup validate` — load, validate, exit 0 (valid) or exit 1 with `CONFIG_INVALID`
+  - [x] 2.10 Wire all three subcommands into `src/commands/setup.ts` and register in `src/index.ts`
+  - [x] 2.11 Write unit tests: `tests/unit/lib/config.test.ts` — schema validation (valid/invalid fields, duplicates, unknown keys, kebab-case regex, defaults)
+  - [x] 2.12 Write integration tests: `tests/integration/commands/setup.test.ts` — init writes file, `--json` output, validate exit codes, show output
+  - [x] 2.13 Verify Acceptance Criterion: `memo setup init` creates valid config in empty directory
+  - [x] 2.14 Verify Acceptance Criterion: interactive preview and confirmation prompt
+  - [x] 2.15 Verify Acceptance Criterion: non-interactive mode skips prompts
+  - [x] 2.16 Verify Acceptance Criterion: `memo setup validate` exits 0/1 correctly
+  - [x] 2.17 Run tests: `pnpm run test -- --testPathPattern=config && pnpm run test -- --testPathPattern=setup`
 
 - [ ] 3.0 Implement Story S-003 — Issue #3 - https://github.com/llipe/memo-cli/issues/3: Foundation Libraries — Errors, Output, Qdrant, Embeddings
   - [ ] 3.1 Implement `MemoError` class in `src/lib/errors.ts` — `code: ErrorCode`, `exitCode: 0 | 1 | 2`, human message; all error codes: `CONFIG_NOT_FOUND`, `CONFIG_INVALID`, `MISSING_CREDENTIAL`, `VALIDATION_FAILED`, `QDRANT_UNREACHABLE`, `QDRANT_OPERATION_FAILED`, `EMBEDDING_API_ERROR`, `COLLECTION_BOOTSTRAP_FAILED`, `UNEXPECTED_ERROR`
