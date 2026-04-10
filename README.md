@@ -90,6 +90,14 @@ memo write \
 # Search decisions
 memo search "why did we choose the vector database"
 
+# Search within related repos and require tags
+memo search "how do we persist decisions" \
+  --scope related \
+  --tags "qdrant,write-flow"
+
+# Machine-readable search output
+memo search "how do we persist decisions" --json
+
 # List recent entries
 memo list --limit 10
 ```

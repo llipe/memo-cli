@@ -16,6 +16,7 @@
 - `src/lib/config.ts` — Config loader, writer, validator
 - `src/lib/output.ts` — Human/JSON output formatter, interactive prompts
 - `src/lib/qdrant.ts` — `QdrantRepository` (bootstrap, upsert, search, scroll)
+- `src/lib/search-filters.ts` — Search pre-filter builder for repo/scope/tag semantics
 - `src/lib/embeddings.ts` — `EmbeddingsAdapter` interface + factory
 - `src/lib/retry.ts` — Retry with exponential backoff
 - `src/lib/registry.ts` — Related-repo resolution helper
@@ -28,6 +29,7 @@
 - `.env.example` — Environment variable documentation
 - `.gitignore` — Ignore rules
 - `README.md` — Setup instructions + Quick Start
+- `scripts/run-jest.mjs` — Jest argument-forwarding wrapper for scoped test commands
 - `docs/bootstrap-guide.md` — Bootstrap prompt documentation
 - `scripts/validate-bootstrap.ts` — Bootstrap JSON validation script
 - `tests/unit/lib/errors.test.ts`
@@ -36,6 +38,8 @@
 - `tests/unit/lib/qdrant.test.ts`
 - `tests/unit/lib/dedupe.test.ts`
 - `tests/unit/lib/search-filters.test.ts`
+- `tests/unit/commands/search.test.ts`
+- `tests/integration/commands/search.test.ts`
 - `tests/unit/lib/list-filters.test.ts`
 - `tests/unit/adapters/openai-embeddings.test.ts`
 - `tests/unit/commands/write.test.ts`
@@ -140,24 +144,24 @@
   - [x] 4.21 Verify Acceptance Criterion: tags 2–5 enforced, rationale ≤5000 chars
   - [x] 4.22 Run tests: `pnpm run test -- --testPathPattern="write|dedupe"`
 
-- [ ] 5.0 Implement Story S-005 — Issue #5 - https://github.com/llipe/memo-cli/issues/5: `memo search` — Semantic Search with Pre-filters
-  - [ ] 5.1 Implement `buildSearchFilters()` in `src/lib/search-filters.ts` — single repo, multi-tag AND (`must`), related scope (`should`), entry_type filter, source filter
-  - [ ] 5.2 Implement vector composition logic — `embed(query + " " + tags.join(" "))` when tags provided
-  - [ ] 5.3 Implement related-scope repo list resolution in `src/lib/registry.ts` — reads config `relates_to` array
-  - [ ] 5.4 Implement `QdrantRepository.search()` method (if not already complete from S-003)
-  - [ ] 5.5 Implement search command orchestration in `src/commands/search.ts`: parse flags → resolve context → build filters → embed query → search → format output
-  - [ ] 5.6 Implement human output for search results — `cyan` labels, `bold` rationale lead, `gray` metadata, similarity as `Math.round(score * 100)%`
-  - [ ] 5.7 Implement human empty-results display — show active filters + broadening tip
-  - [ ] 5.8 Implement `--json` output: `query`, `filters`, `results` array (all payload + `similarity`), `count`, `message` on empty
-  - [ ] 5.9 Implement auto-bootstrap on first search
-  - [ ] 5.10 Register `memo search` in `src/index.ts` with all flag definitions
-  - [ ] 5.11 Write unit tests: `tests/unit/lib/search-filters.test.ts` — filter builder for all flag combos
-  - [ ] 5.12 Write unit tests: `tests/unit/commands/search.test.ts` — vector composition, command orchestration
-  - [ ] 5.13 Write integration tests: `tests/integration/commands/search.test.ts` — search with mock results, empty results, `--json` contract, related scope expansion
-  - [ ] 5.14 Verify Acceptance Criterion: multi-tag AND semantics
-  - [ ] 5.15 Verify Acceptance Criterion: `--scope related` expands to `relates_to` repos
-  - [ ] 5.16 Verify Acceptance Criterion: empty results return exit 0 with empty array
-  - [ ] 5.17 Run tests: `pnpm run test -- --testPathPattern="search"`
+- [x] 5.0 Implement Story S-005 — Issue #5 - https://github.com/llipe/memo-cli/issues/5: `memo search` — Semantic Search with Pre-filters
+  - [x] 5.1 Implement `buildSearchFilters()` in `src/lib/search-filters.ts` — single repo, multi-tag AND (`must`), related scope (`should`), entry_type filter, source filter
+  - [x] 5.2 Implement vector composition logic — `embed(query + " " + tags.join(" "))` when tags provided
+  - [x] 5.3 Implement related-scope repo list resolution in `src/lib/registry.ts` — reads config `relates_to` array
+  - [x] 5.4 Implement `QdrantRepository.search()` method (if not already complete from S-003)
+  - [x] 5.5 Implement search command orchestration in `src/commands/search.ts`: parse flags → resolve context → build filters → embed query → search → format output
+  - [x] 5.6 Implement human output for search results — `cyan` labels, `bold` rationale lead, `gray` metadata, similarity as `Math.round(score * 100)%`
+  - [x] 5.7 Implement human empty-results display — show active filters + broadening tip
+  - [x] 5.8 Implement `--json` output: `query`, `filters`, `results` array (all payload + `similarity`), `count`, `message` on empty
+  - [x] 5.9 Implement auto-bootstrap on first search
+  - [x] 5.10 Register `memo search` in `src/index.ts` with all flag definitions
+  - [x] 5.11 Write unit tests: `tests/unit/lib/search-filters.test.ts` — filter builder for all flag combos
+  - [x] 5.12 Write unit tests: `tests/unit/commands/search.test.ts` — vector composition, command orchestration
+  - [x] 5.13 Write integration tests: `tests/integration/commands/search.test.ts` — search with mock results, empty results, `--json` contract, related scope expansion
+  - [x] 5.14 Verify Acceptance Criterion: multi-tag AND semantics
+  - [x] 5.15 Verify Acceptance Criterion: `--scope related` expands to `relates_to` repos
+  - [x] 5.16 Verify Acceptance Criterion: empty results return exit 0 with empty array
+  - [x] 5.17 Run tests: `pnpm run test -- --testPathPattern="search"`
 
 - [ ] 6.0 Implement Story S-006 — Issue #6 - https://github.com/llipe/memo-cli/issues/6: `memo list` — Chronological Entry Listing
   - [ ] 6.1 Implement `QdrantRepository.scroll()` with `order_by: { key: "timestamp_utc", direction: "desc" }` and filter support
