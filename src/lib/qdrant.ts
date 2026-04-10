@@ -1,7 +1,7 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
 import type { Schemas } from '@qdrant/js-client-rest';
 
-type QdrantFilter = Schemas['SearchRequest']['filter'];
+export type QdrantFilter = Schemas['SearchRequest']['filter'];
 import { MemoError } from './errors.js';
 import { withRetry } from './retry.js';
 import { debugLog } from './debug.js';
