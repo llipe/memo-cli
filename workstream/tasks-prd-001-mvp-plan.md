@@ -197,13 +197,13 @@
   - [x] 7.10 Run tests: `pnpm run test -- --testPathPattern="bootstrap"`
 
 - [ ] 8.0 Implement Story S-008 — Issue #8 - https://github.com/llipe/memo-cli/issues/8: First Release — Package Build, Publish, and Install Verification
-  - [ ] 8.1 Finalize `package.json`: `files: ["dist", "README.md", "LICENSE"]`, `bin`, `engines`, `version: "1.0.0"`, `publishConfig: { "access": "public" }`
-  - [ ] 8.2 Ensure `src/index.ts` has `#!/usr/bin/env node` shebang at top of source (compiled to `dist/index.js`)
-  - [ ] 8.3 Create `.github/workflows/publish.yml` — trigger on `v*.*.*` tag push; steps: install, build, test, `npm publish --access public` with `NODE_AUTH_TOKEN`
-  - [ ] 8.4 Verify: `pnpm run build` produces `dist/index.js` with shebang
-  - [ ] 8.5 Verify: `npm pack --dry-run` includes only `dist/`, `README.md`, `LICENSE`
-  - [ ] 8.6 Verify: `pnpm audit --audit-level=high` passes with zero high/critical
-  - [ ] 8.7 Update `README.md` with Quick Start section (global install + first-run example)
-  - [ ] 8.8 Verify Acceptance Criterion: `memo --version` returns correct semver
-  - [ ] 8.9 Verify Acceptance Criterion: `memo --help` lists all commands
+  - [x] 8.1 Finalize `package.json`: `files: ["dist", "README.md", "LICENSE"]`, `bin`, `engines`, `version: "1.0.0"`, `publishConfig: { "access": "public" }`
+  - [x] 8.2 Ensure `src/index.ts` has `#!/usr/bin/env node` shebang at top of source (compiled to `dist/index.js`)
+  - [x] 8.3 Create `.github/workflows/publish.yml` — trigger on `v*.*.*` tag push; steps: install, build, test, `npm publish --access public` with `NODE_AUTH_TOKEN`
+  - [x] 8.4 Verify: `pnpm run build` produces `dist/index.js` with shebang
+  - [x] 8.5 Verify: `npm pack --dry-run` includes only `dist/`, `README.md`, `LICENSE`
+  - [x] 8.6 Verify: `pnpm audit --audit-level=high` passes with zero high/critical
+  - [x] 8.7 Update `README.md` with Quick Start section (global install + first-run example)
+  - [x] 8.8 Verify Acceptance Criterion: `memo --version` returns correct semver
+  - [x] 8.9 Verify Acceptance Criterion: `memo --help` lists all commands
   - [ ] 8.10 Verify Acceptance Criterion: publish workflow runs on tag push
