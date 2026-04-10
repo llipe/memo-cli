@@ -16,6 +16,19 @@ export interface SearchHumanResult {
   timestamp_utc?: string;
 }
 
+export interface ListHumanResult {
+  id: string | number;
+  repo?: string;
+  rationale?: string;
+  entry_type?: string;
+  source?: string;
+  org?: string;
+  tags?: string[];
+  story?: string;
+  commit?: string;
+  timestamp_utc?: string;
+}
+
 function toLead(text?: string): string {
   if (!text) return 'No rationale provided.';
   const singleLine = text.replace(/\s+/g, ' ').trim();
@@ -31,6 +44,19 @@ function renderMetadata(result: SearchHumanResult): string {
     result.story ? `story:${result.story}` : null,
     result.commit ? `commit:${result.commit}` : null,
     result.timestamp_utc ? `at:${result.timestamp_utc}` : null,
+    result.tags && result.tags.length > 0 ? `tags:${result.tags.join(', ')}` : null,
+  ].filter((value): value is string => value !== null);
+
+  return parts.join('  ');
+}
+
+function renderListMetadata(result: ListHumanResult): string {
+  const parts = [
+    result.org ? `org:${result.org}` : null,
+    result.entry_type ? `type:${result.entry_type}` : null,
+    result.source ? `source:${result.source}` : null,
+    result.story ? `story:${result.story}` : null,
+    result.commit ? `commit:${result.commit}` : null,
     result.tags && result.tags.length > 0 ? `tags:${result.tags.join(', ')}` : null,
   ].filter((value): value is string => value !== null);
 
@@ -94,6 +120,36 @@ export const output = {
     );
     process.stdout.write(
       chalk.gray('tip: broaden the query, remove tags, or switch to --scope related') + '\n',
+    );
+  },
+
+  listResults(results: ListHumanResult[]): void {
+    process.stdout.write(
+      `${chalk.gray('timestamp_utc')}  ${chalk.gray('repo')}  ${chalk.gray('rationale')}\n`,
+    );
+
+    for (const result of results) {
+      const timestamp = result.timestamp_utc ?? 'unknown-time';
+      const repoLabel = result.repo ?? 'unknown-repo';
+      const metadata = renderListMetadata(result);
+
+      process.stdout.write(
+        `${chalk.gray(timestamp)}  ${chalk.cyan(repoLabel)}  ${chalk.bold(toLead(result.rationale))}\n`,
+      );
+
+      if (metadata.length > 0) {
+        process.stdout.write(`${chalk.gray(metadata)}\n`);
+      }
+
+      process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
+    }
+  },
+
+  listEmpty(activeFilters: string[]): void {
+    process.stdout.write(`${chalk.yellow('No entries found.')}\n`);
+    process.stdout.write(`${chalk.gray('count: 0')}\n`);
+    process.stdout.write(
+      `${chalk.gray(`filters: ${activeFilters.length > 0 ? activeFilters.join(' | ') : 'none'}`)}\n`,
     );
   },
 };

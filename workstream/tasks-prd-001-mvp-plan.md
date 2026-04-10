@@ -16,6 +16,7 @@
 - `src/lib/config.ts` — Config loader, writer, validator
 - `src/lib/output.ts` — Human/JSON output formatter, interactive prompts
 - `src/lib/qdrant.ts` — `QdrantRepository` (bootstrap, upsert, search, scroll)
+- `src/lib/list-filters.ts` — List pre-filter builder for chronological listing
 - `src/lib/search-filters.ts` — Search pre-filter builder for repo/scope/tag semantics
 - `src/lib/embeddings.ts` — `EmbeddingsAdapter` interface + factory
 - `src/lib/retry.ts` — Retry with exponential backoff
@@ -163,22 +164,22 @@
   - [x] 5.16 Verify Acceptance Criterion: empty results return exit 0 with empty array
   - [x] 5.17 Run tests: `pnpm run test -- --testPathPattern="search"`
 
-- [ ] 6.0 Implement Story S-006 — Issue #6 - https://github.com/llipe/memo-cli/issues/6: `memo list` — Chronological Entry Listing
-  - [ ] 6.1 Implement `QdrantRepository.scroll()` with `order_by: { key: "timestamp_utc", direction: "desc" }` and filter support
-  - [ ] 6.2 Implement `buildListFilters()` in `src/lib/list-filters.ts` — repo, org, entry_type, source, scope, date range (`--from`/`--to` as Qdrant range filter)
-  - [ ] 6.3 Implement list command orchestration in `src/commands/list.ts`: parse flags → resolve context → build filters → scroll → format output
-  - [ ] 6.4 Implement human output for list results — table-style, `gray` meta labels, `cyan` repo, `bold` rationale snippet, timestamps
-  - [ ] 6.5 Implement human empty-results display with count 0 and message
-  - [ ] 6.6 Implement `--json` output: `filters` and `results` array with all payload fields
-  - [ ] 6.7 Implement auto-bootstrap on first list
-  - [ ] 6.8 Register `memo list` in `src/index.ts` with all flag definitions (`--from`, `--to`, `--repo`, `--org`, `--entry-type`, `--source`, `--scope`, `--limit`, `--json`)
-  - [ ] 6.9 Write unit tests: `tests/unit/lib/list-filters.test.ts` — date range filter, list filter composition
-  - [ ] 6.10 Write unit tests: `tests/unit/commands/list.test.ts` — command orchestration, filter composition
-  - [ ] 6.11 Write integration tests: `tests/integration/commands/list.test.ts` — `--json` contract, empty list, `--from`/`--to`, `--entry-type` filter
-  - [ ] 6.12 Verify Acceptance Criterion: entries ordered by `timestamp_utc` descending
-  - [ ] 6.13 Verify Acceptance Criterion: `--limit` defaults to 20
-  - [ ] 6.14 Verify Acceptance Criterion: empty results return exit 0 with count 0
-  - [ ] 6.15 Run tests: `pnpm run test -- --testPathPattern="list"`
+- [x] 6.0 Implement Story S-006 — Issue #6 - https://github.com/llipe/memo-cli/issues/6: `memo list` — Chronological Entry Listing
+  - [x] 6.1 Implement `QdrantRepository.scroll()` with `order_by: { key: "timestamp_utc", direction: "desc" }` and filter support
+  - [x] 6.2 Implement `buildListFilters()` in `src/lib/list-filters.ts` — repo, org, entry_type, source, scope, date range (`--from`/`--to` as Qdrant range filter)
+  - [x] 6.3 Implement list command orchestration in `src/commands/list.ts`: parse flags → resolve context → build filters → scroll → format output
+  - [x] 6.4 Implement human output for list results — table-style, `gray` meta labels, `cyan` repo, `bold` rationale snippet, timestamps
+  - [x] 6.5 Implement human empty-results display with count 0 and message
+  - [x] 6.6 Implement `--json` output: `filters` and `results` array with all payload fields
+  - [x] 6.7 Implement auto-bootstrap on first list
+  - [x] 6.8 Register `memo list` in `src/index.ts` with all flag definitions (`--from`, `--to`, `--repo`, `--org`, `--entry-type`, `--source`, `--scope`, `--limit`, `--json`)
+  - [x] 6.9 Write unit tests: `tests/unit/lib/list-filters.test.ts` — date range filter, list filter composition
+  - [x] 6.10 Write unit tests: `tests/unit/commands/list.test.ts` — command orchestration, filter composition
+  - [x] 6.11 Write integration tests: `tests/integration/commands/list.test.ts` — `--json` contract, empty list, `--from`/`--to`, `--entry-type` filter
+  - [x] 6.12 Verify Acceptance Criterion: entries ordered by `timestamp_utc` descending
+  - [x] 6.13 Verify Acceptance Criterion: `--limit` defaults to 20
+  - [x] 6.14 Verify Acceptance Criterion: empty results return exit 0 with count 0
+  - [x] 6.15 Run tests: `pnpm run test -- --testPathPattern="list"`
 
 - [ ] 7.0 Implement Story S-007 — Issue #7 - https://github.com/llipe/memo-cli/issues/7: Bootstrap Prompt Documentation & Validation Workflow
   - [ ] 7.1 Write `docs/bootstrap-guide.md` — prompt template, artifact selection guide (which files to pick: README, architecture docs, config files, key modules), 3 worked conversion examples (JSON → `memo write --source manual --json`)

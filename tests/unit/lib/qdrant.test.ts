@@ -108,7 +108,7 @@ describe('QdrantRepository', () => {
   });
 
   describe('scroll()', () => {
-    it('calls client.scroll with filter and limit', async () => {
+    it('calls client.scroll with filter, limit, and descending timestamp order', async () => {
       mockScroll.mockResolvedValueOnce({
         points: [{ id: '1', payload: { text: 'hello' } }],
       });
@@ -119,7 +119,11 @@ describe('QdrantRepository', () => {
 
       expect(mockScroll).toHaveBeenCalledWith(
         'decisions',
-        expect.objectContaining({ filter, limit: 50 }),
+        expect.objectContaining({
+          filter,
+          limit: 50,
+          order_by: { key: 'timestamp_utc', direction: 'desc' },
+        }),
       );
       expect(results).toHaveLength(1);
     });
