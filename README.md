@@ -2,7 +2,7 @@
 
 > Agent-first CLI for capturing and querying development decisions via a Qdrant vector store.
 
-`@memo-ai/cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
+`@llipe/memo-cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
 
 ---
 
@@ -44,7 +44,7 @@
 ### From npm (recommended)
 
 ```bash
-npm install -g @memo-ai/cli
+npm install -g @llipe/memo-cli
 memo --version
 ```
 
