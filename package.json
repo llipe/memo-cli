@@ -1,6 +1,6 @@
 {
   "name": "@llipe.com/memo-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Agent-first CLI for capturing and querying development decisions via Qdrant vector store",
   "type": "module",
   "author": "llipe",
