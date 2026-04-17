@@ -1,12 +1,12 @@
 ---
 agent: github-ops
-description: 'Audit and standardize GitHub artifacts — issues, PRs, branches, labels, and milestones.'
+description: "Audit and standardize GitHub artifacts — issues, PRs, branches, labels, and milestones."
 ---
 
 Run the `github-ops` agent to enforce GitHub consistency conventions:
 
 - **Repository:** `<owner/repo>`
-- **Scope** _(choose one or more)_:
+- **Scope** *(choose one or more)*:
   - `audit` — scan all open issues and PRs for convention violations
   - `issue #<number>` — standardize a specific issue
   - `pr #<number>` — standardize a specific pull request

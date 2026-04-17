@@ -1,10 +1,11 @@
----
-applyTo: '**'
----
-
 # Activity: Generate Technical Specification
 
+Transform refined requirements (PRD) into an actionable technical design by synthesizing them with the project's Technical Guidelines. Use this skill when a PRD is approved and ready for technical breakdown. Invoked by the `product-engineer` agent in Feature Mode.
+
+---
+
 > **RFC 2119 Notice:** The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+
 
 ## Goal
 
@@ -13,7 +14,6 @@ Transform refined requirements (PRD) into an actionable technical design by synt
 ## Context
 
 This activity assumes the following documents already exist:
-
 - `product-context.md` — Product understanding
 - `technical-guidelines.md` — Technical standards and patterns
 - `prd-[feature-name].md` — Feature requirements (produced by the **refine** activity)
@@ -30,9 +30,9 @@ Every specification produced by this activity **MUST** include a **Changelog** t
 ```markdown
 ## Changelog
 
-| Version | Date       | Summary         | Author             |
-| ------- | ---------- | --------------- | ------------------ |
-| 1.0     | YYYY-MM-DD | Initial version | @user / agent-name |
+| Version | Date       | Summary                  | Author              |
+|---------|------------|--------------------------|----------------------|
+| 1.0     | YYYY-MM-DD | Initial version          | @user / agent-name   |
 ```
 
 ## Process
@@ -89,38 +89,25 @@ The specification **MUST** include embedded Mermaid diagrams to visually communi
 
 Required and recommended diagrams:
 
-| Diagram Type                     | Requirement                                                        | Target Section                              |
-| -------------------------------- | ------------------------------------------------------------------ | ------------------------------------------- |
-| **Component / C4-style diagram** | **MUST** include — shows services, repos, and their interactions   | System Architecture                         |
-| **Entity-Relationship diagram**  | **MUST** include when new or modified data entities exist          | Data Model & Database Design                |
-| **Sequence diagram**             | **SHOULD** include for key API flows or multi-service interactions | API Design or Business Logic Implementation |
-| **State diagram**                | **SHOULD** include when entities have meaningful state transitions | Business Logic Implementation               |
-| **Deployment diagram**           | **MAY** include for complex multi-environment rollouts             | Deployment & Rollout                        |
-
-Example embedding:
-
-````markdown
-```mermaid
-erDiagram
-  USER ||--o{ ORDER : places
-  ORDER ||--|{ LINE_ITEM : contains
-  PRODUCT ||--o{ LINE_ITEM : "included in"
-```
-````
+| Diagram Type | Requirement | Target Section |
+|---|---|---|
+| **Component / C4-style diagram** | **MUST** include — shows services, repos, and their interactions | System Architecture |
+| **Entity-Relationship diagram** | **MUST** include when new or modified data entities exist | Data Model & Database Design |
+| **Sequence diagram** | **SHOULD** include for key API flows or multi-service interactions | API Design or Business Logic Implementation |
+| **State diagram** | **SHOULD** include when entities have meaningful state transitions | Business Logic Implementation |
+| **Deployment diagram** | **MAY** include for complex multi-environment rollouts | Deployment & Rollout |
 
 Rules:
-
 - Diagrams **MUST** be embedded inline in the relevant section, not collected at the end.
 - Each diagram **MUST** have a brief introductory sentence explaining what it shows.
-- Keep diagrams focused — one concern per diagram. Split large diagrams rather than cramming everything into one.
-- Use consistent naming across diagrams and prose (same component/entity/endpoint names).
+- Keep diagrams focused — one concern per diagram.
+- Use consistent naming across diagrams and prose.
 - ER diagrams **SHOULD** include cardinality and key attributes.
 - Sequence diagrams **SHOULD** include error/alternate paths when relevant.
 
 ## Key Synthesis Points
 
 The specification **MUST** clearly show how:
-
 - Each PRD requirement is addressed technically
 - Technical Guidelines are applied to this specific feature
 - The system integrates with existing architecture

@@ -1,15 +1,15 @@
 ---
 agent: technical-writer
-description: 'Audit and update /docs to reflect the current state of the codebase.'
+description: "Audit and update /docs to reflect the current state of the codebase."
 ---
 
 Run the `technical-writer` agent to synchronize documentation with the codebase.
 
-Context for this pass _(provide one or more)_:
+Context for this pass *(provide one or more)*:
 
 - **Feature / milestone completed:** `<feature name or milestone>`
 - **Relevant workstream files:** `workstream/<file.md>`
-- **PRD reference:** `docs/requirements/<prd-file.md>` _(optional)_
+- **PRD reference:** `docs/requirements/<prd-file.md>` *(optional)*
 
 The agent will:
 
