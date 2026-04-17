@@ -112,6 +112,17 @@ describe('consolidate', () => {
     expect(result.tags).toContain('performance');
   });
 
+  it('prefers incoming tags when capping at 5', () => {
+    const existing: EntryPayload = { ...BASE, tags: ['a', 'b', 'c', 'd', 'e'] };
+    const incoming: EntryPayload = {
+      ...BASE,
+      id: '00000000-0000-0000-0000-000000000002',
+      tags: ['f', 'g'],
+    };
+    const result = consolidate(existing, incoming);
+    expect(result.tags).toEqual(['f', 'g', 'a', 'b', 'c']);
+  });
+
   it('keeps higher confidence', () => {
     const low: EntryPayload = { ...BASE, confidence: 'low' };
     const high: EntryPayload = {
