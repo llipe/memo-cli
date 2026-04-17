@@ -33,7 +33,12 @@ program.addCommand(tags);
 program.addCommand(inspect);
 program.addCommand(del);
 
-program.parseAsync(process.argv).catch((err: unknown) => {
+let fatalHandled = false;
+
+function handleFatalError(err: unknown): void {
+  if (fatalHandled) return;
+  fatalHandled = true;
+
   const memoErr =
     err instanceof MemoError
       ? err
@@ -41,9 +46,14 @@ program.parseAsync(process.argv).catch((err: unknown) => {
 
   process.stderr.write(`error [${memoErr.code}]: ${memoErr.message}\n`);
 
-  if (process.env['MEMO_DEBUG'] === 'true') {
+  if (process.env['MEMO_DEBUG'] === 'true' && memoErr.code === 'UNEXPECTED_ERROR') {
     process.stderr.write(`${memoErr.stack ?? memoErr.message}\n`);
   }
 
   process.exit(memoErr.exitCode);
-});
+}
+
+process.on('unhandledRejection', handleFatalError);
+process.on('uncaughtException', handleFatalError);
+
+program.parseAsync(process.argv).catch(handleFatalError);
