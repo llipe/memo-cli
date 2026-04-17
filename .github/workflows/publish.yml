@@ -1,9 +1,11 @@
 name: Publish
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'release'
+      - 'release/**'
 
 jobs:
   publish:
