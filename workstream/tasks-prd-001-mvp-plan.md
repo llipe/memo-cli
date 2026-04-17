@@ -27,13 +27,17 @@
 - `src/types/cli.ts` — Shared CLI flag interfaces
 - `.github/workflows/ci.yml` — CI pipeline (typecheck, lint, test, build, audit)
 - `.github/workflows/publish.yml` — npm publish on semver tag push
+- `.github/workflows/release.yml` — gated release pipeline for npm publish with provenance and verification
 - `.env.example` — Environment variable documentation
 - `.gitignore` — Ignore rules
 - `README.md` — Setup instructions + Quick Start
+- `docs/system-overview.md` — CI/CD deployment flow and rollback behavior
 - `scripts/run-jest.mjs` — Jest argument-forwarding wrapper for scoped test commands
 - `docs/bootstrap-guide.md` — Bootstrap prompt documentation
 - `scripts/validate-bootstrap.ts` — Bootstrap JSON validation script
+- `scripts/validate-package-contents.ts` — Tarball allowlist validator for release gate
 - `tests/unit/scripts/bootstrap-schema.test.ts` — Bootstrap schema validation unit tests
+- `tests/unit/scripts/validate-package-contents.test.ts` — Release tarball validator unit tests
 - `tests/unit/scripts/fixtures/bootstrap-valid.json` — Valid bootstrap sample input
 - `tests/unit/scripts/fixtures/bootstrap-invalid.json` — Invalid bootstrap sample input
 - `tests/unit/lib/errors.test.ts`
@@ -207,3 +211,24 @@
   - [x] 8.8 Verify Acceptance Criterion: `memo --version` returns correct semver
   - [x] 8.9 Verify Acceptance Criterion: `memo --help` lists all commands
   - [x] 8.10 Verify Acceptance Criterion: publish workflow runs on tag push
+
+  - [ ] 9.0 Implement Story S-009 — Issue #21 - https://github.com/llipe/memo-cli/issues/21: Automated Registry Deployment Workflow (npm)
+    - [ ] 9.1 Create `.github/workflows/release.yml` with semver tag trigger (`v*.*.*`) and `workflow_dispatch` support
+    - [ ] 9.2 Add release workflow validation gates: `pnpm install --frozen-lockfile`, `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, `pnpm run build`
+    - [ ] 9.3 Implement package integrity gate using `npm pack --json` + allowlist validator script
+    - [ ] 9.4 Implement `scripts/validate-package-contents.ts` to enforce allowed publish set (`dist/**`, `README.md`, `LICENSE`, `package.json`) and fail on unexpected files
+    - [ ] 9.5 Add local tarball smoke test job (`npm i -g ./package.tgz`, `memo --version`, `memo --help`) before publish
+    - [ ] 9.6 Add guarded publish step using `npm publish --access public --provenance` with required `NPM_TOKEN`
+    - [ ] 9.7 Add post-publish verification job to install `@memo-ai/cli@<released-version>` and validate `memo --version`
+    - [ ] 9.8 Add workflow concurrency control (`concurrency: release-${{ github.ref }}`) and version-already-published guard behavior
+    - [ ] 9.9 Document release checklist and rollback process in `README.md` and `docs/system-overview.md`
+    - [ ] 9.10 Write unit tests in `tests/unit/scripts/validate-package-contents.test.ts` for allowed/disallowed tarball file patterns
+    - [ ] 9.11 Verify Acceptance Criterion: release workflow runs only on semver tags or manual dispatch
+    - [ ] 9.12 Verify Acceptance Criterion: release workflow blocks publish when any validation gate fails
+    - [ ] 9.13 Verify Acceptance Criterion: package integrity gate fails on files outside allowlist
+    - [ ] 9.14 Verify Acceptance Criterion: pre-publish smoke test passes against local tarball
+    - [ ] 9.15 Verify Acceptance Criterion: publish uses `--provenance` and requires `NPM_TOKEN`
+    - [ ] 9.16 Verify Acceptance Criterion: post-publish install + version check passes
+    - [ ] 9.17 Verify Acceptance Criterion: rollback/deprecate guidance is documented
+    - [ ] 9.18 Verify Acceptance Criterion: existing published version exits with clear non-zero failure
+    - [ ] 9.19 Run tests: `pnpm run test -- --testPathPattern="validate-package-contents|release"`
