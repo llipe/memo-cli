@@ -1,13 +1,13 @@
 ---
 agent: developer
-description: "Implement a GitHub Issue end-to-end using the developer agent — Issue Mode."
+description: 'Implement a GitHub Issue end-to-end using the developer agent — Issue Mode.'
 ---
 
 Run the `developer` agent to implement the following GitHub Issue:
 
 - **Repository:** `<owner/repo>`
 - **Issue number:** `#<issue-number>`
-- **Execution mode:** step-gated *(change to `pre-approved autonomous batch` to skip approval gates)*
+- **Execution mode:** step-gated _(change to `pre-approved autonomous batch` to skip approval gates)_
 
 The agent will chain: `refine` → `plan` → `implement`.
 

@@ -11,28 +11,33 @@ Use the bootstrap flow when a repository has little or no memory entries yet, an
 Prioritize artifacts that reveal architecture and coupling. Start small and focused.
 
 1. Core orientation files:
+
 - `README.md`
 - `docs/product-context.md`
 - `docs/technical-guidelines.md`
 
 2. Architecture and requirement files:
+
 - `docs/requirements/*.md`
 - `workstream/specification-*.md`
 - `workstream/user-stories-*.md`
 
 3. Configuration and runtime boundaries:
+
 - `package.json`
 - `tsconfig.json`
 - `eslint.config.ts`
 - `jest.config.ts`
 
 4. Key modules and adapters:
+
 - `src/index.ts`
 - `src/commands/*.ts`
 - `src/lib/*.ts`
 - `src/adapters/*.ts`
 
 Selection rules:
+
 - Prefer files that define contracts, boundaries, or integration behavior.
 - Skip generated files and lockfiles.
 - Choose 8-20 artifacts per prompt batch.
@@ -173,4 +178,5 @@ memo search "which embedding provider is currently used" --tags "embeddings,open
 ```
 
 Expected result:
+
 - Queries return the new bootstrap entries with matching rationale and file references.

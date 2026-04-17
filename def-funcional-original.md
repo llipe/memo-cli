@@ -1,16 +1,17 @@
 # Functional Specification — Memo
+
 ## Shared Multi-Agent Memory for Software Ecosystems · v1.1 · April 2026
 
 ---
 
 ## Naming
 
-| Layer | Name |
-|---|---|
-| Product | `Memo` |
-| CLI binary | `memo` |
-| npm package | `@memo-ai/cli` |
-| GitHub repository | `memo-cli` |
+| Layer             | Name           |
+| ----------------- | -------------- |
+| Product           | `Memo`         |
+| CLI binary        | `memo`         |
+| npm package       | `@memo-ai/cli` |
+| GitHub repository | `memo-cli`     |
 
 ```bash
 npm install -g @memo-ai/cli
@@ -54,12 +55,12 @@ AI agents have no memory between sessions and no visibility into the ecosystem. 
 
 ### Differentiation from similar tools
 
-| Tool | What it solves | Gap Memo covers |
-|---|---|---|
-| Memorix | Session continuity per agent, per machine | No cross-repo or cross-team visibility |
-| Mem0 | Conversational memory with LLM compression | No structured schema or repo relationships |
-| Beads | Task planning and execution with dependencies | Does not capture rationale or architectural knowledge |
-| ADR tools | Markdown decision documents in the repo | No semantic search or cross-repo agent access |
+| Tool      | What it solves                                | Gap Memo covers                                       |
+| --------- | --------------------------------------------- | ----------------------------------------------------- |
+| Memorix   | Session continuity per agent, per machine     | No cross-repo or cross-team visibility                |
+| Mem0      | Conversational memory with LLM compression    | No structured schema or repo relationships            |
+| Beads     | Task planning and execution with dependencies | Does not capture rationale or architectural knowledge |
+| ADR tools | Markdown decision documents in the repo       | No semantic search or cross-repo agent access         |
 
 ---
 
@@ -67,13 +68,13 @@ AI agents have no memory between sessions and no visibility into the ecosystem. 
 
 ### Technology stack
 
-| Component | Technology | Rationale |
-|---|---|---|
-| Vector Store | Qdrant Cloud (free tier) | Native semantic search + compound exact filters in the same query. Docker for local, cloud for multi-team. No code changes between both. |
-| Embeddings | Configurable · OpenAI `text-embedding-3-small` recommended | Swappable via adapter. $0.02/M tokens. Estimated total cost <$1 USD per 10K entries in 12 months. |
-| CLI | TypeScript + pnpm | Consistent with existing project stack. Lightweight binary installable globally or as devDependency. |
-| Config | `memo.config.json` | Local per repo + central override. Declares relationships between repositories. |
-| Credentials | `.env` | `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY`. Not committed. |
+| Component    | Technology                                                 | Rationale                                                                                                                                |
+| ------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Vector Store | Qdrant Cloud (free tier)                                   | Native semantic search + compound exact filters in the same query. Docker for local, cloud for multi-team. No code changes between both. |
+| Embeddings   | Configurable · OpenAI `text-embedding-3-small` recommended | Swappable via adapter. $0.02/M tokens. Estimated total cost <$1 USD per 10K entries in 12 months.                                        |
+| CLI          | TypeScript + pnpm                                          | Consistent with existing project stack. Lightweight binary installable globally or as devDependency.                                     |
+| Config       | `memo.config.json`                                         | Local per repo + central override. Declares relationships between repositories.                                                          |
+| Credentials  | `.env`                                                     | `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY`. Not committed.                                                                     |
 
 ### Repository structure
 
@@ -115,23 +116,23 @@ Both layers are queryable by the same commands. The `ask` command combines them 
 
 ### Data model — Entry payload
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | uuid | Unique entry identifier |
-| `repo` | string | Repository name. **Mandatory** filter on every write. |
-| `org` | string | Organization or company that owns the repo. |
-| `domain` | string | Business domain (e.g. backoffice, checkout, catalog). |
-| `team` | string | Team responsible for the repo. |
-| `story` | string | Story or task ID (e.g. USER-412). Optional for scan entries. |
-| `commit` | string | Associated commit hash. Optional for scan entries. |
-| `timestamp_utc` | string ISO 8601 | Date and time in UTC. Auto-generated. |
-| `files_modified` | string[] | Modified or analyzed files. |
-| `tags` | string[] | 2–5 categorization tags (e.g. auth, jwt, security). |
-| `relates_to` | string[] | Related repos affected by this decision. |
-| `rationale` | string | Full text: what was decided/how it works, why, alternatives. |
-| `entry_type` | enum: `decision \| integration_point \| structure` | Entry sub-type. Allows filtering by purpose. |
-| `source` | enum: `agent \| scan \| manual` | Origin. `scan` = inferred from codebase. |
-| `confidence` | enum: `high \| medium \| low` | Confidence level. Relevant for `scan` entries. |
+| Field            | Type                                               | Description                                                  |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| `id`             | uuid                                               | Unique entry identifier                                      |
+| `repo`           | string                                             | Repository name. **Mandatory** filter on every write.        |
+| `org`            | string                                             | Organization or company that owns the repo.                  |
+| `domain`         | string                                             | Business domain (e.g. backoffice, checkout, catalog).        |
+| `team`           | string                                             | Team responsible for the repo.                               |
+| `story`          | string                                             | Story or task ID (e.g. USER-412). Optional for scan entries. |
+| `commit`         | string                                             | Associated commit hash. Optional for scan entries.           |
+| `timestamp_utc`  | string ISO 8601                                    | Date and time in UTC. Auto-generated.                        |
+| `files_modified` | string[]                                           | Modified or analyzed files.                                  |
+| `tags`           | string[]                                           | 2–5 categorization tags (e.g. auth, jwt, security).          |
+| `relates_to`     | string[]                                           | Related repos affected by this decision.                     |
+| `rationale`      | string                                             | Full text: what was decided/how it works, why, alternatives. |
+| `entry_type`     | enum: `decision \| integration_point \| structure` | Entry sub-type. Allows filtering by purpose.                 |
+| `source`         | enum: `agent \| scan \| manual`                    | Origin. `scan` = inferred from codebase.                     |
+| `confidence`     | enum: `high \| medium \| low`                      | Confidence level. Relevant for `scan` entries.               |
 
 ---
 
@@ -234,15 +235,15 @@ memo scan --repo <n> --path <dir> [--depth full|module] [--target schema|code|al
 
 **Artifacts analyzed:**
 
-| Artifact | LLM input | Inferred output |
-|---|---|---|
-| Source file | path + content | responsibility, patterns used, key dependencies |
-| API / router | routes + handlers | exposed endpoints, contracts, required auth |
-| Folder / module | tree + exports | purpose, boundaries, entry points |
-| DB table / schema | DDL / migrations | business entity, relationships, modeling decisions |
-| `package.json` | dependencies | stack decisions, chosen libraries |
-| Git log | last N commits | evolution, inflection points |
-| `README` / docs | full text | business context, declared architecture |
+| Artifact          | LLM input         | Inferred output                                    |
+| ----------------- | ----------------- | -------------------------------------------------- |
+| Source file       | path + content    | responsibility, patterns used, key dependencies    |
+| API / router      | routes + handlers | exposed endpoints, contracts, required auth        |
+| Folder / module   | tree + exports    | purpose, boundaries, entry points                  |
+| DB table / schema | DDL / migrations  | business entity, relationships, modeling decisions |
+| `package.json`    | dependencies      | stack decisions, chosen libraries                  |
+| Git log           | last N commits    | evolution, inflection points                       |
+| `README` / docs   | full text         | business context, declared architecture            |
 
 **Example of a scan-generated entry (integration_point):**
 
@@ -285,12 +286,12 @@ All repositories share a single Qdrant collection (`decisions`). The `repo` fiel
 
 ### Agent query strategy
 
-| Step | Command | When |
-|---|---|---|
-| 1. Local search | `memo search "<topic>" --repo <current>` | Before every non-trivial task |
-| 2. Cross-repo search | `memo search "<topic>" --scope company` | When confidence in local results is low |
-| 3. Integration query | `memo ask "<question>"` | When integrating with another product in the ecosystem |
-| 4. Audit | `memo list --repo <x>` | Chronological review of recent decisions |
+| Step                 | Command                                  | When                                                   |
+| -------------------- | ---------------------------------------- | ------------------------------------------------------ |
+| 1. Local search      | `memo search "<topic>" --repo <current>` | Before every non-trivial task                          |
+| 2. Cross-repo search | `memo search "<topic>" --scope company`  | When confidence in local results is low                |
+| 3. Integration query | `memo ask "<question>"`                  | When integrating with another product in the ecosystem |
+| 4. Audit             | `memo list --repo <x>`                   | Chronological review of recent decisions               |
 
 ### `memo.config.json` structure
 
@@ -335,24 +336,27 @@ All repositories share a single Qdrant collection (`decisions`). The `repo` fiel
 You have access to the organization's shared knowledge base via the `memo` CLI.
 
 ### Before starting any non-trivial task
+
 Search for prior decisions in the current repo:
-  memo search "<topic>" --limit 5
+memo search "<topic>" --limit 5
 
 If integrating with another product, ask the ecosystem:
-  memo ask "how does <product> handle <topic>"
-  memo ask "where is the right place to integrate <feature> in this ecosystem"
+memo ask "how does <product> handle <topic>"
+memo ask "where is the right place to integrate <feature> in this ecosystem"
 
 ### After completing every task or story
+
 Write the decision before finishing your response:
-  memo write \
-    --repo "<current-repo>" \
-    --story "<story-id>" \
-    --commit "<last-commit-hash>" \
-    --files "<comma-separated-modified-files>" \
-    --tags "<2-5-relevant-tags>" \
-    --rationale "<2-5 sentences: what was decided, why, what alternatives were discarded>"
+memo write \
+ --repo "<current-repo>" \
+ --story "<story-id>" \
+ --commit "<last-commit-hash>" \
+ --files "<comma-separated-modified-files>" \
+ --tags "<2-5-relevant-tags>" \
+ --rationale "<2-5 sentences: what was decided, why, what alternatives were discarded>"
 
 ### Rules
+
 - Always write after every completed story. No exceptions.
 - Always search before starting a non-trivial task.
 - Always ask before integrating with another product in the ecosystem.
@@ -362,15 +366,15 @@ Write the decision before finishing your response:
 
 ### Full operation flow
 
-| Moment | Actor | Action |
-|---|---|---|
-| Task start | Developer agent | `memo search` on the task topic |
-| Integrating with another product | Developer agent | `memo ask "how does X work"` |
-| During task | Developer agent | Uses results to maintain architectural consistency |
-| On completion | Developer agent | `memo write` with rationale and commit hash |
-| Repo bootstrap | Dev / scan agent | `memo scan` to generate baseline |
-| Onboarding | New dev or agent | `memo ask` to understand the ecosystem |
-| Review | Tech lead | `memo list --repo <x>` to audit recent decisions |
+| Moment                           | Actor            | Action                                             |
+| -------------------------------- | ---------------- | -------------------------------------------------- |
+| Task start                       | Developer agent  | `memo search` on the task topic                    |
+| Integrating with another product | Developer agent  | `memo ask "how does X work"`                       |
+| During task                      | Developer agent  | Uses results to maintain architectural consistency |
+| On completion                    | Developer agent  | `memo write` with rationale and commit hash        |
+| Repo bootstrap                   | Dev / scan agent | `memo scan` to generate baseline                   |
+| Onboarding                       | New dev or agent | `memo ask` to understand the ecosystem             |
+| Review                           | Tech lead        | `memo list --repo <x>` to audit recent decisions   |
 
 ---
 
@@ -387,12 +391,12 @@ READ:   query     → embedding → Qdrant finds similarity → returns rational
 
 ### Supported providers
 
-| Provider | Model | Cost/M tokens | Notes |
-|---|---|---|---|
-| OpenAI ⭐ | text-embedding-3-small | $0.02 | Recommended. ~$0.10 total for 10K entries. |
-| Voyage AI | voyage-code-3 | $0.018 | Code-specialized. Better recall for technical rationale. |
-| Cohere | embed-v4 | $0.016 | No meaningful advantage for this use case. |
-| Ollama (local) | nomic-embed-text | Free | Requires centralized server. Viable with dedicated infra. |
+| Provider       | Model                  | Cost/M tokens | Notes                                                     |
+| -------------- | ---------------------- | ------------- | --------------------------------------------------------- |
+| OpenAI ⭐      | text-embedding-3-small | $0.02         | Recommended. ~$0.10 total for 10K entries.                |
+| Voyage AI      | voyage-code-3          | $0.018        | Code-specialized. Better recall for technical rationale.  |
+| Cohere         | embed-v4               | $0.016        | No meaningful advantage for this use case.                |
+| Ollama (local) | nomic-embed-text       | Free          | Requires centralized server. Viable with dedicated infra. |
 
 The adapter is swappable with no changes to the CLI or Qdrant. Configured via `EMBEDDINGS_PROVIDER`.
 
@@ -408,14 +412,14 @@ If the rationale exceeds 512 tokens, embed a compressed summary (title + tags + 
 
 Mem0 was evaluated as the primary alternative. It is the most mature agent memory platform on the market. It is not the right choice for Memo for three structural reasons:
 
-| Dimension | Mem0 | Memo (Qdrant) |
-|---|---|---|
-| Rationale storage | LLM compression — may lose technical precision | Full text faithful to the agent |
-| Repo relationships | Graph memory only on Pro ($249/mo) | Native `relates_to` + config registry |
-| scan + ask commands | Do not exist | Memo's own differentiating features |
-| Schema control | Opaque | Full control over every field |
-| Cost per write | Additional LLM call | Embedding only (~$0.00001/entry) |
-| Vendor lock-in | High | Low (Qdrant open source) |
+| Dimension           | Mem0                                           | Memo (Qdrant)                         |
+| ------------------- | ---------------------------------------------- | ------------------------------------- |
+| Rationale storage   | LLM compression — may lose technical precision | Full text faithful to the agent       |
+| Repo relationships  | Graph memory only on Pro ($249/mo)             | Native `relates_to` + config registry |
+| scan + ask commands | Do not exist                                   | Memo's own differentiating features   |
+| Schema control      | Opaque                                         | Full control over every field         |
+| Cost per write      | Additional LLM call                            | Embedding only (~$0.00001/entry)      |
+| Vendor lock-in      | High                                           | Low (Qdrant open source)              |
 
 ### Why Memo and not Memorix
 
@@ -435,7 +439,7 @@ By the time CI/CD runs, the decision context is already lost. The system prompt 
 
 ### Write reliability
 
-- Explicit verification instruction at the end of the prompt: *"Before finishing any task, confirm you wrote to memo."*
+- Explicit verification instruction at the end of the prompt: _"Before finishing any task, confirm you wrote to memo."_
 - The `scan` command covers the historical baseline of repos that existed before adopting Memo
 - The `list` command allows auditing whether a recent period has the expected entries
 
@@ -443,19 +447,20 @@ By the time CI/CD runs, the decision context is already lost. The system prompt 
 
 ## 8. Cost Estimates
 
-| Component | Scenario | Cost | Notes |
-|---|---|---|---|
-| Qdrant Cloud | Free tier | $0/mo | Up to ~1GB. Sufficient for >100K entries. |
-| Embeddings writes | 10K entries/year × 500 tokens | ~$0.10 total | OpenAI text-embedding-3-small |
-| Embeddings search + ask | 5K queries/mo × 20 tokens | ~$0.002/mo | Queries are short |
-| Repo scan | 200 files × 300 tokens | ~$0.05/scan | GPT-4o-mini. One-time per repo. |
-| **Year 1 total estimate** | **5 repos, 10K entries** | **<$5 USD** | Near-zero operational cost |
+| Component                 | Scenario                      | Cost         | Notes                                     |
+| ------------------------- | ----------------------------- | ------------ | ----------------------------------------- |
+| Qdrant Cloud              | Free tier                     | $0/mo        | Up to ~1GB. Sufficient for >100K entries. |
+| Embeddings writes         | 10K entries/year × 500 tokens | ~$0.10 total | OpenAI text-embedding-3-small             |
+| Embeddings search + ask   | 5K queries/mo × 20 tokens     | ~$0.002/mo   | Queries are short                         |
+| Repo scan                 | 200 files × 300 tokens        | ~$0.05/scan  | GPT-4o-mini. One-time per repo.           |
+| **Year 1 total estimate** | **5 repos, 10K entries**      | **<$5 USD**  | Near-zero operational cost                |
 
 ---
 
 ## 9. Implementation Roadmap
 
 ### Phase 1 — Core (weeks 1–2)
+
 1. `memo-cli` project setup with TypeScript + pnpm
 2. Qdrant client with `decisions` collection
 3. Swappable embeddings adapter
@@ -464,24 +469,28 @@ By the time CI/CD runs, the decision context is already lost. The system prompt 
 6. `memo list` with chronological ordering
 
 ### Phase 2 — Config and relationships (week 3)
+
 1. `memo.config.json` structure and parser
 2. Local + central override support
 3. `memo setup init / add-repo / link`
 4. Automatic related repo resolution in search
 
 ### Phase 3 — Scan (week 4)
+
 1. Filesystem walker with artifact prioritization
 2. LLM analysis prompt per artifact — generates `decision` and `integration_point` entries
 3. Bulk write with `source: scan` and `confidence`
 4. Final report of generated entries
 
 ### Phase 4 — Ask and ecosystem (week 5)
+
 1. `memo ask` with prioritized cross-repo search
 2. Logic for combining `decision` + `integration_point` entries
 3. Final system prompt for the developer agent
 4. Integration testing with Copilot and Claude
 
 ### Phase 5 — Adoption (week 6)
+
 1. Initial scan of all existing org repos
 2. Team usage documentation
 3. Central `memo.config.json` configuration
@@ -489,5 +498,5 @@ By the time CI/CD runs, the decision context is already lost. The system prompt 
 
 ---
 
-*Memo · Functional Specification v1.1 · April 2026*
-*Document subject to revision as implementation progresses.*
+_Memo · Functional Specification v1.1 · April 2026_
+_Document subject to revision as implementation progresses._

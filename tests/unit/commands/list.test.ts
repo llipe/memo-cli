@@ -92,6 +92,30 @@ describe('handleList', () => {
     expect(stdoutData).toContain('count: 0');
   });
 
+  it('filters by tags when provided', async () => {
+    await handleList(
+      {
+        tags: 'auth,security',
+        limit: '10',
+      },
+      deps,
+    );
+
+    expect(mockQdrant.scroll).toHaveBeenCalledWith(
+      {
+        must: [
+          { key: 'org', match: { value: 'llipe' } },
+          { key: 'tags', match: { any: ['auth', 'security'] } },
+        ],
+        should: [
+          { key: 'repo', match: { value: 'memo-cli' } },
+          { key: 'repo', match: { value: 'platform-docs' } },
+        ],
+      },
+      10,
+    );
+  });
+
   it('throws when repo context cannot be resolved', async () => {
     const missingContextDeps: ListDeps = {
       ...deps,

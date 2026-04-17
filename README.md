@@ -28,11 +28,11 @@
 
 ## Requirements
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| Node.js | ≥ 24 LTS | Required for native ESM support |
-| Qdrant | ≥ 1.7 | [Local Docker](https://qdrant.tech/documentation/quick-start/) or [Qdrant Cloud](https://cloud.qdrant.io/) (free tier) |
-| OpenAI API key | — | For text embeddings (`text-embedding-3-small`) |
+| Tool           | Version  | Notes                                                                                                                  |
+| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Node.js        | ≥ 24 LTS | Required for native ESM support                                                                                        |
+| Qdrant         | ≥ 1.7    | [Local Docker](https://qdrant.tech/documentation/quick-start/) or [Qdrant Cloud](https://cloud.qdrant.io/) (free tier) |
+| OpenAI API key | —        | For text embeddings (`text-embedding-3-small`)                                                                         |
 
 ---
 
@@ -121,6 +121,7 @@ memo setup init
 ```
 
 The wizard will prompt for:
+
 - **Repository name** — auto-detected from git remote if available
 - **Organization** — your team or company identifier
 - **Domain** — product area (e.g., `payments`, `auth`, `frontend`)
@@ -174,18 +175,18 @@ memo write \
 
 #### All write flags
 
-| Flag | Required | Default | Description |
-|------|----------|---------|-------------|
-| `--rationale` | Yes | — | Decision text (1–5000 chars) |
-| `--tags` | Yes | — | Comma-separated tags (2–5, kebab-case) |
-| `--entry-type` | No | `decision` | `decision` \| `integration_point` \| `structure` |
-| `--source` | No | from config | `agent` \| `scan` \| `manual` |
-| `--commit` | No | — | Associated git commit SHA |
-| `--story` | No | — | Associated story/task identifier |
-| `--files-modified` | No | — | Comma-separated file paths |
-| `--relates-to` | No | — | Comma-separated related repos |
-| `--on-duplicate` | No | — | Duplicate action: `consolidate` \| `update` \| `replace` \| `create-new` |
-| `--json` | No | `false` | Output as JSON |
+| Flag               | Required | Default     | Description                                                              |
+| ------------------ | -------- | ----------- | ------------------------------------------------------------------------ |
+| `--rationale`      | Yes      | —           | Decision text (1–5000 chars)                                             |
+| `--tags`           | Yes      | —           | Comma-separated tags (2–5, kebab-case)                                   |
+| `--entry-type`     | No       | `decision`  | `decision` \| `integration_point` \| `structure`                         |
+| `--source`         | No       | from config | `agent` \| `scan` \| `manual`                                            |
+| `--commit`         | No       | —           | Associated git commit SHA                                                |
+| `--story`          | No       | —           | Associated story/task identifier                                         |
+| `--files-modified` | No       | —           | Comma-separated file paths                                               |
+| `--relates-to`     | No       | —           | Comma-separated related repos                                            |
+| `--on-duplicate`   | No       | —           | Duplicate action: `consolidate` \| `update` \| `replace` \| `create-new` |
+| `--json`           | No       | `false`     | Output as JSON                                                           |
 
 #### Duplicate detection
 
@@ -208,11 +209,11 @@ memo write \
 
 #### Entry types explained
 
-| Type | When to use |
-|------|-------------|
-| `decision` | Architectural or technical decisions made during a task |
-| `integration_point` | How another system, service, or module is integrated |
-| `structure` | Module-level or architectural structure (typically from bootstrap) |
+| Type                | When to use                                                        |
+| ------------------- | ------------------------------------------------------------------ |
+| `decision`          | Architectural or technical decisions made during a task            |
+| `integration_point` | How another system, service, or module is integrated               |
+| `structure`         | Module-level or architectural structure (typically from bootstrap) |
 
 ---
 
@@ -254,14 +255,14 @@ memo search "event publishing" \
 
 #### All search flags
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--scope` | `repo` | `repo` (this repo only) or `related` (include `relates_to` repos) |
-| `--tags` | — | Comma-separated tags to require (AND semantics) |
-| `--entry-type` | — | Filter: `decision` \| `integration_point` \| `structure` |
-| `--source` | — | Filter: `agent` \| `scan` \| `manual` |
-| `--limit` | `5` | Maximum results to return |
-| `--json` | `false` | Output as JSON |
+| Flag           | Default | Description                                                       |
+| -------------- | ------- | ----------------------------------------------------------------- |
+| `--scope`      | `repo`  | `repo` (this repo only) or `related` (include `relates_to` repos) |
+| `--tags`       | —       | Comma-separated tags to require (AND semantics)                   |
+| `--entry-type` | —       | Filter: `decision` \| `integration_point` \| `structure`          |
+| `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                             |
+| `--limit`      | `5`     | Maximum results to return                                         |
+| `--json`       | `false` | Output as JSON                                                    |
 
 #### Reading search results
 
@@ -335,16 +336,16 @@ memo list --source agent --limit 10
 
 #### All list flags
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--scope` | `repo` | `repo` or `related` |
-| `--tags` | — | Comma-separated tag filter |
-| `--entry-type` | — | Filter by entry type |
-| `--source` | — | Filter by source |
-| `--from` | — | Start date (`YYYY-MM-DD` or ISO 8601) |
-| `--to` | — | End date (`YYYY-MM-DD` or ISO 8601) |
-| `--limit` | `20` | Maximum entries |
-| `--json` | `false` | Output as JSON |
+| Flag           | Default | Description                           |
+| -------------- | ------- | ------------------------------------- |
+| `--scope`      | `repo`  | `repo` or `related`                   |
+| `--tags`       | —       | Comma-separated tag filter            |
+| `--entry-type` | —       | Filter by entry type                  |
+| `--source`     | —       | Filter by source                      |
+| `--from`       | —       | Start date (`YYYY-MM-DD` or ISO 8601) |
+| `--to`         | —       | End date (`YYYY-MM-DD` or ISO 8601)   |
+| `--limit`      | `20`    | Maximum entries                       |
+| `--json`       | `false` | Output as JSON                        |
 
 ---
 
@@ -374,29 +375,29 @@ memo setup init --force
 
 ## Command Reference
 
-| Command | Purpose | Key Flags |
-|---------|---------|-----------|
-| `memo setup init` | Create `memo.config.json` | `--repo`, `--org`, `--domain`, `--relates-to`, `--force` |
-| `memo setup show` | Display current config | `--json` |
-| `memo setup validate` | Check config validity | — |
-| `memo write` | Capture a decision | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
-| `memo search <query>` | Semantic search | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json` |
-| `memo list` | Chronological listing | `--from`, `--to`, `--tags`, `--limit`, `--json` |
+| Command               | Purpose                   | Key Flags                                                                       |
+| --------------------- | ------------------------- | ------------------------------------------------------------------------------- |
+| `memo setup init`     | Create `memo.config.json` | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
+| `memo setup show`     | Display current config    | `--json`                                                                        |
+| `memo setup validate` | Check config validity     | —                                                                               |
+| `memo write`          | Capture a decision        | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
+| `memo search <query>` | Semantic search           | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
+| `memo list`           | Chronological listing     | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
 
 ### Global flags
 
-| Flag | Description |
-|------|-------------|
+| Flag        | Description          |
+| ----------- | -------------------- |
 | `--version` | Print version number |
-| `--help` | Show help text |
+| `--help`    | Show help text       |
 
 ### Exit codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | User error (bad input, missing config) |
-| `2` | System error (Qdrant unreachable, API failure) |
+| Code | Meaning                                        |
+| ---- | ---------------------------------------------- |
+| `0`  | Success                                        |
+| `1`  | User error (bad input, missing config)         |
+| `2`  | System error (Qdrant unreachable, API failure) |
 
 ---
 
@@ -471,15 +472,15 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script | Description |
-|--------|-------------|
-| `pnpm run build` | Compile TypeScript to `dist/` |
-| `pnpm run typecheck` | Type-check without emitting |
-| `pnpm run lint` | ESLint (v9 flat config, strict type-checked) |
-| `pnpm run lint:fix` | ESLint with auto-fix |
-| `pnpm run format` | Prettier format |
-| `pnpm run test` | Run Jest test suite |
-| `pnpm run test:coverage` | Run Jest with coverage report |
+| Script                   | Description                                  |
+| ------------------------ | -------------------------------------------- |
+| `pnpm run build`         | Compile TypeScript to `dist/`                |
+| `pnpm run typecheck`     | Type-check without emitting                  |
+| `pnpm run lint`          | ESLint (v9 flat config, strict type-checked) |
+| `pnpm run lint:fix`      | ESLint with auto-fix                         |
+| `pnpm run format`        | Prettier format                              |
+| `pnpm run test`          | Run Jest test suite                          |
+| `pnpm run test:coverage` | Run Jest with coverage report                |
 
 ### Testing
 

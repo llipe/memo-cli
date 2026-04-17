@@ -12,6 +12,7 @@ export interface ListFlags {
   scope?: string;
   repo?: string;
   org?: string;
+  tags?: string;
   entryType?: string;
   source?: string;
   from?: string;
@@ -30,6 +31,7 @@ export interface ListResponseFilters {
   scope: 'repo' | 'related';
   repo: string;
   org?: string;
+  tags?: string[];
   entry_type?: string[];
   source?: string[];
   from?: string;
@@ -118,6 +120,7 @@ export async function handleList(flags: ListFlags, deps: ListDeps = {}): Promise
 
   const scope = parseScope(flags.scope, config);
   const org = flags.org ?? config?.org;
+  const tags = parseCsv(flags.tags);
   const entryTypes = parseCsv(flags.entryType);
   const sources = parseCsv(flags.source);
   const limit = parseLimit(flags.limit);
@@ -129,6 +132,7 @@ export async function handleList(flags: ListFlags, deps: ListDeps = {}): Promise
     scope,
     relatedRepos: resolvedRepos.filter((candidate) => candidate !== repo),
     org,
+    tags,
     entryTypes,
     sources,
     from,
@@ -139,6 +143,7 @@ export async function handleList(flags: ListFlags, deps: ListDeps = {}): Promise
     scope,
     repo,
     ...(org ? { org } : {}),
+    ...(tags.length > 0 ? { tags } : {}),
     ...(entryTypes.length > 0 ? { entry_type: entryTypes } : {}),
     ...(sources.length > 0 ? { source: sources } : {}),
     ...(from ? { from } : {}),
@@ -188,6 +193,7 @@ const list = new Command('list')
   .option('--scope <scope>', 'repo|related (default: config or repo)')
   .option('--repo <name>', 'repository name (overrides config)')
   .option('--org <name>', 'organization name (overrides config)')
+  .option('--tags <csv>', 'comma-separated tags to require on every result')
   .option('--entry-type <csv>', 'comma-separated entry types to include')
   .option('--source <csv>', 'comma-separated sources to include')
   .option('--from <iso>', 'inclusive ISO 8601 lower bound for timestamp_utc')
@@ -198,6 +204,7 @@ const list = new Command('list')
     await handleList({
       scope: opts['scope'] as string | undefined,
       repo: opts['repo'] as string | undefined,
+      tags: opts['tags'] as string | undefined,
       org: opts['org'] as string | undefined,
       entryType: opts['entryType'] as string | undefined,
       source: opts['source'] as string | undefined,

@@ -35,57 +35,57 @@ graph LR
 
 ### Commands (`src/commands/`)
 
-| Command | File | Purpose |
-|---------|------|---------|
-| `memo setup` | `setup.ts` | Initialize `memo.config.json`, show effective config, validate config |
-| `memo write` | `write.ts` | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant |
-| `memo search` | `search.ts` | Semantic vector search with exact pre-filters (repo, tags, scope) |
-| `memo list` | `list.ts` | Chronological entry listing with optional date-range filtering |
+| Command       | File        | Purpose                                                                        |
+| ------------- | ----------- | ------------------------------------------------------------------------------ |
+| `memo setup`  | `setup.ts`  | Initialize `memo.config.json`, show effective config, validate config          |
+| `memo write`  | `write.ts`  | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant |
+| `memo search` | `search.ts` | Semantic vector search with exact pre-filters (repo, tags, scope)              |
+| `memo list`   | `list.ts`   | Chronological entry listing with optional date-range filtering                 |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
 ### Libraries (`src/lib/`)
 
-| Module | Purpose |
-|--------|---------|
-| `qdrant.ts` | `QdrantRepository` — collection bootstrap, upsert, search, scroll, dedupe-key lookup |
-| `embeddings.ts` | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory |
-| `config.ts` | Load, write, and validate `memo.config.json` |
-| `registry.ts` | Resolve related repositories from config for cross-repo search scope |
-| `output.ts` | Centralized human/JSON output with chalk colors and ora spinners |
-| `errors.ts` | `MemoError` class with typed error codes and deterministic exit codes |
-| `dedupe.ts` | Deduplication key generation (SHA-256), confidence inference, merge strategies |
-| `search-filters.ts` | Build Qdrant pre-filter objects for search operations |
-| `list-filters.ts` | Build Qdrant pre-filter objects for list with date range support |
-| `retry.ts` | Generic exponential backoff wrapper (max 3 attempts, 500ms base) |
-| `debug.ts` | Conditional debug logging to stderr (`MEMO_DEBUG=true`) |
+| Module              | Purpose                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, dedupe-key lookup |
+| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                  |
+| `config.ts`         | Load, write, and validate `memo.config.json`                                         |
+| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                 |
+| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                     |
+| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                |
+| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies       |
+| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                |
+| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                     |
+| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                     |
+| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                              |
 
 ### Adapters (`src/adapters/`)
 
-| Adapter | Purpose |
-|---------|---------|
+| Adapter                | Purpose                                           |
+| ---------------------- | ------------------------------------------------- |
 | `openai-embeddings.ts` | OpenAI `text-embedding-3-small` (1536 dimensions) |
 
 Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapter` interface in future phases.
 
 ### Type Schemas (`src/types/`)
 
-| File | Purpose |
-|------|---------|
-| `entry.ts` | `EntryPayloadSchema` — Zod schema for decision entries |
-| `config.ts` | `MemoConfigSchema` — Zod schema for `memo.config.json` |
-| `cli.ts` | Shared CLI flag interfaces (placeholder for consolidation) |
+| File        | Purpose                                                    |
+| ----------- | ---------------------------------------------------------- |
+| `entry.ts`  | `EntryPayloadSchema` — Zod schema for decision entries     |
+| `config.ts` | `MemoConfigSchema` — Zod schema for `memo.config.json`     |
+| `cli.ts`    | Shared CLI flag interfaces (placeholder for consolidation) |
 
 ---
 
 ## Integrations
 
-| System | Method | Purpose |
-|--------|--------|---------|
-| **Qdrant** | `@qdrant/js-client-rest` via `QdrantRepository` | Vector storage, semantic search, chronological scroll |
-| **OpenAI** | `openai` SDK via `OpenAIEmbeddingsAdapter` | Text-to-vector embedding for rationale |
-| **Local filesystem** | Node.js `fs` | Read/write `memo.config.json` |
-| **Environment variables** | `dotenv` (dev) / process.env (production) | Credential management |
+| System                    | Method                                          | Purpose                                               |
+| ------------------------- | ----------------------------------------------- | ----------------------------------------------------- |
+| **Qdrant**                | `@qdrant/js-client-rest` via `QdrantRepository` | Vector storage, semantic search, chronological scroll |
+| **OpenAI**                | `openai` SDK via `OpenAIEmbeddingsAdapter`      | Text-to-vector embedding for rationale                |
+| **Local filesystem**      | Node.js `fs`                                    | Read/write `memo.config.json`                         |
+| **Environment variables** | `dotenv` (dev) / process.env (production)       | Credential management                                 |
 
 ---
 
@@ -125,11 +125,11 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 
 ## Non-Functional Posture
 
-| Concern | Approach |
-|---------|----------|
+| Concern            | Approach                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
 | **Error handling** | Typed `MemoError` with 11 error codes; exit code 0 (success), 1 (user error), 2 (system error) |
-| **Retry** | Exponential backoff for Qdrant and embeddings API calls (3 attempts, 500ms base) |
-| **Security** | Credentials via env vars only; never logged; `.env` gitignored; no shell injection surface |
-| **Performance** | CLI startup < 200ms; write < 3s; search < 2.5s; lazy command loading |
-| **Testing** | 155+ test cases across unit and integration; 80% coverage threshold |
-| **Observability** | `MEMO_DEBUG=true` for verbose stderr logging; no structured logging in v1 |
+| **Retry**          | Exponential backoff for Qdrant and embeddings API calls (3 attempts, 500ms base)               |
+| **Security**       | Credentials via env vars only; never logged; `.env` gitignored; no shell injection surface     |
+| **Performance**    | CLI startup < 200ms; write < 3s; search < 2.5s; lazy command loading                           |
+| **Testing**        | 155+ test cases across unit and integration; 80% coverage threshold                            |
+| **Observability**  | `MEMO_DEBUG=true` for verbose stderr logging; no structured logging in v1                      |

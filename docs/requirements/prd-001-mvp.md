@@ -2,8 +2,8 @@
 
 ## Changelog
 
-| Version | Date       | Summary         | Author     |
-|---------|------------|-----------------|------------|
+| Version | Date       | Summary         | Author         |
+| ------- | ---------- | --------------- | -------------- |
 | 1.0     | 2026-04-01 | Initial version | GitHub Copilot |
 
 ## 1. Executive Summary
@@ -49,8 +49,8 @@ flowchart LR
 
 ## 4. Affected Repositories
 
-| Repository | Role / Impact |
-|------------|---------------|
+| Repository       | Role / Impact                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `llipe/memo-cli` | Primary implementation repository for the CLI, local config scaffolding, write/search/list commands, and bootstrap prompt workflow |
 
 ## 5. Target Users
@@ -163,16 +163,16 @@ Rules:
 
 ### Local Config Field Definitions
 
-| Field | Required | Type | Expected format | Allowed values / meaning | Example |
-|-------|----------|------|-----------------|--------------------------|---------|
-| `schema_version` | Yes | `string` | Numeric string for config contract version | MVP requires `"1"` only. Future readers may accept newer additive versions. | `"1"` |
-| `repo` | Yes | `string` | Lowercase kebab-case repository identifier | Logical repository name used as the default `repo` value for writes and searches. Should match the repository's canonical working name, not a display title. | `"memo-cli"` |
-| `org` | Yes | `string` | Lowercase kebab-case or lowercase slug | Organization, company, or top-level ownership namespace used for company-scope filtering. | `"llipe"` |
-| `domain` | Yes | `string` | Lowercase kebab-case domain slug | Business or technical domain this repo belongs to. Used as descriptive metadata and future grouping/filtering. | `"developer-tools"` |
-| `relates_to` | Yes | `string[]` | Array of lowercase kebab-case repo identifiers | Declares repositories directly related to this repo for dependency or integration lookup. Source declarations are directional; the resolved graph becomes reciprocal after enrichment. May be empty. | `["platform-docs", "shared-auth"]` |
-| `defaults` | No | `object` | JSON object with known optional keys | Stores command defaults that reduce repetition in daily use. Unknown keys are ignored in MVP. | `{ "entry_source": "agent", "search_scope": "repo" }` |
-| `defaults.entry_source` | No | `string` | Lowercase keyword | Default source for `memo write` when the user does not pass `--source`. Allowed MVP values: `"agent"`, `"manual"`. `"scan"` is reserved and should not be emitted by setup defaults. | `"agent"` |
-| `defaults.search_scope` | No | `string` | Lowercase keyword | Default search scope used when no explicit scope flag is provided. Allowed MVP values: `"repo"`, `"related"`. `"company"` is reserved for broader cross-repo flows and later config integration. | `"repo"` |
+| Field                   | Required | Type       | Expected format                                | Allowed values / meaning                                                                                                                                                                             | Example                                               |
+| ----------------------- | -------- | ---------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `schema_version`        | Yes      | `string`   | Numeric string for config contract version     | MVP requires `"1"` only. Future readers may accept newer additive versions.                                                                                                                          | `"1"`                                                 |
+| `repo`                  | Yes      | `string`   | Lowercase kebab-case repository identifier     | Logical repository name used as the default `repo` value for writes and searches. Should match the repository's canonical working name, not a display title.                                         | `"memo-cli"`                                          |
+| `org`                   | Yes      | `string`   | Lowercase kebab-case or lowercase slug         | Organization, company, or top-level ownership namespace used for company-scope filtering.                                                                                                            | `"llipe"`                                             |
+| `domain`                | Yes      | `string`   | Lowercase kebab-case domain slug               | Business or technical domain this repo belongs to. Used as descriptive metadata and future grouping/filtering.                                                                                       | `"developer-tools"`                                   |
+| `relates_to`            | Yes      | `string[]` | Array of lowercase kebab-case repo identifiers | Declares repositories directly related to this repo for dependency or integration lookup. Source declarations are directional; the resolved graph becomes reciprocal after enrichment. May be empty. | `["platform-docs", "shared-auth"]`                    |
+| `defaults`              | No       | `object`   | JSON object with known optional keys           | Stores command defaults that reduce repetition in daily use. Unknown keys are ignored in MVP.                                                                                                        | `{ "entry_source": "agent", "search_scope": "repo" }` |
+| `defaults.entry_source` | No       | `string`   | Lowercase keyword                              | Default source for `memo write` when the user does not pass `--source`. Allowed MVP values: `"agent"`, `"manual"`. `"scan"` is reserved and should not be emitted by setup defaults.                 | `"agent"`                                             |
+| `defaults.search_scope` | No       | `string`   | Lowercase keyword                              | Default search scope used when no explicit scope flag is provided. Allowed MVP values: `"repo"`, `"related"`. `"company"` is reserved for broader cross-repo flows and later config integration.     | `"repo"`                                              |
 
 ### Local Config Validation Rules
 
@@ -360,13 +360,13 @@ Return only valid JSON.
 
 ## 14. Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Setup completion success | ≥ 95% of first-time setup runs produce a valid local config without manual file editing |
-| Write success rate | ≥ 95% of valid writes succeed on first attempt |
-| Search usefulness | Top 3 results considered relevant in at least 80% of validation queries |
-| Empty-result clarity | 100% of no-result cases return exit code 0 and explicit no-result messaging |
-| Bootstrap prompt validity | ≥ 90% of generated bootstrap items validate without schema correction |
+| Metric                    | Target                                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| Setup completion success  | ≥ 95% of first-time setup runs produce a valid local config without manual file editing |
+| Write success rate        | ≥ 95% of valid writes succeed on first attempt                                          |
+| Search usefulness         | Top 3 results considered relevant in at least 80% of validation queries                 |
+| Empty-result clarity      | 100% of no-result cases return exit code 0 and explicit no-result messaging             |
+| Bootstrap prompt validity | ≥ 90% of generated bootstrap items validate without schema correction                   |
 
 ## 15. Assumptions
 

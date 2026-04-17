@@ -68,15 +68,13 @@ afterEach(() => {
 describe('handleWrite', () => {
   it('writes a new entry successfully (JSON mode)', async () => {
     const deps: WriteDeps = {
-      loadCfg: jest
-        .fn()
-        .mockResolvedValue({
-          repo: 'my-repo',
-          org: 'my-org',
-          domain: 'backend',
-          relates_to: [],
-          defaults: { source: 'agent', search_scope: 'repo' },
-        }),
+      loadCfg: jest.fn().mockResolvedValue({
+        repo: 'my-repo',
+        org: 'my-org',
+        domain: 'backend',
+        relates_to: [],
+        defaults: { source: 'agent', search_scope: 'repo' },
+      }),
       createRepo: makeMockQdrant(),
       createEmbeddings: () => mockEmbeddings() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     };
@@ -105,15 +103,13 @@ describe('handleWrite', () => {
 
   it('throws VALIDATION_FAILED for too few tags', async () => {
     const deps: WriteDeps = {
-      loadCfg: jest
-        .fn()
-        .mockResolvedValue({
-          repo: 'r',
-          org: 'o',
-          domain: 'd',
-          relates_to: [],
-          defaults: { source: 'agent', search_scope: 'repo' },
-        }),
+      loadCfg: jest.fn().mockResolvedValue({
+        repo: 'r',
+        org: 'o',
+        domain: 'd',
+        relates_to: [],
+        defaults: { source: 'agent', search_scope: 'repo' },
+      }),
       createRepo: makeMockQdrant(),
       createEmbeddings: () => mockEmbeddings() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     };
@@ -125,15 +121,13 @@ describe('handleWrite', () => {
 
   it('applies --on-duplicate consolidate when duplicate found', async () => {
     const deps: WriteDeps = {
-      loadCfg: jest
-        .fn()
-        .mockResolvedValue({
-          repo: 'my-repo',
-          org: 'my-org',
-          domain: 'backend',
-          relates_to: [],
-          defaults: { source: 'agent', search_scope: 'repo' },
-        }),
+      loadCfg: jest.fn().mockResolvedValue({
+        repo: 'my-repo',
+        org: 'my-org',
+        domain: 'backend',
+        relates_to: [],
+        defaults: { source: 'agent', search_scope: 'repo' },
+      }),
       createRepo: makeMockQdrant(BASE_EXISTING),
       createEmbeddings: () => mockEmbeddings() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     };
@@ -147,15 +141,13 @@ describe('handleWrite', () => {
 
   it('applies --on-duplicate create-new when duplicate found', async () => {
     const deps: WriteDeps = {
-      loadCfg: jest
-        .fn()
-        .mockResolvedValue({
-          repo: 'my-repo',
-          org: 'my-org',
-          domain: 'backend',
-          relates_to: [],
-          defaults: { source: 'agent', search_scope: 'repo' },
-        }),
+      loadCfg: jest.fn().mockResolvedValue({
+        repo: 'my-repo',
+        org: 'my-org',
+        domain: 'backend',
+        relates_to: [],
+        defaults: { source: 'agent', search_scope: 'repo' },
+      }),
       createRepo: makeMockQdrant(BASE_EXISTING),
       createEmbeddings: () => mockEmbeddings() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     };
@@ -173,15 +165,13 @@ describe('handleWrite', () => {
     });
 
     const deps: WriteDeps = {
-      loadCfg: jest
-        .fn()
-        .mockResolvedValue({
-          repo: 'my-repo',
-          org: 'my-org',
-          domain: 'backend',
-          relates_to: [],
-          defaults: { source: 'agent', search_scope: 'repo' },
-        }),
+      loadCfg: jest.fn().mockResolvedValue({
+        repo: 'my-repo',
+        org: 'my-org',
+        domain: 'backend',
+        relates_to: [],
+        defaults: { source: 'agent', search_scope: 'repo' },
+      }),
       createRepo: makeMockQdrant(BASE_EXISTING),
       createEmbeddings: () => mockEmbeddings() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     };
@@ -195,15 +185,13 @@ describe('handleWrite', () => {
 
   it('uses promptDuplicate callback in non-JSON mode', async () => {
     const deps: WriteDeps = {
-      loadCfg: jest
-        .fn()
-        .mockResolvedValue({
-          repo: 'my-repo',
-          org: 'my-org',
-          domain: 'backend',
-          relates_to: [],
-          defaults: { source: 'agent', search_scope: 'repo' },
-        }),
+      loadCfg: jest.fn().mockResolvedValue({
+        repo: 'my-repo',
+        org: 'my-org',
+        domain: 'backend',
+        relates_to: [],
+        defaults: { source: 'agent', search_scope: 'repo' },
+      }),
       createRepo: makeMockQdrant(BASE_EXISTING),
       createEmbeddings: () => mockEmbeddings() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       promptDuplicate: jest.fn().mockResolvedValue('replace'),

@@ -6,6 +6,7 @@ export interface BuildListFiltersInput {
   scope: 'repo' | 'related';
   relatedRepos?: string[];
   org?: string;
+  tags?: string[];
   entryTypes?: string[];
   sources?: string[];
   from?: string;
@@ -82,6 +83,11 @@ export function buildListFilters(input: BuildListFiltersInput): QdrantFilter {
 
   if (input.org) {
     must.push({ key: 'org', match: { value: input.org } });
+  }
+
+  const tags = unique(input.tags ?? []);
+  if (tags.length > 0) {
+    must.push(buildAnyMatch('tags', tags));
   }
 
   const entryTypes = unique(input.entryTypes ?? []);
