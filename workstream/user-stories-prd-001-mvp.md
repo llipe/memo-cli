@@ -2,9 +2,10 @@
 
 ## Changelog
 
-| Version | Date       | Summary                  | Author         |
-|---------|------------|--------------------------|----------------|
-| 1.0     | 2026-04-10 | Initial version          | GitHub Copilot |
+| Version | Date       | Summary                                   | Author         |
+| ------- | ---------- | ----------------------------------------- | -------------- |
+| 1.0     | 2026-04-10 | Initial version                           | GitHub Copilot |
+| 1.1     | 2026-04-17 | Added S-009 npm deployment workflow story | GitHub Copilot |
 
 ---
 
@@ -65,7 +66,7 @@ This is the foundation story — nothing else can land until the repository stru
 
 1. Initialize repository with `package.json` (name `@memo-ai/cli`, scope public).
 2. Install runtime dependencies: `commander`, `@qdrant/js-client-rest`, `openai`, `zod`, `dotenv`, `chalk`, `ora`, `uuid`.
-3. Install dev dependencies: TypeScript, ts-jest, jest, eslint, typescript-eslint, eslint-config-prettier, prettier, husky, lint-staged, @types/*.
+3. Install dev dependencies: TypeScript, ts-jest, jest, eslint, typescript-eslint, eslint-config-prettier, prettier, husky, lint-staged, @types/\*.
 4. Create `tsconfig.json` with NodeNext module resolution and strict mode.
 5. Create `eslint.config.ts` using typescript-eslint strict + prettier rules.
 6. Create `.prettierrc`.
@@ -698,48 +699,126 @@ This story covers the release pipeline: build verification, version bump, npm pu
 
 ---
 
+### Story S-009: Automated Registry Deployment Workflow (npm)
+
+**Priority:** High
+**Estimated Size:** M
+**Dependencies:** S-001, S-003, S-008
+
+#### User Story
+
+As a maintainer,
+I want a controlled and repeatable CI/CD deployment workflow that publishes Memo CLI to npm,
+So that releases are safe, validated, and auditable before users install them.
+
+#### Context
+
+This story formalizes release automation beyond manual first-release steps. It adds workflow gates, package integrity checks, smoke tests, and explicit rollback handling for npm publication. The goal is to prevent broken or incomplete artifacts from being published.
+
+#### Acceptance Criteria
+
+- [ ] A dedicated GitHub Actions release workflow exists (`.github/workflows/release.yml`) and runs only on semver tags (`vX.Y.Z`) or manual dispatch.
+- [ ] The release workflow enforces `pnpm install --frozen-lockfile`, `pnpm run typecheck`, `pnpm run lint`, `pnpm run test`, and `pnpm run build` before publish.
+- [ ] The workflow fails if `npm pack --json` shows files outside the allowed publish set (`dist/**`, `README.md`, `LICENSE`, `package.json`).
+- [ ] A pre-publish smoke test installs the packed tarball in a temporary folder and validates `memo --version` and `memo --help`.
+- [ ] Publish executes with `npm publish --access public --provenance` and requires `NPM_TOKEN` to be configured.
+- [ ] The workflow creates a post-publish verification step that installs `@memo-ai/cli@<released-version>` and runs `memo --version`.
+- [ ] The release process is documented with a rollback guide for deprecating or yanking a bad version.
+- [ ] The workflow is idempotent for the same tag: if version already exists on npm, it exits with a clear message and non-zero status.
+
+#### Business Rules
+
+- Only signed/approved semver tags may trigger npm publication.
+- Release pipeline must block publish when any validation step fails.
+- Registry credentials must only come from GitHub Secrets and never be echoed in logs.
+- The published artifact must be reproducible from tagged source.
+
+#### Technical Notes
+
+- Use Node 24 and pnpm 9 in workflow setup to match project constraints.
+- Add a script check (for example in `scripts/`) to validate tarball file list and size limits.
+- Smoke test should run against local `.tgz` before publish and registry package after publish.
+- Configure workflow concurrency (`concurrency: release-${{ github.ref }}`) to avoid double publishes.
+- Protect release with environment rules (manual approval optional for production release environment).
+
+#### Testing Requirements
+
+- **Unit Tests:** Validator script tests for allowed/disallowed tarball content patterns.
+- **Integration Tests:** CI workflow dry-run via `workflow_dispatch` with `dry_run` input; validate gate behavior for failing lint/test/build.
+- **Manual Testing:** Create a prerelease tag on a branch, run workflow, confirm artifact checks and smoke tests; verify installed binary works.
+- **Edge Cases:** Existing version already published; missing `NPM_TOKEN`; corrupted `dist/`; accidental extra file in package; npm outage/retry behavior.
+
+#### Implementation Steps
+
+1. Create `.github/workflows/release.yml` with semver-tag trigger and optional manual dispatch.
+2. Implement pre-publish validation jobs: dependency lockfile check, typecheck, lint, tests, build.
+3. Add package integrity validation using `npm pack --json` and an allowlist verifier script.
+4. Add local tarball smoke test job (`npm i -g ./package.tgz`, `memo --version`, `memo --help`).
+5. Add guarded publish job with `npm publish --access public --provenance`.
+6. Add post-publish verification job that installs the published version from npm and runs smoke commands.
+7. Document release checklist and rollback procedure in project docs.
+8. Add tests for the tarball validation script and verify workflow failure modes.
+
+#### Files to Create/Modify
+
+- `.github/workflows/release.yml` - automated release and npm publish workflow
+- `scripts/validate-package-contents.ts` - tarball allowlist validator
+- `tests/unit/scripts/validate-package-contents.test.ts` - validator unit tests
+- `README.md` - release process and rollback notes
+- `docs/system-overview.md` - CI/CD deployment flow update
+
+#### Definition of Done Checklist
+
+- [ ] Code implemented per technical guidelines
+- [ ] Unit tests written and passing
+- [ ] Code reviewed and approved
+- [ ] Acceptance criteria verified
+- [ ] Pull Request created and merged
+
+---
+
 ## Coverage Validation
 
 ### Summary
 
 - **Total PRD Requirements:** 25 functional requirements + 12 acceptance criteria + 5 business rules
-- **Total User Stories:** 8
+- **Total User Stories:** 9
 - **Coverage:** 100%
 - **Status:** Complete
 
 ### Requirement Mapping
 
-| PRD Requirement | Story ID(s) | Status |
-|----------------|-------------|--------|
-| FR1 — `memo setup init` scaffolds `memo.config.json` | S-002 | ✅ Covered |
-| FR2 — Interactive + non-interactive modes for setup | S-002 | ✅ Covered |
-| FR3 — Config must contain `repo`, `org`, `domain`, `relates_to` | S-002 | ✅ Covered |
-| FR4 — Config ignores unknown keys | S-002 | ✅ Covered |
-| FR5 — Merge local + remote config in later phases (interface only) | S-003 | ✅ Covered (interface stub) |
-| FR6 — MVP relies on local config as default context | S-002, S-004, S-005, S-006 | ✅ Covered |
-| FR7 — `memo write` auto-creates collection and indexes | S-003, S-004 | ✅ Covered |
-| FR8 — `memo write` validates inputs before embed/persist | S-004 | ✅ Covered |
-| FR9 — `memo write` supports `--relates-to` | S-004 | ✅ Covered |
-| FR10 — `--confidence` flag not exposed | S-004 | ✅ Covered |
-| FR11 — `confidence` inferred from source | S-004 | ✅ Covered |
-| FR12 — Entry types: `decision`, `integration_point`, `structure` | S-004 | ✅ Covered |
-| FR13 — Source values: `agent`, `manual`, `scan` (reserved) | S-004 | ✅ Covered |
-| FR14 — `memo search` semantic vector search with tag normalization | S-005 | ✅ Covered |
-| FR15 — `memo search` applies exact-match pre-filters | S-005 | ✅ Covered |
-| FR16 — Multi-tag AND semantics | S-005 | ✅ Covered |
-| FR17 — `memo search` related-repo scope expansion | S-005 | ✅ Covered |
-| FR18 — `memo list` ordered by `timestamp_utc` descending | S-006 | ✅ Covered |
-| FR19 — Storage indexes `timestamp_utc` | S-003 | ✅ Covered |
-| FR20 — JSON responses return all payload fields | S-004, S-005, S-006 | ✅ Covered |
-| FR21 — `memo search --json` includes `similarity` | S-005 | ✅ Covered |
-| FR22 — Empty results return success + empty array | S-005, S-006 | ✅ Covered |
-| FR23 — Human empty results echo active filters | S-005, S-006 | ✅ Covered |
-| FR24 — Documented bootstrap prompt for Copilot | S-007 | ✅ Covered |
-| FR25 — Bootstrap supports `structure` and `integration_point` with `source=manual` | S-007 | ✅ Covered |
-| Setup show/validate subcommands | S-002 | ✅ Covered |
-| Duplicate detection + resolution | S-004 | ✅ Covered |
-| Dev environment setup | S-001 | ✅ Covered |
-| npm publish + global install | S-008 | ✅ Covered |
+| PRD Requirement                                                                    | Story ID(s)                | Status                      |
+| ---------------------------------------------------------------------------------- | -------------------------- | --------------------------- |
+| FR1 — `memo setup init` scaffolds `memo.config.json`                               | S-002                      | ✅ Covered                  |
+| FR2 — Interactive + non-interactive modes for setup                                | S-002                      | ✅ Covered                  |
+| FR3 — Config must contain `repo`, `org`, `domain`, `relates_to`                    | S-002                      | ✅ Covered                  |
+| FR4 — Config ignores unknown keys                                                  | S-002                      | ✅ Covered                  |
+| FR5 — Merge local + remote config in later phases (interface only)                 | S-003                      | ✅ Covered (interface stub) |
+| FR6 — MVP relies on local config as default context                                | S-002, S-004, S-005, S-006 | ✅ Covered                  |
+| FR7 — `memo write` auto-creates collection and indexes                             | S-003, S-004               | ✅ Covered                  |
+| FR8 — `memo write` validates inputs before embed/persist                           | S-004                      | ✅ Covered                  |
+| FR9 — `memo write` supports `--relates-to`                                         | S-004                      | ✅ Covered                  |
+| FR10 — `--confidence` flag not exposed                                             | S-004                      | ✅ Covered                  |
+| FR11 — `confidence` inferred from source                                           | S-004                      | ✅ Covered                  |
+| FR12 — Entry types: `decision`, `integration_point`, `structure`                   | S-004                      | ✅ Covered                  |
+| FR13 — Source values: `agent`, `manual`, `scan` (reserved)                         | S-004                      | ✅ Covered                  |
+| FR14 — `memo search` semantic vector search with tag normalization                 | S-005                      | ✅ Covered                  |
+| FR15 — `memo search` applies exact-match pre-filters                               | S-005                      | ✅ Covered                  |
+| FR16 — Multi-tag AND semantics                                                     | S-005                      | ✅ Covered                  |
+| FR17 — `memo search` related-repo scope expansion                                  | S-005                      | ✅ Covered                  |
+| FR18 — `memo list` ordered by `timestamp_utc` descending                           | S-006                      | ✅ Covered                  |
+| FR19 — Storage indexes `timestamp_utc`                                             | S-003                      | ✅ Covered                  |
+| FR20 — JSON responses return all payload fields                                    | S-004, S-005, S-006        | ✅ Covered                  |
+| FR21 — `memo search --json` includes `similarity`                                  | S-005                      | ✅ Covered                  |
+| FR22 — Empty results return success + empty array                                  | S-005, S-006               | ✅ Covered                  |
+| FR23 — Human empty results echo active filters                                     | S-005, S-006               | ✅ Covered                  |
+| FR24 — Documented bootstrap prompt for Copilot                                     | S-007                      | ✅ Covered                  |
+| FR25 — Bootstrap supports `structure` and `integration_point` with `source=manual` | S-007                      | ✅ Covered                  |
+| Setup show/validate subcommands                                                    | S-002                      | ✅ Covered                  |
+| Duplicate detection + resolution                                                   | S-004                      | ✅ Covered                  |
+| Dev environment setup                                                              | S-001                      | ✅ Covered                  |
+| npm publish + global install                                                       | S-008, S-009               | ✅ Covered                  |
 
 ### Non-Goals Validation
 

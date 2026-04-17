@@ -1,4 +1,5 @@
 # Product Context — Memo
+
 > Shared Multi-Agent Memory for Software Ecosystems · v1.0 · April 2026
 
 ---
@@ -25,19 +26,19 @@ AI agents have no memory between sessions and no visibility into the broader cod
 
 ### Primary Users
 
-| Persona | Description | Key Use Case |
-|---------|-------------|--------------|
-| **AI agent** | GitHub Copilot, Claude, Cursor, or any agent with CLI access | Reads before starting tasks (`memo search`), writes after completing them (`memo write`) |
-| **Solo developer with AI agent** | Individual developer using an AI coding assistant | Persists decisions across sessions; avoids re-explaining context to the agent |
-| **Developer team (multi-repo)** | Teams owning multiple interconnected products/services | Cross-team ecosystem queries; integration knowledge sharing |
+| Persona                          | Description                                                  | Key Use Case                                                                             |
+| -------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **AI agent**                     | GitHub Copilot, Claude, Cursor, or any agent with CLI access | Reads before starting tasks (`memo search`), writes after completing them (`memo write`) |
+| **Solo developer with AI agent** | Individual developer using an AI coding assistant            | Persists decisions across sessions; avoids re-explaining context to the agent            |
+| **Developer team (multi-repo)**  | Teams owning multiple interconnected products/services       | Cross-team ecosystem queries; integration knowledge sharing                              |
 
 ### Secondary Users
 
-| Persona | Description | Key Use Case |
-|---------|-------------|--------------|
-| **Tech lead / architect** | Senior developers reviewing architectural consistency | `memo list` for audits; `memo ask` for ecosystem-wide queries |
-| **New team member (human or agent)** | Developer onboarding to a codebase or team | `memo ask` to understand the ecosystem without reading all code |
-| **DevOps / scan agent** | Automated agents bootstrapping knowledge bases | `memo scan` to generate baseline entries from existing codebases |
+| Persona                              | Description                                           | Key Use Case                                                     |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------- |
+| **Tech lead / architect**            | Senior developers reviewing architectural consistency | `memo list` for audits; `memo ask` for ecosystem-wide queries    |
+| **New team member (human or agent)** | Developer onboarding to a codebase or team            | `memo ask` to understand the ecosystem without reading all code  |
+| **DevOps / scan agent**              | Automated agents bootstrapping knowledge bases        | `memo scan` to generate baseline entries from existing codebases |
 
 ---
 
@@ -53,9 +54,22 @@ AI agents have no memory between sessions and no visibility into the broader cod
 
 ## 5. Current State
 
-**Greenfield — v1.0 in active development.**
+**v1.0 — MVP complete.**
 
-No prior codebase exists. The repository (`memo-cli`) is being initialized.
+The MVP (Phase 1) has been fully implemented and merged. All eight user stories (S-001 through S-008) are delivered:
+
+| Story | Scope                                                            | Status      |
+| ----- | ---------------------------------------------------------------- | ----------- |
+| S-001 | Project setup (TypeScript, pnpm, CI, npm skeleton)               | ✅ Complete |
+| S-002 | `memo setup` (init / show / validate)                            | ✅ Complete |
+| S-003 | Foundation libraries (errors, output, qdrant, embeddings, retry) | ✅ Complete |
+| S-004 | `memo write` with duplicate detection                            | ✅ Complete |
+| S-005 | `memo search` with semantic + pre-filters                        | ✅ Complete |
+| S-006 | `memo list` with date-range filtering                            | ✅ Complete |
+| S-007 | Bootstrap documentation and validation                           | ✅ Complete |
+| S-008 | First release packaging and publish workflow                     | ✅ Complete |
+
+The package is published as `@memo-ai/cli` on npm. CI/CD pipelines are green. The publish workflow triggers on semver tag push.
 
 ---
 
@@ -71,30 +85,30 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 
 **In scope:**
 
-| Area | What ships | Notes |
-|------|-----------|-------|
-| **Project setup** | TypeScript + pnpm, Qdrant client, embeddings adapter, CI, npm package skeleton | The foundation everything else depends on |
-| **`memo write`** | Save a decision with full payload, Zod validation, embedding generation, Qdrant upsert | The write path — core value |
-| **`memo search`** | Semantic vector search with `--repo` filter, `--scope company`, `--tags`, `--limit` | The read path — core value |
-| **`memo list`** | Chronological listing with `--repo`, `--from`, `--to`, `--limit` | Audit trail; useful from day one |
-| **`memo setup`** | Initialize local `memo.config.json` in a repository, define repo identity, and enable repo/org defaults for other commands | Required to make repo-aware behavior explicit in MVP |
+| Area                              | What ships                                                                                                                                                                          | Notes                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Project setup**                 | TypeScript + pnpm, Qdrant client, embeddings adapter, CI, npm package skeleton                                                                                                      | The foundation everything else depends on                                  |
+| **`memo write`**                  | Save a decision with full payload, Zod validation, embedding generation, Qdrant upsert                                                                                              | The write path — core value                                                |
+| **`memo search`**                 | Semantic vector search with `--repo` filter, `--scope company`, `--tags`, `--limit`                                                                                                 | The read path — core value                                                 |
+| **`memo list`**                   | Chronological listing with `--repo`, `--from`, `--to`, `--limit`                                                                                                                    | Audit trail; useful from day one                                           |
+| **`memo setup`**                  | Initialize local `memo.config.json` in a repository, define repo identity, and enable repo/org defaults for other commands                                                          | Required to make repo-aware behavior explicit in MVP                       |
 | **Minimal `memo scan` bootstrap** | Agent-assisted scan prompt that infers definitions from selected files and persists them through `memo write` with `source: manual` and `entry_type: structure`/`integration_point` | Delivers scan value early without full filesystem walker/LLM orchestration |
-| **Output modes** | Human-readable (default) + `--json` for agents | Agents must be able to parse results |
-| **Config basics** | `.env` credential loading plus local `memo.config.json` created by `memo setup` | MVP commands rely on explicit local repo/org/domain defaults |
-| **OpenAI adapter** | `text-embedding-3-small` as the default embeddings provider | Ship one provider; others come later |
-| **Error handling** | Typed `MemoError` hierarchy, deterministic exit codes (0/1/2) | Agent-friendly failure signals |
-| **Tests** | Unit tests for `lib/` + integration tests for `write`, `search`, `list` commands | Quality gate from the start |
+| **Output modes**                  | Human-readable (default) + `--json` for agents                                                                                                                                      | Agents must be able to parse results                                       |
+| **Config basics**                 | `.env` credential loading plus local `memo.config.json` created by `memo setup`                                                                                                     | MVP commands rely on explicit local repo/org/domain defaults               |
+| **OpenAI adapter**                | `text-embedding-3-small` as the default embeddings provider                                                                                                                         | Ship one provider; others come later                                       |
+| **Error handling**                | Typed `MemoError` hierarchy, deterministic exit codes (0/1/2)                                                                                                                       | Agent-friendly failure signals                                             |
+| **Tests**                         | Unit tests for `lib/` + integration tests for `write`, `search`, `list` commands                                                                                                    | Quality gate from the start                                                |
 
 **Explicitly NOT in MVP:**
 
-| Deferred | Reason |
-|----------|--------|
-| Full `memo scan` automation | Full filesystem walker, artifact prioritization, autonomous chunking, confidence scoring, and bulk upserts remain Phase 3 |
-| `memo ask` | Depends on `memo.config.json` relationships and combined entry logic — Phase 4 |
-| Central org config registry | HTTP-distributed shared config remains Phase 2; MVP starts with local `memo.config.json` only |
-| Additional embedding providers (Voyage, Cohere, Ollama) | OpenAI is sufficient for MVP; adapter interface ships, implementations follow |
-| Telemetry | Nice-to-have; defer to Phase 2+ |
-| Long-rationale summarization | Optimization; full text embedding works acceptably at MVP scale |
+| Deferred                                                | Reason                                                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Full `memo scan` automation                             | Full filesystem walker, artifact prioritization, autonomous chunking, confidence scoring, and bulk upserts remain Phase 3 |
+| `memo ask`                                              | Depends on `memo.config.json` relationships and combined entry logic — Phase 4                                            |
+| Central org config registry                             | HTTP-distributed shared config remains Phase 2; MVP starts with local `memo.config.json` only                             |
+| Additional embedding providers (Voyage, Cohere, Ollama) | OpenAI is sufficient for MVP; adapter interface ships, implementations follow                                             |
+| Telemetry                                               | Nice-to-have; defer to Phase 2+                                                                                           |
+| Long-rationale summarization                            | Optimization; full text embedding works acceptably at MVP scale                                                           |
 
 **MVP success criteria:**
 
@@ -112,14 +126,14 @@ The MVP delivers the core loop: **an agent can write a decision and retrieve it 
 1. Pick a small reference repository/module (20-50 files).
 2. Ask Copilot to analyze a bounded set of artifacts (`README`, routes/controllers, schema/migrations, package.json) using a fixed extraction prompt.
 3. Require Copilot output in a strict JSON schema per inferred definition:
-	- `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`
+   - `entry_type`, `tags`, `files_modified`, `rationale`, `relates_to`
 4. Convert each JSON item into `memo write` commands and execute them with `--json`.
 5. Run `memo search` queries that validate retrieval quality (for example: auth flow, event publishing, API contracts).
 6. Pass criteria:
-	- At least 5 entries written successfully
-	- 0 invalid payload writes
-	- Top-3 results judged relevant in at least 4 of 5 validation queries
-	- End-to-end run time under 15 minutes for the pilot sample
+   - At least 5 entries written successfully
+   - 0 invalid payload writes
+   - Top-3 results judged relevant in at least 4 of 5 validation queries
+   - End-to-end run time under 15 minutes for the pilot sample
 
 This validates the minimal scan concept before building full `memo scan` automation.
 
@@ -127,38 +141,38 @@ This validates the minimal scan concept before building full `memo scan` automat
 
 ### Full Roadmap Phases
 
-| Phase | Scope | Target |
-|-------|-------|--------|
-| 1 — Core (MVP) | `memo setup`, local `memo.config.json`, `memo write`, `memo search`, `memo list`, minimal agent-assisted scan bootstrap, Qdrant + embeddings, OpenAI adapter | Weeks 1–2 |
-| 2 — Config & Relationships | Central config distribution, multi-repo resolution, additional providers | Week 3 |
-| 3 — Scan | `memo scan` — codebase archaeology + LLM analysis | Week 4 |
-| 4 — Ask & Ecosystem | `memo ask` — cross-repo integration queries | Week 5 |
-| 5 — Adoption | Initial org scans, team rollout, agent system prompt finalization, telemetry | Week 6 |
+| Phase                      | Scope                                                                                                                                                        | Target    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| 1 — Core (MVP)             | `memo setup`, local `memo.config.json`, `memo write`, `memo search`, `memo list`, minimal agent-assisted scan bootstrap, Qdrant + embeddings, OpenAI adapter | Weeks 1–2 |
+| 2 — Config & Relationships | Central config distribution, multi-repo resolution, additional providers                                                                                     | Week 3    |
+| 3 — Scan                   | `memo scan` — codebase archaeology + LLM analysis                                                                                                            | Week 4    |
+| 4 — Ask & Ecosystem        | `memo ask` — cross-repo integration queries                                                                                                                  | Week 5    |
+| 5 — Adoption               | Initial org scans, team rollout, agent system prompt finalization, telemetry                                                                                 | Week 6    |
 
 ---
 
 ## 7. Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Agent write compliance | ≥ 95% of completed stories have a `memo write` entry |
-| Pre-task search adoption | Agents query before starting non-trivial tasks |
-| Cross-repo query usage | Teams use `memo ask` for at least 50% of cross-product integration work |
-| Cost per 10K entries (year 1) | < $5 USD total |
-| CLI startup time | < 200ms |
-| Search relevance | Agent rates top-3 results as useful in > 80% of queries |
+| Metric                        | Target                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------- |
+| Agent write compliance        | ≥ 95% of completed stories have a `memo write` entry                    |
+| Pre-task search adoption      | Agents query before starting non-trivial tasks                          |
+| Cross-repo query usage        | Teams use `memo ask` for at least 50% of cross-product integration work |
+| Cost per 10K entries (year 1) | < $5 USD total                                                          |
+| CLI startup time              | < 200ms                                                                 |
+| Search relevance              | Agent rates top-3 results as useful in > 80% of queries                 |
 
 ---
 
 ## 8. Competitive Landscape
 
-| Tool | What It Solves | Gap Memo Covers |
-|------|---------------|-----------------|
-| **Memorix** | Session continuity per agent, per machine | No cross-repo or cross-team visibility |
-| **Mem0** | Conversational memory with LLM compression | No structured schema, no repo relationships, lossy compression |
-| **Beads** | Task planning and execution with dependencies | Does not capture rationale or architectural knowledge |
-| **ADR tools** | Markdown decision documents in the repo | No semantic search, no cross-repo agent access |
-| **Wikis / Confluence** | Human-authored knowledge bases | Not agent-queryable, not linked to commits or stories |
+| Tool                   | What It Solves                                | Gap Memo Covers                                                |
+| ---------------------- | --------------------------------------------- | -------------------------------------------------------------- |
+| **Memorix**            | Session continuity per agent, per machine     | No cross-repo or cross-team visibility                         |
+| **Mem0**               | Conversational memory with LLM compression    | No structured schema, no repo relationships, lossy compression |
+| **Beads**              | Task planning and execution with dependencies | Does not capture rationale or architectural knowledge          |
+| **ADR tools**          | Markdown decision documents in the repo       | No semantic search, no cross-repo agent access                 |
+| **Wikis / Confluence** | Human-authored knowledge bases                | Not agent-queryable, not linked to commits or stories          |
 
 **Memo's differentiating features:** `memo scan` (codebase archaeology), `memo ask` (ecosystem-wide integration queries), compound semantic + exact filtering, full rationale fidelity (no LLM compression), and sub-$5/year operational cost.
 
@@ -166,25 +180,25 @@ This validates the minimal scan concept before building full `memo scan` automat
 
 ## 9. Key Constraints
 
-| Constraint | Detail |
-|------------|--------|
-| **Cost** | Must operate on Qdrant free tier + minimal embedding cost; no paid infrastructure required |
-| **Runtime dependency** | Requires Node.js 24 LTS on the user's machine |
-| **Qdrant free tier** | ~1 GB storage ≈ 100K entries; sufficient for most teams |
-| **LLM dependency for scan** | `memo scan` requires a configurable LLM API (GPT-4o-mini recommended); ~$0.10/repo |
-| **No internet required for core** | Local Qdrant + Ollama setup must be fully functional offline |
-| **Agent compatibility** | CLI output must be parseable by agents; structured JSON output required via `--json` |
+| Constraint                        | Detail                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Cost**                          | Must operate on Qdrant free tier + minimal embedding cost; no paid infrastructure required |
+| **Runtime dependency**            | Requires Node.js 24 LTS on the user's machine                                              |
+| **Qdrant free tier**              | ~1 GB storage ≈ 100K entries; sufficient for most teams                                    |
+| **LLM dependency for scan**       | `memo scan` requires a configurable LLM API (GPT-4o-mini recommended); ~$0.10/repo         |
+| **No internet required for core** | Local Qdrant + Ollama setup must be fully functional offline                               |
+| **Agent compatibility**           | CLI output must be parseable by agents; structured JSON output required via `--json`       |
 
 ---
 
 ## 10. Key Stakeholders
 
-| Role | Interest |
-|------|----------|
-| **Solo developer / adopter** | Fast onboarding, low friction, immediate value on first session |
-| **Engineering lead / tech lead** | Architectural consistency, audit trail, team adoption |
-| **AI agent (Copilot / Claude / Cursor)** | Reliable CLI interface, fast response, structured output |
-| **Open source community** (future) | Extensibility, documentation quality, provider support |
+| Role                                     | Interest                                                        |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| **Solo developer / adopter**             | Fast onboarding, low friction, immediate value on first session |
+| **Engineering lead / tech lead**         | Architectural consistency, audit trail, team adoption           |
+| **AI agent (Copilot / Claude / Cursor)** | Reliable CLI interface, fast response, structured output        |
+| **Open source community** (future)       | Extensibility, documentation quality, provider support          |
 
 ---
 

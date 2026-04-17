@@ -1,6 +1,6 @@
 {
   "name": "@memo-ai/cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Agent-first CLI for capturing and querying development decisions via Qdrant vector store",
   "type": "module",
   "author": "llipe",
@@ -19,7 +19,9 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.json",
@@ -29,7 +31,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "jest",
+    "test": "node ./scripts/run-jest.mjs",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "prepare": "husky",

@@ -1,4 +1,5 @@
 # Technical Guidelines — Memo CLI
+
 > `@memo-ai/cli` · v1.0 · April 2026
 
 ---
@@ -28,77 +29,88 @@ Memo CLI is a lightweight, agent-first command-line tool built to be fast, compo
 
 ### Runtime
 
-| Component | Choice | Version | Rationale |
-|-----------|--------|---------|-----------|
-| **Runtime** | Node.js | 24 LTS | Latest LTS; native `fetch`, improved startup, full ESM support |
-| **Language** | TypeScript | 5.x | Strict mode; type safety across the full codebase |
-| **Package manager** | pnpm | 9.x | Efficient disk usage; strict `node_modules` layout; lockfile committed |
+| Component           | Choice     | Version | Rationale                                                              |
+| ------------------- | ---------- | ------- | ---------------------------------------------------------------------- |
+| **Runtime**         | Node.js    | 24 LTS  | Latest LTS; native `fetch`, improved startup, full ESM support         |
+| **Language**        | TypeScript | 5.x     | Strict mode; type safety across the full codebase                      |
+| **Package manager** | pnpm       | 9.x     | Efficient disk usage; strict `node_modules` layout; lockfile committed |
 
 ### Core Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `commander` | CLI framework — command/option/argument parsing |
-| `@qdrant/js-client-rest` | Official Qdrant REST client |
-| `openai` | OpenAI SDK — embeddings and LLM calls (scan) |
-| `zod` | Runtime schema validation for config files and API payloads |
-| `dotenv` | Local `.env` loading (dev only; production uses env vars directly) |
-| `chalk` | Terminal color output (human-readable mode) |
-| `ora` | Spinner for long-running operations |
-| `uuid` | RFC 4122 UUID generation for entry IDs |
+| Package                  | Purpose                                                            |
+| ------------------------ | ------------------------------------------------------------------ |
+| `commander`              | CLI framework — command/option/argument parsing                    |
+| `@qdrant/js-client-rest` | Official Qdrant REST client                                        |
+| `openai`                 | OpenAI SDK — embeddings and LLM calls (scan)                       |
+| `zod`                    | Runtime schema validation for config files and API payloads        |
+| `dotenv`                 | Local `.env` loading (dev only; production uses env vars directly) |
+| `chalk`                  | Terminal color output (human-readable mode)                        |
+| `ora`                    | Spinner for long-running operations                                |
+| `uuid`                   | RFC 4122 UUID generation for entry IDs                             |
 
 ### Dev Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `typescript` | Compiler |
-| `ts-jest` | Jest TypeScript transform — no separate compile step for tests |
-| `jest` | Test framework and runner |
-| `@types/jest` | Jest type definitions |
-| `@types/node` | Node.js type definitions |
-| `eslint` | Linter (v9, flat config) |
-| `typescript-eslint` | TypeScript-aware ESLint rules (replaces legacy `@typescript-eslint/*`) |
-| `eslint-config-prettier` | Disables ESLint rules that conflict with Prettier |
-| `prettier` | Opinionated code formatter |
-| `husky` | Git hooks (pre-commit lint + format) |
-| `lint-staged` | Run linters only on staged files |
-| `@types/uuid` | UUID type definitions |
+| Package                  | Purpose                                                                |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `typescript`             | Compiler                                                               |
+| `ts-jest`                | Jest TypeScript transform — no separate compile step for tests         |
+| `jest`                   | Test framework and runner                                              |
+| `@types/jest`            | Jest type definitions                                                  |
+| `@types/node`            | Node.js type definitions                                               |
+| `eslint`                 | Linter (v9, flat config)                                               |
+| `typescript-eslint`      | TypeScript-aware ESLint rules (replaces legacy `@typescript-eslint/*`) |
+| `eslint-config-prettier` | Disables ESLint rules that conflict with Prettier                      |
+| `prettier`               | Opinionated code formatter                                             |
+| `husky`                  | Git hooks (pre-commit lint + format)                                   |
+| `lint-staged`            | Run linters only on staged files                                       |
+| `@types/uuid`            | UUID type definitions                                                  |
 
 ---
 
 ## 3. Architecture Patterns
 
-### System Architecture
+### System Architecture (v1.0 — Implemented)
 
 ```
 CLI Entry (src/index.ts)
     └── Commander root program
-        ├── commands/write.ts      → WriteCommand
-        ├── commands/search.ts     → SearchCommand
-        ├── commands/ask.ts        → AskCommand
-        ├── commands/list.ts       → ListCommand
-        ├── commands/scan.ts       → ScanCommand
-        └── commands/setup.ts     → SetupCommand
+        ├── commands/setup.ts      → SetupCommand (init / show / validate)
+        ├── commands/write.ts      → WriteCommand (with duplicate detection)
+        ├── commands/search.ts     → SearchCommand (semantic + pre-filters)
+        └── commands/list.ts       → ListCommand (chronological + date range)
 
 lib/
-  ├── qdrant.ts          → QdrantRepository (all Qdrant I/O)
-  ├── embeddings.ts      → EmbeddingsAdapter interface + factory
-  ├── llm.ts             → LLMAdapter interface + factory (for scan)
-  ├── config.ts          → Config loader (memo.config.json + env)
-  ├── registry.ts        → Related-repo resolution
-  ├── output.ts          → Human/JSON output formatter
-  ├── telemetry.ts       → Opt-in telemetry client
-  └── errors.ts          → Typed error hierarchy + exit codes
+  ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll)
+  ├── embeddings.ts        → EmbeddingsAdapter interface + factory
+  ├── config.ts            → Config loader (memo.config.json + env)
+  ├── registry.ts          → Related-repo resolution for cross-repo scope
+  ├── output.ts            → Human/JSON output formatter (chalk, ora)
+  ├── errors.ts            → Typed MemoError hierarchy + exit codes
+  ├── dedupe.ts            → Deduplication key generation + merge strategies
+  ├── search-filters.ts    → Qdrant pre-filter builder for search
+  ├── list-filters.ts      → Qdrant pre-filter builder for list (with date range)
+  ├── retry.ts             → Generic exponential backoff retry wrapper
+  └── debug.ts             → Conditional debug logging to stderr
+
+adapters/
+  └── openai-embeddings.ts → OpenAI text-embedding-3-small provider
+
+types/
+  ├── entry.ts             → EntryPayload Zod schema + TypeScript type
+  ├── config.ts            → MemoConfig Zod schema + TypeScript type
+  └── cli.ts               → Shared CLI flag interfaces (placeholder)
 ```
+
+> **Note:** `ask.ts`, `scan.ts`, `llm.ts`, `telemetry.ts`, and additional embedding adapters (Voyage, Cohere, Ollama) are planned for future phases and are not implemented in v1.0.
 
 ### Key Patterns
 
-| Pattern | Where Applied | Rationale |
-|---------|--------------|-----------|
-| **Adapter** | `lib/embeddings.ts`, `lib/llm.ts` | Swap providers without changing commands |
-| **Repository** | `lib/qdrant.ts` | Isolate all Qdrant operations; commands never call Qdrant directly |
-| **Command** | `src/commands/*` | Each command is an independent module with a single `run()` function |
-| **Config object** | `lib/config.ts` | Single resolved config passed through; no global state |
+| Pattern           | Where Applied                     | Rationale                                                            |
+| ----------------- | --------------------------------- | -------------------------------------------------------------------- |
+| **Adapter**       | `lib/embeddings.ts`, `lib/llm.ts` | Swap providers without changing commands                             |
+| **Repository**    | `lib/qdrant.ts`                   | Isolate all Qdrant operations; commands never call Qdrant directly   |
+| **Command**       | `src/commands/*`                  | Each command is an independent module with a single `run()` function |
+| **Config object** | `lib/config.ts`                   | Single resolved config passed through; no global state               |
 
 ### No Global State
 
@@ -117,25 +129,26 @@ Commands receive all dependencies (config, repo client, embeddings adapter) via 
 
 ### Output Modes
 
-| Mode | Trigger | Format |
-|------|---------|--------|
-| **Human** | Default | Colored, formatted text via `chalk`; spinners via `ora` |
+| Mode        | Trigger       | Format                                                      |
+| ----------- | ------------- | ----------------------------------------------------------- |
+| **Human**   | Default       | Colored, formatted text via `chalk`; spinners via `ora`     |
 | **Machine** | `--json` flag | Newline-delimited JSON or single JSON object; no ANSI codes |
 
 ### Human Output Color Policy
 
 When output is not `--json`, CLI responses should use a consistent semantic color palette for fast visual parsing:
 
-| Semantic role | Color (chalk) | Example |
-|---------------|----------------|---------|
-| Success | `green` | Entry written, operation complete |
-| Warning | `yellow` | Partial results, fallback config used |
-| Error | `red` | Validation failure, API/network failure |
-| Info | `cyan` | Query scope, selected repo, progress notes |
-| Metadata labels | `gray` | `repo`, `tags`, `confidence`, `timestamp` |
-| Emphasis | `bold` (plus semantic color) | Primary action/result line |
+| Semantic role   | Color (chalk)                | Example                                    |
+| --------------- | ---------------------------- | ------------------------------------------ |
+| Success         | `green`                      | Entry written, operation complete          |
+| Warning         | `yellow`                     | Partial results, fallback config used      |
+| Error           | `red`                        | Validation failure, API/network failure    |
+| Info            | `cyan`                       | Query scope, selected repo, progress notes |
+| Metadata labels | `gray`                       | `repo`, `tags`, `confidence`, `timestamp`  |
+| Emphasis        | `bold` (plus semantic color) | Primary action/result line                 |
 
 Rules:
+
 - Colors are enabled only in human mode; `--json` output must be plain JSON with no ANSI escape codes.
 - Respect terminal capabilities: disable colors when `NO_COLOR` is set or when output is not a TTY.
 - Do not rely on color alone to convey meaning; always include explicit text labels (`ERROR`, `WARNING`, `SUCCESS`).
@@ -149,11 +162,11 @@ output.error(err, { json: flags.json });
 
 ### Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | User error (bad input, missing config, not found) |
-| `2` | System error (Qdrant unreachable, embeddings API error) |
+| Code | Meaning                                                 |
+| ---- | ------------------------------------------------------- |
+| `0`  | Success                                                 |
+| `1`  | User error (bad input, missing config, not found)       |
+| `2`  | System error (Qdrant unreachable, embeddings API error) |
 
 All errors must produce a message to `stderr`. JSON mode must output `{ "error": "...", "code": "..." }` to `stderr`.
 
@@ -161,19 +174,19 @@ All errors must produce a message to `stderr`. JSON mode must output `{ "error":
 
 The MVP error hierarchy should use a small, stable set of machine-readable codes:
 
-| Error code | Exit code | Meaning |
-|------------|-----------|---------|
-| `CONFIG_NOT_FOUND` | `1` | Local `memo.config.json` is missing in a command that requires repo context |
-| `CONFIG_INVALID` | `1` | `memo.config.json` exists but fails schema validation |
-| `MISSING_CREDENTIAL` | `1` | Required environment variable is absent |
-| `VALIDATION_FAILED` | `1` | CLI input or payload validation failed |
-| `REPO_CONTEXT_UNRESOLVED` | `1` | Repo/org defaults could not be resolved from config or flags |
-| `ENTRY_NOT_FOUND` | `1` | Lookup returned no matching entry when a concrete result was required |
-| `QDRANT_UNREACHABLE` | `2` | Qdrant is unavailable or network connectivity failed |
-| `QDRANT_OPERATION_FAILED` | `2` | Qdrant responded but the operation could not be completed |
-| `EMBEDDING_API_ERROR` | `2` | Embeddings provider call failed |
-| `COLLECTION_BOOTSTRAP_FAILED` | `2` | First-run auto-creation or index creation for `decisions` failed |
-| `UNEXPECTED_ERROR` | `2` | Fallback for uncategorized runtime failures |
+| Error code                    | Exit code | Meaning                                                                     |
+| ----------------------------- | --------- | --------------------------------------------------------------------------- |
+| `CONFIG_NOT_FOUND`            | `1`       | Local `memo.config.json` is missing in a command that requires repo context |
+| `CONFIG_INVALID`              | `1`       | `memo.config.json` exists but fails schema validation                       |
+| `MISSING_CREDENTIAL`          | `1`       | Required environment variable is absent                                     |
+| `VALIDATION_FAILED`           | `1`       | CLI input or payload validation failed                                      |
+| `REPO_CONTEXT_UNRESOLVED`     | `1`       | Repo/org defaults could not be resolved from config or flags                |
+| `ENTRY_NOT_FOUND`             | `1`       | Lookup returned no matching entry when a concrete result was required       |
+| `QDRANT_UNREACHABLE`          | `2`       | Qdrant is unavailable or network connectivity failed                        |
+| `QDRANT_OPERATION_FAILED`     | `2`       | Qdrant responded but the operation could not be completed                   |
+| `EMBEDDING_API_ERROR`         | `2`       | Embeddings provider call failed                                             |
+| `COLLECTION_BOOTSTRAP_FAILED` | `2`       | First-run auto-creation or index creation for `decisions` failed            |
+| `UNEXPECTED_ERROR`            | `2`       | Fallback for uncategorized runtime failures                                 |
 
 `MemoError` should carry `code`, `exitCode`, and a human-readable message. Unknown exceptions are wrapped as `UNEXPECTED_ERROR`.
 
@@ -188,6 +201,7 @@ Long operations (scan, bulk write) must show progress in human mode (spinner + c
 ### Scope
 
 Memo has no authentication layer of its own. Access control is delegated entirely to the infrastructure:
+
 - **Qdrant:** access controlled by `QDRANT_API_KEY` and the Qdrant instance's own auth.
 - **Embeddings API:** controlled by `EMBEDDINGS_API_KEY`.
 - **LLM API (scan):** controlled by `LLM_API_KEY` (may be the same as `EMBEDDINGS_API_KEY` for OpenAI).
@@ -260,20 +274,20 @@ Enforced via Zod at write time:
 
 ```typescript
 const EntryPayload = z.object({
-  id:              z.string().uuid(),
-  repo:            z.string().min(1),
-  org:             z.string().optional(),
-  domain:          z.string().optional(),
-  story:           z.string().optional(),
-  commit:          z.string().optional(),
-  timestamp_utc:   z.string().datetime(),               // auto-generated
-  files_modified:  z.array(z.string()).default([]),
-  tags:            z.array(z.string()).min(2).max(5),
-  relates_to:      z.array(z.string()).default([]),
-  rationale:       z.string().min(1).max(5000),
-  entry_type:      z.enum(['decision', 'integration_point', 'structure']),
-  source:          z.enum(['agent', 'scan', 'manual']),
-  confidence:      z.enum(['high', 'medium', 'low']).default('high'),
+  id: z.string().uuid(),
+  repo: z.string().min(1),
+  org: z.string().optional(),
+  domain: z.string().optional(),
+  story: z.string().optional(),
+  commit: z.string().optional(),
+  timestamp_utc: z.string().datetime(), // auto-generated
+  files_modified: z.array(z.string()).default([]),
+  tags: z.array(z.string()).min(2).max(5),
+  relates_to: z.array(z.string()).default([]),
+  rationale: z.string().min(1).max(5000),
+  entry_type: z.enum(['decision', 'integration_point', 'structure']),
+  source: z.enum(['agent', 'scan', 'manual']),
+  confidence: z.enum(['high', 'medium', 'low']).default('high'),
 });
 ```
 
@@ -350,12 +364,12 @@ interface EmbeddingsAdapter {
 
 Supported providers (configurable via `EMBEDDINGS_PROVIDER` env var):
 
-| Provider | Env var value | Notes |
-|----------|--------------|-------|
-| OpenAI (default) | `openai` | `text-embedding-3-small`, 1536 dims |
-| Voyage AI | `voyage` | `voyage-code-3`, code-specialized |
-| Cohere | `cohere` | `embed-v4` |
-| Ollama | `ollama` | Local; requires `OLLAMA_BASE_URL` |
+| Provider         | Env var value | Notes                               |
+| ---------------- | ------------- | ----------------------------------- |
+| OpenAI (default) | `openai`      | `text-embedding-3-small`, 1536 dims |
+| Voyage AI        | `voyage`      | `voyage-code-3`, code-specialized   |
+| Cohere           | `cohere`      | `embed-v4`                          |
+| Ollama           | `ollama`      | Local; requires `OLLAMA_BASE_URL`   |
 
 ### LLM Adapter (scan)
 
@@ -370,6 +384,7 @@ Defaults to OpenAI `gpt-4o-mini`. Configurable via `LLM_PROVIDER` + `LLM_MODEL`.
 ### Retry Policy
 
 All external API calls (Qdrant, embeddings, LLM) use exponential backoff:
+
 - Max 3 attempts
 - Base delay: 500ms, multiplier: 2x
 - Retryable: 429 (rate limit), 503 (unavailable), network errors
@@ -396,41 +411,47 @@ memo-cli/
 ├── src/
 │   ├── index.ts                  ← CLI entry point; Commander root setup
 │   ├── commands/
-│   │   ├── write.ts
-│   │   ├── search.ts
-│   │   ├── ask.ts
-│   │   ├── list.ts
-│   │   ├── scan.ts
-│   │   └── setup.ts
+│   │   ├── setup.ts              ← memo setup (init / show / validate)
+│   │   ├── write.ts              ← memo write (with duplicate detection)
+│   │   ├── search.ts             ← memo search (semantic + pre-filters)
+│   │   └── list.ts               ← memo list (chronological + date range)
 │   ├── lib/
 │   │   ├── qdrant.ts             ← QdrantRepository
 │   │   ├── embeddings.ts         ← EmbeddingsAdapter interface + factory
-│   │   ├── llm.ts                ← LLMAdapter interface + factory
 │   │   ├── config.ts             ← Config loader and resolver
 │   │   ├── registry.ts           ← Related-repo resolution
 │   │   ├── output.ts             ← Human/JSON output formatter
-│   │   ├── telemetry.ts          ← Opt-in telemetry client
-│   │   └── errors.ts             ← MemoError hierarchy + exit codes
+│   │   ├── errors.ts             ← MemoError hierarchy + exit codes
+│   │   ├── dedupe.ts             ← Deduplication key generation + merge strategies
+│   │   ├── search-filters.ts     ← Qdrant pre-filter builder (search)
+│   │   ├── list-filters.ts       ← Qdrant pre-filter builder (list, date range)
+│   │   ├── retry.ts              ← Exponential backoff retry wrapper
+│   │   └── debug.ts              ← Conditional debug logging (MEMO_DEBUG)
 │   ├── adapters/
-│   │   ├── openai-embeddings.ts
-│   │   ├── voyage-embeddings.ts
-│   │   ├── cohere-embeddings.ts
-│   │   ├── ollama-embeddings.ts
-│   │   └── openai-llm.ts
+│   │   └── openai-embeddings.ts  ← OpenAI text-embedding-3-small
 │   └── types/
-│       ├── entry.ts              ← EntryPayload, EntryType, Source, Confidence
-│       ├── config.ts             ← MemoConfig, RepoConfig
-│       └── cli.ts                ← Shared CLI flag interfaces
+│       ├── entry.ts              ← EntryPayload Zod schema
+│       ├── config.ts             ← MemoConfig Zod schema
+│       └── cli.ts                ← Shared CLI flag interfaces (placeholder)
+├── scripts/
+│   ├── run-jest.mjs              ← Jest argument forwarder
+│   └── validate-bootstrap.ts     ← Bootstrap JSON schema validator
 ├── tests/
+│   ├── __mocks__/                ← ESM-only package stubs (chalk, ora)
 │   ├── unit/
 │   │   ├── lib/
-│   │   └── adapters/
+│   │   ├── adapters/
+│   │   ├── commands/
+│   │   └── scripts/
 │   └── integration/
-│       └── commands/
+│       ├── commands/
+│       └── lib/
+├── docs/                         ← Product and technical documentation
+├── workstream/                   ← Planning artifacts (PRD, spec, stories, tasks)
 ├── dist/                         ← Compiled output (gitignored)
-├── memo.config.json              ← Local repo registry (committed)
 ├── .env.example                  ← Example credentials file (committed)
 ├── .env                          ← Actual credentials (gitignored)
+├── .github/workflows/            ← CI + publish workflows
 ├── tsconfig.json
 ├── jest.config.ts
 ├── eslint.config.ts
@@ -441,15 +462,15 @@ memo-cli/
 
 ### Naming Conventions
 
-| Artifact | Convention | Example |
-|----------|------------|---------|
-| Files | `kebab-case.ts` | `openai-embeddings.ts` |
-| Interfaces | `PascalCase` | `EmbeddingsAdapter` |
-| Classes | `PascalCase` | `QdrantRepository` |
-| Functions | `camelCase` | `resolveRelatedRepos()` |
-| Constants | `SCREAMING_SNAKE_CASE` | `DEFAULT_LIMIT` |
-| Zod schemas | `PascalCase` (no suffix) | `EntryPayload` |
-| Test files | `*.test.ts` | `qdrant.test.ts` |
+| Artifact    | Convention               | Example                 |
+| ----------- | ------------------------ | ----------------------- |
+| Files       | `kebab-case.ts`          | `openai-embeddings.ts`  |
+| Interfaces  | `PascalCase`             | `EmbeddingsAdapter`     |
+| Classes     | `PascalCase`             | `QdrantRepository`      |
+| Functions   | `camelCase`              | `resolveRelatedRepos()` |
+| Constants   | `SCREAMING_SNAKE_CASE`   | `DEFAULT_LIMIT`         |
+| Zod schemas | `PascalCase` (no suffix) | `EntryPayload`          |
+| Test files  | `*.test.ts`              | `qdrant.test.ts`        |
 
 ---
 
@@ -481,20 +502,20 @@ memo-cli/
 
 ### Testing Pyramid
 
-| Layer | Scope | Mock Strategy |
-|-------|-------|---------------|
-| **Unit** | `lib/`, `adapters/`, `types/` | Mock external clients with `jest.fn()` |
-| **Integration** | `commands/` | Mock `QdrantRepository` and `EmbeddingsAdapter` at the boundary |
-| **E2E** (manual) | Full CLI binary | Real local Qdrant + real embeddings; run before major releases |
+| Layer            | Scope                         | Mock Strategy                                                   |
+| ---------------- | ----------------------------- | --------------------------------------------------------------- |
+| **Unit**         | `lib/`, `adapters/`, `types/` | Mock external clients with `jest.fn()`                          |
+| **Integration**  | `commands/`                   | Mock `QdrantRepository` and `EmbeddingsAdapter` at the boundary |
+| **E2E** (manual) | Full CLI binary               | Real local Qdrant + real embeddings; run before major releases  |
 
 ### Coverage Targets
 
-| Area | Target |
-|------|--------|
-| `lib/` | ≥ 85% |
-| `adapters/` | ≥ 80% |
-| `commands/` | ≥ 75% |
-| Overall | ≥ 80% |
+| Area        | Target |
+| ----------- | ------ |
+| `lib/`      | ≥ 85%  |
+| `adapters/` | ≥ 80%  |
+| `commands/` | ≥ 75%  |
+| Overall     | ≥ 80%  |
 
 ### Test File Conventions
 
@@ -526,8 +547,10 @@ Before implementing full `memo scan` automation, run an initial pilot that uses 
 1. Generate candidate definitions with Copilot from the selected artifacts.
 2. Validate each object against a local Zod schema before writing.
 3. Write entries using `memo write --json` with:
-  - `source=manual`
-  - `entry_type=structure` or `integration_point`
+
+- `source=manual`
+- `entry_type=structure` or `integration_point`
+
 4. Run validation queries with `memo search` and assess retrieval relevance.
 
 ### JSON Output Contracts (MVP)
@@ -600,7 +623,7 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/consistent-type-imports': 'error',
-      'no-console': 'error',   // use lib/output.ts instead
+      'no-console': 'error', // use lib/output.ts instead
     },
   },
 );
@@ -712,11 +735,11 @@ MEMO_TELEMETRY=false  # disable (also the unset default)
 
 **Events collected (when enabled):**
 
-| Event | Properties |
-|-------|-----------|
-| `command_invoked` | command name, `--scope` flag, `--json` flag |
-| `command_succeeded` | command name, duration_ms, result_count |
-| `command_failed` | command name, error_code (no message content) |
+| Event               | Properties                                    |
+| ------------------- | --------------------------------------------- |
+| `command_invoked`   | command name, `--scope` flag, `--json` flag   |
+| `command_succeeded` | command name, duration_ms, result_count       |
+| `command_failed`    | command name, error_code (no message content) |
 
 **Transport:** Single HTTPS POST, fire-and-forget, with a 2s timeout. Never blocks the CLI result. Failures are silently swallowed.
 
@@ -732,13 +755,13 @@ MEMO_TELEMETRY=false  # disable (also the unset default)
 
 ## 15. Performance & Scalability
 
-| Target | Metric |
-|--------|--------|
-| CLI startup time | < 200ms (cold start, no network) |
-| Embedding call | < 2s (OpenAI API) |
-| Qdrant search query | < 500ms (cloud free tier) |
+| Target                  | Metric                                 |
+| ----------------------- | -------------------------------------- |
+| CLI startup time        | < 200ms (cold start, no network)       |
+| Embedding call          | < 2s (OpenAI API)                      |
+| Qdrant search query     | < 500ms (cloud free tier)              |
 | `memo scan` (200 files) | < 5 min (LLM calls are the bottleneck) |
-| `memo write` total | < 3s end-to-end |
+| `memo write` total      | < 3s end-to-end                        |
 
 ### Optimization Strategies
 
@@ -776,15 +799,16 @@ MEMO_TELEMETRY=false  # disable (also the unset default)
 
 Per `github-ops` conventions:
 
-| Branch Type | Pattern | Example |
-|-------------|---------|---------|
-| Feature / issue | `issue/<number>-<short-description>` | `issue/12-write-command` |
-| Story | `story/<id>-<short-description>` | `story/S-003-scan-command` |
-| Bug fix | `fix/<number>-<short-description>` | `fix/34-qdrant-timeout` |
-| Chore | `chore/<number>-<short-description>` | `chore/5-upgrade-deps` |
-| Docs | `docs/<number>-<description>` | `docs/8-readme-update` |
+| Branch Type     | Pattern                              | Example                    |
+| --------------- | ------------------------------------ | -------------------------- |
+| Feature / issue | `issue/<number>-<short-description>` | `issue/12-write-command`   |
+| Story           | `story/<id>-<short-description>`     | `story/S-003-scan-command` |
+| Bug fix         | `fix/<number>-<short-description>`   | `fix/34-qdrant-timeout`    |
+| Chore           | `chore/<number>-<short-description>` | `chore/5-upgrade-deps`     |
+| Docs            | `docs/<number>-<description>`        | `docs/8-readme-update`     |
 
 Rules:
+
 - Branches are short-lived (< 3 days ideally).
 - No long-lived feature branches. Break work into small PRs.
 - Branch names: lowercase, hyphens only.
@@ -800,6 +824,7 @@ Types: feat | fix | chore | docs | refactor | test | ci
 ```
 
 Examples:
+
 ```
 feat(write): add --tags flag to memo write
 fix(qdrant): handle connection timeout with retry
@@ -832,14 +857,17 @@ git push && git push --tags
 Auto-write is not part of MVP, but the recommended implementation path is:
 
 1. **Local git hook path**
+
 - Add optional helper command: `memo hooks post-commit`.
 - Hook captures commit hash and file diff, asks the agent for rationale with a strict prompt template, then executes `memo write`.
 
 2. **CI fallback path**
+
 - GitHub Actions job runs on merged PRs and calls `memo hooks ci-write`.
 - CI-generated entries use conservative metadata (`confidence=low`, tag `generated_by:ci`) when rationale quality is uncertain.
 
 3. **Deduplication and idempotency**
+
 - Use canonical dedupe string format:
   - `v1|<repo>|<commit>|<story_or_na>|<entry_type>|<source>`
   - `story_or_na` must be `na` when story/task ID is unavailable.
@@ -854,21 +882,22 @@ Auto-write is not part of MVP, but the recommended implementation path is:
 
 **Update semantics (when key exists):**
 
-| Field | Rule |
-|------|------|
-| `timestamp_utc` | Update to current write time |
-| `rationale` | Replace only if incoming text is longer or has higher confidence; otherwise keep existing |
-| `tags` | Union, dedupe, then cap at 5 tags (prefer incoming tags first) |
-| `files_modified` | Union, dedupe, preserve relative paths |
-| `confidence` | Keep max confidence (`high > medium > low`) |
-| `source` | Keep existing unless incoming source is `agent` and existing is `manual`/`scan` |
-| `relates_to` | Union, dedupe |
+| Field            | Rule                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `timestamp_utc`  | Update to current write time                                                              |
+| `rationale`      | Replace only if incoming text is longer or has higher confidence; otherwise keep existing |
+| `tags`           | Union, dedupe, then cap at 5 tags (prefer incoming tags first)                            |
+| `files_modified` | Union, dedupe, preserve relative paths                                                    |
+| `confidence`     | Keep max confidence (`high > medium > low`)                                               |
+| `source`         | Keep existing unless incoming source is `agent` and existing is `manual`/`scan`           |
+| `relates_to`     | Union, dedupe                                                                             |
 
 - Never mutate immutable identity fields on update: `id`, `repo`, `commit` (when non-empty), `dedupe_key_sha256`, `dedupe_key_version`.
 - If immutable fields conflict, do not update; create a new entry and set `supersedes=<previous_id>` when applicable.
 - Updates must be idempotent: repeated writes of identical payload produce no additional semantic changes.
 
 4. **Operational safeguards**
+
 - Support `--dry-run`, `--json`, and `--no-write` for validation.
 - All hook failures must never block commits by default; strict blocking mode can be enabled later.
 
@@ -876,19 +905,19 @@ Auto-write is not part of MVP, but the recommended implementation path is:
 
 ## 18. Environment Variables Reference
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `QDRANT_URL` | ✅ | — | Qdrant instance URL (e.g., `https://xyz.qdrant.tech`) |
-| `QDRANT_API_KEY` | ✅ for cloud | — | Qdrant API key (omit for local unauthenticated) |
-| `EMBEDDINGS_PROVIDER` | — | `openai` | Provider: `openai` \| `voyage` \| `cohere` \| `ollama` |
-| `EMBEDDINGS_API_KEY` | ✅ | — | API key for the embeddings provider |
-| `EMBEDDINGS_MODEL` | — | Provider default | Override embeddings model name |
-| `LLM_PROVIDER` | for scan | `openai` | LLM provider for `memo scan` |
-| `LLM_API_KEY` | for scan | `EMBEDDINGS_API_KEY` | LLM API key (defaults to embeddings key for OpenAI) |
-| `LLM_MODEL` | — | `gpt-4o-mini` | LLM model for scan analysis |
-| `OLLAMA_BASE_URL` | for Ollama | `http://localhost:11434` | Ollama server base URL |
-| `MEMO_TELEMETRY` | — | `false` | Enable telemetry: `true` \| `false` |
-| `MEMO_DEBUG` | — | `false` | Enable verbose debug output to stderr |
+| Variable              | Required     | Default                  | Description                                            |
+| --------------------- | ------------ | ------------------------ | ------------------------------------------------------ |
+| `QDRANT_URL`          | ✅           | —                        | Qdrant instance URL (e.g., `https://xyz.qdrant.tech`)  |
+| `QDRANT_API_KEY`      | ✅ for cloud | —                        | Qdrant API key (omit for local unauthenticated)        |
+| `EMBEDDINGS_PROVIDER` | —            | `openai`                 | Provider: `openai` \| `voyage` \| `cohere` \| `ollama` |
+| `EMBEDDINGS_API_KEY`  | ✅           | —                        | API key for the embeddings provider                    |
+| `EMBEDDINGS_MODEL`    | —            | Provider default         | Override embeddings model name                         |
+| `LLM_PROVIDER`        | for scan     | `openai`                 | LLM provider for `memo scan`                           |
+| `LLM_API_KEY`         | for scan     | `EMBEDDINGS_API_KEY`     | LLM API key (defaults to embeddings key for OpenAI)    |
+| `LLM_MODEL`           | —            | `gpt-4o-mini`            | LLM model for scan analysis                            |
+| `OLLAMA_BASE_URL`     | for Ollama   | `http://localhost:11434` | Ollama server base URL                                 |
+| `MEMO_TELEMETRY`      | —            | `false`                  | Enable telemetry: `true` \| `false`                    |
+| `MEMO_DEBUG`          | —            | `false`                  | Enable verbose debug output to stderr                  |
 
 All variables can be provided via a `.env` file (loaded via `dotenv` in development). In CI/CD and agent environments, inject directly into the process environment — do not use `.env` files in automated pipelines.
 
@@ -896,13 +925,13 @@ All variables can be provided via a `.env` file (loaded via `dotenv` in developm
 
 ## 19. Known Constraints & Trade-offs
 
-| Constraint | Detail | Trade-off Rationale |
-|------------|--------|---------------------|
-| **Qdrant free tier 1GB** | ~100K entries per org | Sufficient for multi-repo teams; paid tier if needed later |
-| **Single `decisions` collection** | All repos co-located | Simpler client; `repo` field provides logical isolation |
-| **No auth layer** | CLI is single-user/single-org | Multi-tenancy not in scope for v1; Qdrant handles network auth |
-| **Agent writes rationale** | No post-commit hooks in v1 | System-prompt approach captures context while it's fresh |
-| **Node.js 24 LTS required** | Users must upgrade | Required for native ESM, `fetch`, and performance improvements |
-| **Embeddings are vendor costs** | ~$0.10/year typical usage | Cost is near-negligible; Ollama available for zero-cost local use |
-| **LLM required for scan** | `memo scan` is not offline | Acceptable; scan is a one-time bootstrap operation per repo |
-| **No schema migration tooling** | v1 schema is stable | Version-pinned schema; breaking changes require major version bump |
+| Constraint                        | Detail                        | Trade-off Rationale                                                |
+| --------------------------------- | ----------------------------- | ------------------------------------------------------------------ |
+| **Qdrant free tier 1GB**          | ~100K entries per org         | Sufficient for multi-repo teams; paid tier if needed later         |
+| **Single `decisions` collection** | All repos co-located          | Simpler client; `repo` field provides logical isolation            |
+| **No auth layer**                 | CLI is single-user/single-org | Multi-tenancy not in scope for v1; Qdrant handles network auth     |
+| **Agent writes rationale**        | No post-commit hooks in v1    | System-prompt approach captures context while it's fresh           |
+| **Node.js 24 LTS required**       | Users must upgrade            | Required for native ESM, `fetch`, and performance improvements     |
+| **Embeddings are vendor costs**   | ~$0.10/year typical usage     | Cost is near-negligible; Ollama available for zero-cost local use  |
+| **LLM required for scan**         | `memo scan` is not offline    | Acceptable; scan is a one-time bootstrap operation per repo        |
+| **No schema migration tooling**   | v1 schema is stable           | Version-pinned schema; breaking changes require major version bump |

@@ -1,5 +1,3 @@
-// TODO: Implement in S-003 — MemoError hierarchy + error catalog
-
 export type ErrorCode =
   | 'CONFIG_NOT_FOUND'
   | 'CONFIG_INVALID'

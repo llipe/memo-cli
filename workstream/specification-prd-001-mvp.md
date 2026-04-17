@@ -2,9 +2,9 @@
 
 ## Changelog
 
-| Version | Date       | Summary                                                                 | Author         |
-|---------|------------|-------------------------------------------------------------------------|----------------|
-| 1.0     | 2026-04-10 | Initial technical specification from PRD-001 and technical guidelines. | GitHub Copilot |
+| Version | Date       | Summary                                                                                                                 | Author         |
+| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.0     | 2026-04-10 | Initial technical specification from PRD-001 and technical guidelines.                                                  | GitHub Copilot |
 | 1.1     | 2026-04-10 | Feedback pass: optional `story` field, `entry_type` enum doc, `relates_to` semantics, expanded interactive mode design. | GitHub Copilot |
 
 ## 1. Executive Summary
@@ -19,8 +19,8 @@ This specification defines how Memo MVP will implement repo initialization, writ
 
 ## 3. Affected Repositories
 
-| Repository | Role | Scope of Changes |
-|---|---|---|
+| Repository     | Role                    | Scope of Changes                                                                                                                                                 |
+| -------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | llipe/memo-cli | API/CLI backend package | Command surfaces (`setup`, `write`, `search`, `list`), config resolver, Qdrant repository/bootstrap, validation, output contracts, tests, docs, release pipeline |
 
 ## 4. System Architecture
@@ -106,24 +106,26 @@ erDiagram
 
 ### entry_type Enum
 
-| Value | Meaning | Typical producer |
-|---|---|---|
-| `decision` | A task or story decision made by an agent or developer — captures *why* a path was chosen | `agent`, `manual` |
-| `integration_point` | How another system, module, or external service is consumed in this repo — useful for onboarding and cross-repo integration | `agent`, `manual` |
-| `structure` | High-level architectural or module-level structure; useful for bootstrap knowledge of existing codebases | `manual` (bootstrap), future `scan` |
+| Value               | Meaning                                                                                                                     | Typical producer                    |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `decision`          | A task or story decision made by an agent or developer — captures _why_ a path was chosen                                   | `agent`, `manual`                   |
+| `integration_point` | How another system, module, or external service is consumed in this repo — useful for onboarding and cross-repo integration | `agent`, `manual`                   |
+| `structure`         | High-level architectural or module-level structure; useful for bootstrap knowledge of existing codebases                    | `manual` (bootstrap), future `scan` |
 
 ### `relates_to` Semantics
 
 `relates_to` is a cross-repo association array present in two places:
 
 **In `memo.config.json`** (repo-level):
+
 - Declares which other repositories this repo directly depends on or integrates with.
 - Declarations are directional: if repo `A` declares `relates_to: ["B"]`, it means A knows about B. The inverse is not automatically true at the local config level.
 - Search scope expansion uses this list: when `--scope related` is active, queries run against the declaring repo plus all entries where `repo` matches any value in `relates_to`.
 
 **In an entry payload** (entry-level):
+
 - Optional array passed via `--relates-to` on `memo write`.
-- Captures which other repositories are *explicitly referenced or affected* by the decision or integration being recorded.
+- Captures which other repositories are _explicitly referenced or affected_ by the decision or integration being recorded.
 - Entries with `relates_to: ["repo-b"]` are discoverable when anyone searches with `--scope related` from any repo that includes `repo-b` in its config `relates_to`.
 
 In both cases, `relates_to` values must be valid kebab-case repository identifiers. An empty array `[]` is valid and means no cross-repo scope is declared.
@@ -261,7 +263,7 @@ Example `memo search --json` with full filters (result without `story` field —
 }
 ```
 
-> **`relates_to` in search results:** When scope is `related`, Memo queries entries for the local repo *and* entries where `repo` is any value in the local config's `relates_to` list. The per-entry `relates_to` array in results additionally indicates which other repositories the decision explicitly references, giving callers full cross-repo context.
+> **`relates_to` in search results:** When scope is `related`, Memo queries entries for the local repo _and_ entries where `repo` is any value in the local config's `relates_to` list. The per-entry `relates_to` array in results additionally indicates which other repositories the decision explicitly references, giving callers full cross-repo context.
 
 Example empty `memo list --json`:
 
@@ -295,11 +297,11 @@ Example empty `memo list --json`:
 
 Permission matrix (MVP):
 
-| Operation | Requirement |
-|---|---|
-| `setup` | local filesystem write/read permissions |
-| `write/search/list` | valid env credentials and Qdrant reachability |
-| related scope expansion | valid local config with `relates_to` |
+| Operation               | Requirement                                   |
+| ----------------------- | --------------------------------------------- |
+| `setup`                 | local filesystem write/read permissions       |
+| `write/search/list`     | valid env credentials and Qdrant reachability |
+| related scope expansion | valid local config with `relates_to`          |
 
 ## 8. Business Logic Implementation
 
@@ -377,15 +379,15 @@ Rationale: this keeps MVP smaller and stable while still proving bootstrap value
 
 Interactive prompts follow these display rules:
 
-| Role | Color (chalk) | Usage |
-|---|---|---|
-| Prompt label | `cyan` | Identifies what is being asked |
-| Current/default value | `gray` | Shown inline next to prompt |
-| Selected option | `bold` + `green` | Active item in a selection list |
-| Unselected option | default | Inactive items |
+| Role                      | Color (chalk)     | Usage                             |
+| ------------------------- | ----------------- | --------------------------------- |
+| Prompt label              | `cyan`            | Identifies what is being asked    |
+| Current/default value     | `gray`            | Shown inline next to prompt       |
+| Selected option           | `bold` + `green`  | Active item in a selection list   |
+| Unselected option         | default           | Inactive items                    |
 | Warning / duplicate alert | `yellow` + `bold` | Alerts before destructive actions |
-| Success confirmation | `green` | After write succeeds |
-| Error / abort | `red` | Validation failures or interrupts |
+| Success confirmation      | `green`           | After write succeeds              |
+| Error / abort             | `red`             | Validation failures or interrupts |
 
 #### `memo setup init` interactive flow
 
@@ -458,15 +460,15 @@ When a duplicate is detected in human mode:
 
 Every interactive prompt has a direct non-interactive equivalent:
 
-| Interactive action | Direct invocation | JSON support |
-|---|---|---|
-| `setup init` wizard | `memo setup init --repo x --org y --domain z --relates-to a,b --json` | ✅ |
-| Duplicate: consolidate | `memo write ... --on-duplicate consolidate --json` | ✅ |
-| Duplicate: update | `memo write ... --on-duplicate update --json` | ✅ |
-| Duplicate: replace | `memo write ... --on-duplicate replace --json` | ✅ |
-| Duplicate: create-new | `memo write ... --on-duplicate create-new --json` | ✅ |
-| Config preview/show | `memo setup show --json` | ✅ |
-| Config validation | `memo setup validate --json` | ✅ |
+| Interactive action     | Direct invocation                                                     | JSON support |
+| ---------------------- | --------------------------------------------------------------------- | ------------ |
+| `setup init` wizard    | `memo setup init --repo x --org y --domain z --relates-to a,b --json` | ✅           |
+| Duplicate: consolidate | `memo write ... --on-duplicate consolidate --json`                    | ✅           |
+| Duplicate: update      | `memo write ... --on-duplicate update --json`                         | ✅           |
+| Duplicate: replace     | `memo write ... --on-duplicate replace --json`                        | ✅           |
+| Duplicate: create-new  | `memo write ... --on-duplicate create-new --json`                     | ✅           |
+| Config preview/show    | `memo setup show --json`                                              | ✅           |
+| Config validation      | `memo setup validate --json`                                          | ✅           |
 
 All non-interactive invocations never prompt; missing required flags return `VALIDATION_FAILED` with clear message.
 

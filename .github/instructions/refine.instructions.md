@@ -1,9 +1,10 @@
 ---
-applyTo: "**"
+applyTo: '**'
 ---
-# Activity: Refine Scope
-> **RFC 2119 Notice:** The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
 
+# Activity: Refine Scope
+
+> **RFC 2119 Notice:** The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
 
 ## Goal
 
@@ -12,6 +13,7 @@ Clarify the scope, acceptance criteria, and constraints of a feature or issue be
 ## Context
 
 This step assumes foundation documents exist:
+
 - `product-context.md` — Understanding the overall product
 - `technical-guidelines.md` — Understanding technical constraints and patterns
 
@@ -32,19 +34,19 @@ Every document produced by this activity **MUST** include a **Changelog** table 
 ```markdown
 ## Changelog
 
-| Version | Date       | Summary                  | Author              |
-|---------|------------|--------------------------|----------------------|
-| 1.0     | YYYY-MM-DD | Initial version          | @user / agent-name   |
+| Version | Date       | Summary         | Author             |
+| ------- | ---------- | --------------- | ------------------ |
+| 1.0     | YYYY-MM-DD | Initial version | @user / agent-name |
 ```
 
 ---
 
 ## Mode Detection
 
-| Input | Mode | Output |
-|-------|------|--------|
-| GitHub Issue number + repo | **Issue Refinement** | Lightweight refinement doc |
-| Feature description or idea | **PRD Creation** | Full product requirements document |
+| Input                       | Mode                 | Output                             |
+| --------------------------- | -------------------- | ---------------------------------- |
+| GitHub Issue number + repo  | **Issue Refinement** | Lightweight refinement doc         |
+| Feature description or idea | **PRD Creation**     | Full product requirements document |
 
 ---
 
@@ -77,40 +79,48 @@ If `github-ops` delegation is unavailable in the current runtime, you **MUST** a
 
 ## Changelog
 
-| Version | Date       | Summary                  | Author              |
-|---------|------------|--------------------------|----------------------|
-| 1.0     | YYYY-MM-DD | Initial refinement       | @user / agent-name   |
+| Version | Date       | Summary            | Author             |
+| ------- | ---------- | ------------------ | ------------------ |
+| 1.0     | YYYY-MM-DD | Initial refinement | @user / agent-name |
 
 ## Summary
+
 - Goal:
 - Primary user impact:
 - Non-goals:
 
 ## Acceptance Criteria
+
 - [ ] [Criterion 1]
 - [ ] [Criterion 2]
 - [ ] [Criterion 3]
 
 ## Constraints
+
 - [Performance/compatibility/security constraints]
 
 ## Risks and Edge Cases
+
 - [Risk 1]
 - [Edge case 1]
 
 ## Dependencies
+
 - [Related issues, services, or teams]
 
 ## Testing Notes
+
 - Unit tests:
 - Integration tests:
 - Manual checks:
 
 ## Open Questions
+
 - [Remaining unknowns]
 ```
 
 ### Output
+
 - **Location:** `/workstream/`
 - **Filename:** `issue-[issue-number]-[issue-name]-refinement.md`
 
@@ -169,12 +179,12 @@ The PRD **SHOULD** include embedded Mermaid diagrams to visually clarify relatio
 
 Recommended diagrams (include whichever add clarity — skip those that don't apply):
 
-| Diagram Type | When to Include | Suggested Section |
-|---|---|---|
-| **Component diagram** | Feature spans multiple services, repos, or modules | Technical Considerations |
-| **Entity-Relationship diagram** | Feature introduces or modifies data entities | Data Requirements |
-| **Sequence / Flow diagram** | Key user or system interactions need clarification | Feature Overview or Functional Requirements |
-| **User journey / Flowchart** | Complex multi-step user workflows | User Stories or Design Considerations |
+| Diagram Type                    | When to Include                                    | Suggested Section                           |
+| ------------------------------- | -------------------------------------------------- | ------------------------------------------- |
+| **Component diagram**           | Feature spans multiple services, repos, or modules | Technical Considerations                    |
+| **Entity-Relationship diagram** | Feature introduces or modifies data entities       | Data Requirements                           |
+| **Sequence / Flow diagram**     | Key user or system interactions need clarification | Feature Overview or Functional Requirements |
+| **User journey / Flowchart**    | Complex multi-step user workflows                  | User Stories or Design Considerations       |
 
 Example embedding:
 
@@ -187,6 +197,7 @@ graph LR
 ````
 
 Rules:
+
 - Diagrams **MUST** be embedded inline in the relevant section, not collected at the end.
 - Each diagram **SHOULD** have a brief introductory sentence explaining what it shows.
 - Keep diagrams focused — one concern per diagram. Split large diagrams rather than cramming everything into one.
@@ -199,6 +210,7 @@ Rules:
 - If scope is too large, you **SHOULD** break it into multiple PRDs.
 
 ### Output
+
 - **Location:** `/docs/requirements/`
 - **Filename:** `prd-[feature-name].md`
 

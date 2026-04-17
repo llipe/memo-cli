@@ -1,6 +1,6 @@
 ---
 agent: developer
-description: "Build a new feature end-to-end using the developer agent — Feature Mode."
+description: 'Build a new feature end-to-end using the developer agent — Feature Mode.'
 ---
 
 Run the `developer` agent to design and implement a new feature:
@@ -8,7 +8,7 @@ Run the `developer` agent to design and implement a new feature:
 - **Repository:** `<owner/repo>`
 - **Feature description:**
   > <Describe the feature in one or more sentences, or paste a PRD excerpt here>
-- **Execution mode:** step-gated *(change to `pre-approved autonomous batch` to skip approval gates)*
+- **Execution mode:** step-gated _(change to `pre-approved autonomous batch` to skip approval gates)_
 
 The agent will chain: `refine` → `generate-spec` → `generate-stories` → `publish-github` → `plan` → `implement`.
 

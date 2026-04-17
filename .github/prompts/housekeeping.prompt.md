@@ -1,6 +1,6 @@
 ---
 agent: housekeeping
-description: "Fix auto-fixable lint, type, and test-wiring issues without changing logic."
+description: 'Fix auto-fixable lint, type, and test-wiring issues without changing logic.'
 ---
 
 Run the `housekeeping` agent to perform a code-quality pass.

@@ -1,0 +1,15 @@
+[
+  {
+    "entry_type": "structure",
+    "tags": ["cli", "commands"],
+    "files_modified": ["src/index.ts", "src/commands/write.ts"],
+    "rationale": "CLI root registers command modules under src/commands."
+  },
+  {
+    "entry_type": "integration_point",
+    "tags": ["qdrant", "repository"],
+    "files_modified": ["src/lib/qdrant.ts"],
+    "rationale": "QdrantRepository is the integration boundary for persistence.",
+    "relates_to": ["memo-cli-docs"]
+  }
+]
