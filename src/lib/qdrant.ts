@@ -156,4 +156,52 @@ export class QdrantRepository {
     );
     return results[0] ?? null;
   }
+
+  async deleteById(id: string): Promise<void> {
+    try {
+      const existing = await this.scroll({ must: [{ has_id: [id] }] }, 1);
+      if (existing.length === 0) {
+        throw new MemoError('ENTRY_NOT_FOUND', `Entry not found: ${id}`);
+      }
+
+      await withRetry(() =>
+        this.client.delete(COLLECTION_NAME, {
+          wait: true,
+          points: [id],
+        }),
+      );
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'DELETE_FAILED',
+        `Delete operation failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  async deleteByFilter(filter: QdrantFilter): Promise<number> {
+    try {
+      const existing = await this.scroll(filter, 10_000);
+      const count = existing.length;
+
+      if (count === 0) {
+        return 0;
+      }
+
+      await withRetry(() =>
+        this.client.delete(COLLECTION_NAME, {
+          wait: true,
+          filter: filter as unknown as Schemas['Filter'],
+        }),
+      );
+
+      return count;
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'DELETE_FAILED',
+        `Delete operation failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 }

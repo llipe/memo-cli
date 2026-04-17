@@ -54,9 +54,9 @@ AI agents have no memory between sessions and no visibility into the broader cod
 
 ## 5. Current State
 
-**v1.0 — MVP complete.**
+**v1.0 — MVP complete. Discovery and delete capabilities delivered.**
 
-The MVP (Phase 1) has been fully implemented and merged. All eight user stories (S-001 through S-008) are delivered:
+The MVP (Phase 1) has been fully implemented and merged. All eight original user stories (S-001 through S-008) are delivered, plus three additional capabilities from the post-MVP backlog:
 
 | Story | Scope                                                            | Status      |
 | ----- | ---------------------------------------------------------------- | ----------- |
@@ -68,6 +68,9 @@ The MVP (Phase 1) has been fully implemented and merged. All eight user stories 
 | S-006 | `memo list` with date-range filtering                            | ✅ Complete |
 | S-007 | Bootstrap documentation and validation                           | ✅ Complete |
 | S-008 | First release packaging and publish workflow                     | ✅ Complete |
+| #18   | `memo tags list` — browse unique tags with sort and scope options | ✅ Complete |
+| #19   | `memo inspect` — discover orgs, repos, and domains in the store  | ✅ Complete |
+| #20   | `memo delete` — safe single and bulk delete with guardrails      | ✅ Complete |
 
 The package is published as `@memo-ai/cli` on npm. CI/CD pipelines are green. The publish workflow triggers on semver tag push.
 

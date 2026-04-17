@@ -77,10 +77,14 @@ CLI Entry (src/index.ts)
         ├── commands/setup.ts      → SetupCommand (init / show / validate)
         ├── commands/write.ts      → WriteCommand (with duplicate detection)
         ├── commands/search.ts     → SearchCommand (semantic + pre-filters)
-        └── commands/list.ts       → ListCommand (chronological + date range)
+        ├── commands/list.ts       → ListCommand (chronological + date range)
+        ├── commands/tags.ts       → TagsCommand (list unique tags with counts)
+        ├── commands/inspect.ts    → InspectCommand (org/repo/domain facets)
+        └── commands/delete.ts     → DeleteCommand (safe single + bulk delete)
 
 lib/
-  ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll)
+  ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll, deleteById, deleteByFilter)
+  ├── facets.ts            → Scroll-based aggregation (aggregateField, aggregateMultipleFields)
   ├── embeddings.ts        → EmbeddingsAdapter interface + factory
   ├── config.ts            → Config loader (memo.config.json + env)
   ├── registry.ts          → Related-repo resolution for cross-repo scope
@@ -182,6 +186,7 @@ The MVP error hierarchy should use a small, stable set of machine-readable codes
 | `VALIDATION_FAILED`           | `1`       | CLI input or payload validation failed                                      |
 | `REPO_CONTEXT_UNRESOLVED`     | `1`       | Repo/org defaults could not be resolved from config or flags                |
 | `ENTRY_NOT_FOUND`             | `1`       | Lookup returned no matching entry when a concrete result was required       |
+| `DELETE_FAILED`               | `1`       | A delete operation was accepted but could not complete                      |
 | `QDRANT_UNREACHABLE`          | `2`       | Qdrant is unavailable or network connectivity failed                        |
 | `QDRANT_OPERATION_FAILED`     | `2`       | Qdrant responded but the operation could not be completed                   |
 | `EMBEDDING_API_ERROR`         | `2`       | Embeddings provider call failed                                             |
@@ -341,7 +346,7 @@ If rationale exceeds 512 tokens (~2000 characters), embed a compressed summary (
 ### Qdrant Client
 
 - Use `@qdrant/js-client-rest` via the `QdrantRepository` wrapper (`lib/qdrant.ts`).
-- All collection operations (upsert, search, scroll, delete) are encapsulated in `QdrantRepository`.
+- All collection operations (upsert, search, scroll, deleteById, deleteByFilter) are encapsulated in `QdrantRepository`.
 - Commands never import the Qdrant client directly.
 
 ### Search and List Semantics

@@ -151,6 +151,43 @@ developer: implement
 
 ---
 
+## Commands
+
+All commands use `pnpm`. Node.js ≥ 24 and pnpm ≥ 9 are required.
+
+### Build
+
+| Command | Description |
+| --- | --- |
+| `pnpm build` | Compile TypeScript to `dist/` |
+| `pnpm build:watch` | Compile in watch mode |
+| `pnpm typecheck` | Type-check without emitting files |
+
+### Code Quality
+
+| Command | Description |
+| --- | --- |
+| `pnpm lint` | Run ESLint (flat config, v9) |
+| `pnpm lint:fix` | Run ESLint and auto-fix |
+| `pnpm format` | Format all files with Prettier |
+| `pnpm format:check` | Check formatting without writing |
+
+### Testing
+
+| Command | Description |
+| --- | --- |
+| `pnpm test` | Run all tests via `scripts/run-jest.mjs` |
+| `pnpm test:watch` | Run Jest in watch mode |
+| `pnpm test:coverage` | Run Jest and generate coverage report |
+
+### Release
+
+| Command | Description |
+| --- | --- |
+| `pnpm prepublishOnly` | Runs `build` automatically before `npm publish` |
+
+---
+
 ## General Agent Guidelines
 
 All agents working in this repository MUST:

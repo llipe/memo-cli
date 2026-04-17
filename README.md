@@ -17,6 +17,9 @@
   - [Step 3: Search Decisions](#step-3-search-decisions)
   - [Step 4: List Decisions](#step-4-list-decisions)
   - [Step 5: Manage Config](#step-5-manage-config)
+  - [Step 6: Discover Tags](#step-6-discover-tags)
+  - [Step 7: Inspect the Knowledge Base](#step-7-inspect-the-knowledge-base)
+  - [Step 8: Delete Entries](#step-8-delete-entries)
 - [Command Reference](#command-reference)
 - [Agent Integration](#agent-integration)
 - [Bootstrap Workflow](#bootstrap-workflow)
@@ -373,16 +376,147 @@ memo setup init --force
 
 ---
 
+### Step 6: Discover Tags
+
+Browse all unique tags stored in your knowledge base, with counts and flexible scope.
+
+#### List all tags in the current repo
+
+```bash
+memo tags list
+```
+
+#### Scope and sorting options
+
+```bash
+# Include related repos from config
+memo tags list --scope related
+
+# Sort alphabetically (default: frequency)
+memo tags list --sort alpha
+
+# JSON output for agent consumption
+memo tags list --json
+```
+
+#### All tags list flags
+
+| Flag      | Default     | Description                              |
+| --------- | ----------- | ---------------------------------------- |
+| `--scope` | `repo`      | `repo` or `related`                      |
+| `--sort`  | `frequency` | `frequency` (count desc) or `alpha`      |
+| `--json`  | `false`     | Output as JSON                           |
+
+---
+
+### Step 7: Inspect the Knowledge Base
+
+Discover what organizations, repositories, and domains have entries in your Qdrant collection — without any scope restriction.
+
+#### Show everything
+
+```bash
+memo inspect
+```
+
+Outputs three grouped sections: Organizations, Repositories (with org and domain annotations), and Domains.
+
+#### Filter to specific facets
+
+```bash
+# Only repositories
+memo inspect --repos
+
+# Only organizations
+memo inspect --orgs
+
+# Only domains
+memo inspect --domains
+
+# JSON output
+memo inspect --json
+```
+
+#### All inspect flags
+
+| Flag        | Default | Description                              |
+| ----------- | ------- | ---------------------------------------- |
+| `--orgs`    | —       | Show only organizations                  |
+| `--repos`   | —       | Show only repositories                   |
+| `--domains` | —       | Show only domains                        |
+| `--json`    | `false` | Output as JSON                           |
+
+> When no filter flags are passed, all three facets are shown.
+
+---
+
+### Step 8: Delete Entries
+
+Safely delete individual entries or bulk-delete by repository or organization. Always confirms before deleting.
+
+#### Delete a single entry by ID
+
+```bash
+memo delete --id 550e8400-e29b-41d4-a716-446655440000
+```
+
+Memo shows a preview of the matching entry and asks for confirmation.
+
+#### Bulk delete by repository or organization
+
+```bash
+# Delete all entries for a repository
+memo delete --all-by-repo my-service
+
+# Delete all entries for an organization
+memo delete --all-by-org my-company
+```
+
+Memo shows a count of matching entries and asks for confirmation.
+
+#### Skip confirmation (automation)
+
+```bash
+memo delete --id <id> --yes
+memo delete --all-by-repo my-service --yes
+```
+
+#### Agent mode note
+
+In agent mode (`--source agent` or when `--json` is used for single deletes), bulk flags are not available via `--json`. Single-entry deletion supports `--json` output:
+
+```bash
+memo delete --id <id> --json
+# outputs: { "deleted": true, "id": "...", "scope": "single", "count": 1 }
+```
+
+#### All delete flags
+
+| Flag             | Default | Description                                              |
+| ---------------- | ------- | -------------------------------------------------------- |
+| `--id`           | —       | Delete a single entry by UUID                            |
+| `--all-by-repo`  | —       | Delete all entries for the given repo name               |
+| `--all-by-org`   | —       | Delete all entries for the given organization            |
+| `--yes`          | `false` | Skip confirmation prompt                                 |
+| `--json`         | `false` | JSON output (single-delete only)                         |
+
+> `--id`, `--all-by-repo`, and `--all-by-org` are mutually exclusive.
+
+---
+
 ## Command Reference
 
-| Command               | Purpose                   | Key Flags                                                                       |
-| --------------------- | ------------------------- | ------------------------------------------------------------------------------- |
-| `memo setup init`     | Create `memo.config.json` | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
-| `memo setup show`     | Display current config    | `--json`                                                                        |
-| `memo setup validate` | Check config validity     | —                                                                               |
-| `memo write`          | Capture a decision        | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
-| `memo search <query>` | Semantic search           | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
-| `memo list`           | Chronological listing     | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
+| Command               | Purpose                       | Key Flags                                                                       |
+| --------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
+| `memo setup init`     | Create `memo.config.json`     | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
+| `memo setup show`     | Display current config        | `--json`                                                                        |
+| `memo setup validate` | Check config validity         | —                                                                               |
+| `memo write`          | Capture a decision            | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
+| `memo search <query>` | Semantic search               | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
+| `memo list`           | Chronological listing         | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
+| `memo tags list`      | Browse unique tags            | `--scope`, `--sort`, `--json`                                                   |
+| `memo inspect`        | Discover orgs/repos/domains   | `--orgs`, `--repos`, `--domains`, `--json`                                      |
+| `memo delete`         | Delete entries                | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
 
 ### Global flags
 
@@ -490,7 +624,7 @@ pnpm run test -- --testPathPattern=write   # specific module
 pnpm run test:coverage                 # with coverage report
 ```
 
-155+ test cases across unit and integration layers. Coverage threshold: 80% lines/functions/statements.
+202+ test cases across unit and integration layers. Coverage threshold: 80% lines/functions/statements.
 
 ### CI/CD
 
@@ -508,9 +642,13 @@ src/
 │   ├── setup.ts          # memo setup (init / show / validate)
 │   ├── write.ts          # memo write (with duplicate detection)
 │   ├── search.ts         # memo search (semantic + pre-filters)
-│   └── list.ts           # memo list (chronological + date range)
+│   ├── list.ts           # memo list (chronological + date range)
+│   ├── tags.ts           # memo tags list (unique tags with counts)
+│   ├── inspect.ts        # memo inspect (org/repo/domain facets)
+│   └── delete.ts         # memo delete (safe single + bulk delete)
 ├── lib/
 │   ├── qdrant.ts         # Qdrant collection management & queries
+│   ├── facets.ts         # Scroll-based facet aggregation
 │   ├── embeddings.ts     # Embeddings adapter interface & factory
 │   ├── config.ts         # Config file I/O & validation
 │   ├── registry.ts       # Related-repo resolution
