@@ -53,24 +53,24 @@
   - [x] 9.13 Verify Acceptance Criterion: Empty result returns exit 0 with no-entries message
   - [x] 9.14 Run Tests: `pnpm test -- --testPathPattern="inspect|facets"`
 
-- [ ] 10.0 Implement Issue #20 - https://github.com/llipe/memo-cli/issues/20: `memo delete` command
-  - [ ] 10.1 Add `ENTRY_NOT_FOUND` and `DELETE_FAILED` error codes to `MemoError` catalog in `src/lib/errors.ts`
-  - [ ] 10.2 Add `deleteById(id: string): Promise<void>` to `QdrantRepository` in `src/lib/qdrant.ts`
-  - [ ] 10.3 Add `deleteByFilter(filter: QdrantFilter): Promise<number>` to `QdrantRepository` in `src/lib/qdrant.ts`
-  - [ ] 10.4 Implement `src/commands/delete.ts` — parse flags (`--id`, `--all-by-repo`, `--all-by-org`, `--json`, `--yes`) → validate mutual exclusion of `--id` and bulk flags → route to single or bulk delete path
-  - [ ] 10.5 Implement single-entry delete: find entry by id (via scroll filter) → display info + confirmation prompt (interactive) → call `deleteById()` → output result; in json mode skip confirmation
-  - [ ] 10.6 Implement bulk delete by repo: check NOT in `--json` mode → reject if json → scroll count → display count + confirmation prompt → call `deleteByFilter()` → output deleted count
-  - [ ] 10.7 Implement bulk delete by org: same as by-repo but filter on `org` field
-  - [ ] 10.8 Implement agent-mode guardrails: reject `--all-by-repo` or `--all-by-org` when `--json` flag is present
-  - [ ] 10.9 Implement `--json` output: `{ deleted: true, id, scope, count }` for single; `{ deleted: true, scope, count }` for bulk
-  - [ ] 10.10 Implement `--yes` bypass flag for interactive confirmation (interactive-only scripting use case)
-  - [ ] 10.11 Register `memo delete` command in `src/index.ts` with all flag definitions (`--id`, `--all-by-repo`, `--all-by-org`, `--json`, `--yes`)
-  - [ ] 10.12 Write unit tests: `tests/unit/commands/delete.test.ts` — option validation, mutual exclusion, agent-mode guardrails, confirmation flow, output payload shape, non-existent id, empty match set
-  - [ ] 10.13 Extend `tests/unit/lib/qdrant.test.ts` — deleteById and deleteByFilter method contracts (mocked client)
-  - [ ] 10.14 Write integration tests: `tests/integration/commands/delete.test.ts` — end-to-end single delete, bulk delete by repo, bulk delete by org, agent-mode rejection, non-existent id, empty match set, `--yes` bypass
-  - [ ] 10.15 Verify Acceptance Criterion: `memo delete --id <id>` deletes exactly one entry in interactive mode
-  - [ ] 10.16 Verify Acceptance Criterion: `memo delete --id <id> --json` works in agent mode and returns machine-readable result
-  - [ ] 10.17 Verify Acceptance Criterion: Bulk deletion with `--json` flag is rejected with clear error
-  - [ ] 10.18 Verify Acceptance Criterion: Interactive bulk deletion requires explicit confirmation before execution
-  - [ ] 10.19 Verify Acceptance Criterion: Success output includes scope and deleted count
-  - [ ] 10.20 Run Tests: `pnpm test -- --testPathPattern="delete"`
+- [x] 10.0 Implement Issue #20 - https://github.com/llipe/memo-cli/issues/20: `memo delete` command
+  - [x] 10.1 Add `ENTRY_NOT_FOUND` and `DELETE_FAILED` error codes to `MemoError` catalog in `src/lib/errors.ts`
+  - [x] 10.2 Add `deleteById(id: string): Promise<void>` to `QdrantRepository` in `src/lib/qdrant.ts`
+  - [x] 10.3 Add `deleteByFilter(filter: QdrantFilter): Promise<number>` to `QdrantRepository` in `src/lib/qdrant.ts`
+  - [x] 10.4 Implement `src/commands/delete.ts` — parse flags (`--id`, `--all-by-repo`, `--all-by-org`, `--json`, `--yes`) → validate mutual exclusion of `--id` and bulk flags → route to single or bulk delete path
+  - [x] 10.5 Implement single-entry delete: find entry by id (via scroll filter) → display info + confirmation prompt (interactive) → call `deleteById()` → output result; in json mode skip confirmation
+  - [x] 10.6 Implement bulk delete by repo: check NOT in `--json` mode → reject if json → scroll count → display count + confirmation prompt → call `deleteByFilter()` → output deleted count
+  - [x] 10.7 Implement bulk delete by org: same as by-repo but filter on `org` field
+  - [x] 10.8 Implement agent-mode guardrails: reject `--all-by-repo` or `--all-by-org` when `--json` flag is present
+  - [x] 10.9 Implement `--json` output: `{ deleted: true, id, scope, count }` for single; `{ deleted: true, scope, count }` for bulk
+  - [x] 10.10 Implement `--yes` bypass flag for interactive confirmation (interactive-only scripting use case)
+  - [x] 10.11 Register `memo delete` command in `src/index.ts` with all flag definitions (`--id`, `--all-by-repo`, `--all-by-org`, `--json`, `--yes`)
+  - [x] 10.12 Write unit tests: `tests/unit/commands/delete.test.ts` — option validation, mutual exclusion, agent-mode guardrails, confirmation flow, output payload shape, non-existent id, empty match set
+  - [x] 10.13 Extend `tests/unit/lib/qdrant.test.ts` — deleteById and deleteByFilter method contracts (mocked client)
+  - [x] 10.14 Write integration tests: `tests/integration/commands/delete.test.ts` — end-to-end single delete, bulk delete by repo, bulk delete by org, agent-mode rejection, non-existent id, empty match set, `--yes` bypass
+  - [x] 10.15 Verify Acceptance Criterion: `memo delete --id <id>` deletes exactly one entry in interactive mode
+  - [x] 10.16 Verify Acceptance Criterion: `memo delete --id <id> --json` works in agent mode and returns machine-readable result
+  - [x] 10.17 Verify Acceptance Criterion: Bulk deletion with `--json` flag is rejected with clear error
+  - [x] 10.18 Verify Acceptance Criterion: Interactive bulk deletion requires explicit confirmation before execution
+  - [x] 10.19 Verify Acceptance Criterion: Success output includes scope and deleted count
+  - [x] 10.20 Run Tests: `pnpm test -- --testPathPattern="delete"`
