@@ -12,6 +12,7 @@ const mockCreatePayloadIndex = jest.fn();
 const mockUpsert = jest.fn();
 const mockSearch = jest.fn();
 const mockScroll = jest.fn();
+const mockDelete = jest.fn();
 
 jest.mock('@qdrant/js-client-rest', () => ({
   QdrantClient: jest.fn().mockImplementation(() => ({
@@ -21,6 +22,7 @@ jest.mock('@qdrant/js-client-rest', () => ({
     upsert: mockUpsert,
     search: mockSearch,
     scroll: mockScroll,
+    delete: mockDelete,
   })),
 }));
 
@@ -137,6 +139,53 @@ describe('QdrantRepository', () => {
       const result = await repo.getByDedupeKey('abc123');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('deleteById()', () => {
+    it('calls client.delete with points when id exists', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [{ id: 'entry-1', payload: {} }] });
+      mockDelete.mockResolvedValueOnce({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.deleteById('entry-1');
+
+      expect(mockDelete).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ wait: true, points: ['entry-1'] }),
+      );
+    });
+
+    it('throws ENTRY_NOT_FOUND when id does not exist', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await expect(repo.deleteById('missing-id')).rejects.toMatchObject({
+        code: 'ENTRY_NOT_FOUND',
+      });
+      expect(mockDelete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteByFilter()', () => {
+    it('calls client.delete with filter and returns deleted count', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [
+          { id: 'entry-1', payload: {} },
+          { id: 'entry-2', payload: {} },
+        ],
+      });
+      mockDelete.mockResolvedValueOnce({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const filter = { must: [{ key: 'repo', match: { value: 'memo-cli' } }] };
+      const deleted = await repo.deleteByFilter(filter);
+
+      expect(deleted).toBe(2);
+      expect(mockDelete).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ wait: true, filter }),
+      );
     });
   });
 });
