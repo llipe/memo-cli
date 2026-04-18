@@ -6,6 +6,7 @@
 | ------- | ---------- | ----------------------------------------- | -------------- |
 | 1.0     | 2026-04-10 | Initial version                           | GitHub Copilot |
 | 1.1     | 2026-04-17 | Added S-009 npm deployment workflow story | GitHub Copilot |
+| 1.2     | 2026-04-18 | Added S-010 `memo get` read entry by id   | GitHub Copilot |
 
 ---
 
@@ -777,14 +778,93 @@ This story formalizes release automation beyond manual first-release steps. It a
 
 ---
 
+### Story S-010: `memo get` — Read a Specific Entry by ID
+
+**Priority:** Medium
+**Estimated Size:** S
+**Dependencies:** S-003
+
+#### User Story
+
+As an AI agent or developer,
+I want to fetch the full content of a specific memo entry using its ID,
+So that I can inspect an individual decision in detail without having to run a search or list operation.
+
+#### Context
+
+`memo get` fills the read-by-identity gap in the CLI. Once a decision ID is known (e.g., from `memo search --json`, `memo list --json`, or a stored reference), an agent or developer must be able to retrieve the complete payload without any ambiguity. The command uses the Qdrant point ID, which is a UUID stored on every written entry. This command is intentionally read-only and requires no embeddings or config file.
+
+#### Acceptance Criteria
+
+- [ ] `memo get <id>` fetches the entry with the given UUID from Qdrant and prints all payload fields in human-readable form.
+- [ ] `memo get <id> --json` returns the full payload as a JSON object to stdout.
+- [ ] When no entry exists for the given ID, the command exits with code `1` and error code `ENTRY_NOT_FOUND`.
+- [ ] `memo get` does not require a local `memo.config.json` — it only needs `QDRANT_URL` (and optionally `QDRANT_API_KEY`).
+- [ ] Human output renders key fields with chalk colors: `cyan` for labels, `bold` for rationale, `gray` for metadata (timestamp, source, confidence, commit, story).
+- [ ] `--json` output is a flat JSON object matching the full stored payload schema; no extra wrapper.
+- [ ] The command auto-bootstraps the collection if it does not exist (consistent with other read commands).
+
+#### Business Rules
+
+- The ID argument is always a UUID string (the Qdrant point ID of the entry).
+- Unlike `memo search` or `memo list`, no repo/org/domain context is needed — the ID is globally unique within the collection.
+- The command is read-only: it MUST NOT modify any data.
+
+#### Technical Notes
+
+- Add `getById(id: string): Promise<ScrollResult | null>` method to `QdrantRepository` using `scroll` with `has_id` filter (same pattern as `buildHasIdFilter` in `delete.ts`).
+- Command is registered as `memo get <id>` (positional argument).
+- Human output fields (in display order): `id`, `repo`, `org`, `domain`, `entry_type`, `source`, `confidence`, `tags`, `rationale`, `commit`, `story`, `files_modified`, `relates_to`, `timestamp_utc`.
+- Fields that are absent or empty arrays/strings are omitted from human output but preserved in JSON output.
+- No spinner needed — the lookup is fast and uses a single Qdrant call.
+- Error handling: propagate `MemoError('ENTRY_NOT_FOUND', ...)` on null result.
+
+#### Testing Requirements
+
+- **Unit Tests:** `handleGet` with mock repo returning an entry; `handleGet` with repo returning `null` → `ENTRY_NOT_FOUND`; human output field ordering and chalk rendering; JSON output matches payload exactly.
+- **Integration Tests:** `memo get <id> --json` contract when entry exists; `ENTRY_NOT_FOUND` on missing ID.
+- **Manual Testing:** Write a test entry, capture its ID from `--json` output, run `memo get <id>` and verify all fields display correctly; run `memo get nonexistent-id` and verify error.
+- **Edge Cases:** ID that is valid UUID format but not in collection; `QDRANT_URL` not set (→ `MISSING_CREDENTIAL`).
+
+#### Implementation Steps
+
+1. Add `getById(id: string): Promise<ScrollResult | null>` to `QdrantRepository` in `src/lib/qdrant.ts`.
+2. Create `src/commands/get.ts`: define `GetFlags`, `GetDeps`, and `handleGet()` function.
+3. Implement human output renderer for a single entry (fields, chalk labels, omit empty fields).
+4. Implement `--json` path returning the raw payload object.
+5. Register `memo get <id>` in `src/index.ts`.
+6. Write unit tests in `tests/unit/commands/get.test.ts`.
+7. Extend `tests/unit/lib/qdrant.test.ts` with `getById` coverage.
+8. Write integration tests in `tests/integration/commands/get.test.ts`.
+9. Verify AC: entry found (human mode), entry found (JSON mode), entry not found (error code).
+
+#### Files to Create/Modify
+
+- `src/lib/qdrant.ts` — add `getById()` method
+- `src/commands/get.ts` — new command implementation
+- `src/index.ts` — register `memo get` command
+- `tests/unit/commands/get.test.ts` — unit tests
+- `tests/unit/lib/qdrant.test.ts` — extend with `getById` tests
+- `tests/integration/commands/get.test.ts` — integration tests
+
+#### Definition of Done Checklist
+
+- [ ] Code implemented per technical guidelines
+- [ ] Unit tests written and passing
+- [ ] Code reviewed and approved
+- [ ] Acceptance criteria verified
+- [ ] Pull Request created and merged
+
+---
+
 ## Coverage Validation
 
 ### Summary
 
 - **Total PRD Requirements:** 25 functional requirements + 12 acceptance criteria + 5 business rules
-- **Total User Stories:** 9
+- **Total User Stories:** 10
 - **Coverage:** 100%
-- **Status:** Complete
+- **Status:** Complete (S-010 extends read capabilities beyond MVP scope)
 
 ### Requirement Mapping
 

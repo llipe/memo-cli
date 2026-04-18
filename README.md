@@ -2,6 +2,8 @@
 
 > Agent-first CLI for capturing and querying development decisions via a Qdrant vector store.
 
+GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
+
 `@llipe.com/memo-cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
 
 ---
