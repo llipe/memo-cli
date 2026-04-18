@@ -87,6 +87,61 @@ memo setup show       # print effective config
 
 ## Core Concepts
 
+### `repo` — Repository Identity
+
+`repo` is the **name of the codebase** this entry belongs to. It is set in `memo.config.json` and defaults into every `memo write` call automatically. Use the kebab-case name of the Git repository (e.g., `memo-cli`, `auth-service`, `api-gateway`).
+
+**Why it matters:** Every entry is scoped to a repo. `memo search` and `memo list` filter by your current repo by default, so entries from other repos don't pollute your results unless you explicitly request them with `--scope related`.
+
+**Rule:** Use the repo's canonical name — the one that appears in the GitHub URL. Don't abbreviate or alias it.
+
+---
+
+### `org` — Organization
+
+`org` is the **owner or organization** that the repository belongs to. In GitHub terms, this is the account or org username (e.g., `llipe`, `acme-corp`, `my-team`).
+
+**Why it matters:** `org` groups related repositories under a common owner. It enables cross-repo queries scoped to a single organization — e.g., finding all decisions made under `acme-corp` across all its services.
+
+**Rule:** Use the GitHub organization or user handle, kebab-case. All repos under the same team should share the same `org` value.
+
+---
+
+### `domain` — Product or Functional Area
+
+`domain` describes the **product area or functional concern** that this repository serves (e.g., `auth`, `payments`, `infra`, `ai`, `search`, `notifications`). It is broader than a repository — multiple repos can share the same domain.
+
+**Why it matters:** Domain is a cross-cutting label that lets you query decisions across all repos in a functional area. For example, all `auth`-domain decisions across `auth-service`, `api-gateway`, and `user-service` can be retrieved together.
+
+**How to choose:**
+- Use the business or technical capability, not the team name.
+- Keep it stable — domains change less often than repos.
+- Examples: `auth`, `billing`, `data-pipeline`, `mobile`, `platform`, `ai`, `infra`, `developer-tools`.
+
+---
+
+### `relates_to` — Connected Repositories
+
+`relates_to` is an **explicit list of other repository names** that this repo has a meaningful relationship with — shared contracts, shared schemas, upstream/downstream dependencies, or simply repos that an agent often works across together.
+
+```json
+{
+  "relates_to": ["auth-service", "api-gateway", "shared-lib"]
+}
+```
+
+**Why it matters:** Setting `relates_to` enables `--scope related` queries, which search entries across this repo **and** all listed repos simultaneously. This is how agents and developers get cross-service context without switching repositories.
+
+**When to add a repo to `relates_to`:**
+- This repo consumes an API or event contract that the other repo owns.
+- Decisions in the other repo often directly constrain decisions in this one.
+- You regularly need to cross-reference both repos during feature work.
+- They share a data model or schema.
+
+**Rule:** Keep `relates_to` intentional — list real dependencies, not every repo in the org. A bloated list degrades search signal.
+
+---
+
 ### Entry Types
 
 | Type | When to use |
