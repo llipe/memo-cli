@@ -2,7 +2,7 @@ name: Publish
 
 on:
   workflow_dispatch:
-  pull_request:
+  push:
     branches:
       - 'release'
       - 'release/**'
@@ -10,8 +10,10 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +40,4 @@ jobs:
         run: pnpm run test --no-coverage
 
       - name: Publish package
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
