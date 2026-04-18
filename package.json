@@ -6,6 +6,10 @@
   "author": "llipe",
   "license": "MIT",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/llipe/memo-cli"
+  },
   "publishConfig": {
     "access": "public"
   },
