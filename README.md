@@ -2,7 +2,7 @@
 
 > Agent-first CLI for capturing and querying development decisions via a Qdrant vector store.
 
-`@llipe/memo-cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
+`@llipe.com/memo-cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
 
 ---
 
@@ -45,7 +45,7 @@
 ### From npm (recommended)
 
 ```bash
-npm install -g @llipe/memo-cli
+npm install -g @llipe.com/memo-cli
 memo --version
 ```
 
@@ -604,7 +604,7 @@ cp -r .github/skills/memo-cli-usage /path/to/your-repo/.github/skills/
 # | memo-cli-usage | .github/skills/memo-cli-usage/ | Agent guidance for memo-cli | Any agent |
 
 # 3. Install memo-cli
-pnpm add -D @llipe/memo-cli
+pnpm add -D @llipe.com/memo-cli
 
 # 4. Initialize the repo
 npx memo setup init --repo <name> --org <org> --domain <domain>
@@ -647,15 +647,17 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                   | Description                                  |
-| ------------------------ | -------------------------------------------- |
-| `pnpm run build`         | Compile TypeScript to `dist/`                |
-| `pnpm run typecheck`     | Type-check without emitting                  |
-| `pnpm run lint`          | ESLint (v9 flat config, strict type-checked) |
-| `pnpm run lint:fix`      | ESLint with auto-fix                         |
-| `pnpm run format`        | Prettier format                              |
-| `pnpm run test`          | Run Jest test suite                          |
-| `pnpm run test:coverage` | Run Jest with coverage report                |
+| Script                     | Description                                  |
+| -------------------------- | -------------------------------------------- |
+| `pnpm run build`           | Compile TypeScript to `dist/`                |
+| `pnpm run build:watch`     | Compile in watch mode                        |
+| `pnpm run typecheck`       | Type-check without emitting                  |
+| `pnpm run lint`            | ESLint (v9 flat config, strict type-checked) |
+| `pnpm run lint:fix`        | ESLint with auto-fix                         |
+| `pnpm run format`          | Prettier format                              |
+| `pnpm run format:check`    | Check formatting without writing             |
+| `pnpm run test`            | Run Jest test suite                          |
+| `pnpm run test:coverage`   | Run Jest with coverage report                |
 
 ### Testing
 
