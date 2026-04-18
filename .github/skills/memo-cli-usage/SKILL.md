@@ -8,14 +8,48 @@ Use this skill whenever an agent needs to **read**, **write**, **search**, or **
 
 ---
 
-## When to Use
+## Purpose
 
-- Recording an architectural decision, integration point, or structural choice during implementation.
-- Searching for prior decisions before making a new one (avoid contradictions / duplicates).
-- Listing recent entries to build context at the start of a session.
-- Onboarding a new agent or developer to the decision history of a repository.
-- Cleaning up outdated or incorrect entries.
-- Discovering which organizations, repositories, or domains exist in the shared knowledge base.
+`memo-cli` is the **shared memory** that keeps agents coherent across time, sessions, and projects. It is not a log. It is not a changelog. It is a curated, searchable record of the decisions that shaped the codebase — written with enough precision that anyone (human or agent) arriving days, weeks, or months later can understand **what was decided, why, and what it affected**.
+
+An agent that uses `memo-cli` well:
+- Narrates its reasoning as it acts, not only at the end.
+- Records the files it modifies and why those files were the right place.
+- Explains configuration and architectural choices so future agents don't re-derive them.
+- Tags entries consistently so discovery remains reliable across projects.
+
+---
+
+## When to Write to memo-cli
+
+Write a memo entry **during** or **immediately after** any of these moments:
+
+| Trigger | Entry Type |
+|---------|-----------|
+| Choosing a library, framework, or service | `decision` |
+| Choosing how to structure a module or data model | `decision` / `structure` |
+| Changing a config file and explaining why | `decision` |
+| Identifying or formalizing a cross-service contract | `integration_point` |
+| Modifying critical files (entry points, core abstractions, schema) | `decision` |
+| Discovering a constraint (API limit, platform quirk, security requirement) | `decision` |
+| Resolving a conflict between two approaches | `decision` |
+| Establishing a naming or layout convention | `structure` |
+| Starting work on a story or task (intent entry) | `decision` |
+| Completing a story or task (outcome entry) | `decision` |
+
+---
+
+## When to Search memo-cli
+
+Search **before** taking action, not only when stuck:
+
+| Situation | Command |
+|-----------|---------|
+| Starting a session — restore context | `memo list --limit 20 --json` |
+| Before making a design choice | `memo search "<topic>" --json` |
+| Before touching a file you haven't seen before | `memo search "<filename or module name>" --json` |
+| Evaluating whether to add a dependency | `memo search "<library name>" --scope related --json` |
+| Onboarding to an unfamiliar repo | `memo inspect --json` then `memo list --json` |
 
 ---
 
@@ -191,126 +225,323 @@ Exactly one of `--id`, `--all-by-repo`, or `--all-by-org` is required.
 
 ## Agent Workflows
 
-### Starting a Session — Build Context
+### Starting a Session — Restore Context
 
-At the **beginning of every coding session**, an agent SHOULD run this sequence to understand the current decision landscape:
+At the **beginning of every session**, run this sequence before writing a single line of code:
 
 ```bash
-# 1. Verify config is valid
+# 1. Confirm config is valid
 memo setup validate
 
-# 2. See what's in the knowledge base
+# 2. Discover what repos/orgs/domains exist
 memo inspect --json
 
-# 3. List recent decisions for this repo
-memo list --limit 10 --json
+# 3. Review recent decisions for this repo
+memo list --limit 20 --json
 
-# 4. Check the tag landscape
+# 4. Check the established tag vocabulary
 memo tags list --sort frequency --json
 
-# 5. Search for anything relevant to the current task
-memo search "<current task description>" --limit 5 --json
+# 5. Search for context relevant to the current task
+memo search "<current task or feature description>" --limit 10 --json
 ```
 
-### During Implementation — Record Decisions
+Read the results before proceeding. Prior entries may contain constraints, preferred patterns, or rejected alternatives that directly affect how you should approach the current task.
 
-Whenever a non-trivial architectural or design choice is made:
+---
 
+### Recording Decisions — As You Work, Not Only at the End
+
+Write a memo entry **at the moment you make a decision**, not as a post-hoc summary. This preserves the full reasoning before context is lost.
+
+**Template:**
 ```bash
 memo write \
-  --rationale "Describe the decision and the reasoning behind it" \
-  --tags "relevant,tags,here" \
+  --rationale "CONTEXT. DECISION. RATIONALE." \
+  --tags "tag1,tag2,tag3" \
   --entry-type decision \
   --source agent \
   --commit "$(git rev-parse HEAD)" \
-  --story "TASK-123" \
-  --files "src/auth/jwt.ts,src/middleware/auth.ts" \
+  --story "ISSUE-42" \
+  --files "path/to/file1.ts,path/to/file2.ts" \
   --json
 ```
 
-**What makes a good decision entry:**
-- Captures the **why**, not just the **what**.
-- Includes enough context that a different agent or developer can understand the rationale months later.
-- Links to the commit and story/task for traceability.
-- Uses precise, descriptive tags for discoverability.
+The `--rationale` field is the most important field. See **Writing Quality** below.
 
-### Before Making a Decision — Search First
+---
 
-Before committing to a design choice, **always search** for prior relevant decisions:
+### Recording File Changes — Explain the Why
 
-```bash
-memo search "authentication middleware approach" --scope related --json
-```
-
-This prevents contradictions with existing decisions and surfaces patterns already established in related repositories.
-
-### End of Session — Summarize
-
-If significant decisions were made, consider writing a summary entry:
+When modifying a significant file (entry point, core abstraction, schema, config), record what changed and why:
 
 ```bash
 memo write \
-  --rationale "Session summary: implemented rate-limiting with token-bucket algorithm, chose Redis for counter storage due to TTL support" \
-  --tags "rate-limiting,redis,session-summary" \
+  --rationale "Modified src/lib/config.ts to add schema_version validation. The config loader previously accepted any object; adding Zod validation ensures CLI commands fail fast on malformed configs rather than producing silent errors downstream." \
+  --tags "config,validation,config-ts,error-handling" \
+  --entry-type decision \
+  --source agent \
+  --commit "$(git rev-parse HEAD)" \
+  --files "src/lib/config.ts,src/types/config.ts" \
+  --json
+```
+
+---
+
+### Recording Configuration Decisions
+
+Configuration decisions are especially important to preserve — they often appear opaque later with no obvious rationale in the code.
+
+```bash
+memo write \
+  --rationale "Set QDRANT_COLLECTION_NAME to 'decisions' permanently rather than making it configurable. A single collection per deployment simplifies queries and access control. Multi-tenancy is achieved via repo/org payload fields, not separate collections. Reconsidering this would require a data migration." \
+  --tags "qdrant,config,multi-tenancy,collection-design" \
   --entry-type decision \
   --source agent \
   --json
+```
+
+Configuration decisions to always record:
+- Environment variable semantics (what the value controls, valid ranges, defaults)
+- Feature flags and their trigger conditions
+- Schema versions and migration policies
+- Storage layout choices (collection names, index strategies, partitioning)
+- Security-related configuration (TLS, auth, CORS, rate limits)
+
+---
+
+### Intent Entry — Narrate Before Acting
+
+For significant tasks, write an **intent entry** before starting implementation. This creates a checkpoint that future sessions can find, and anchors the rationale for every decision that follows.
+
+```bash
+memo write \
+  --rationale "Starting implementation of story ISSUE-37: safe delete command. Approach: add a --yes flag for non-interactive confirmation, block --json with bulk delete flags (safety guard for agents), preview affected entries before deletion. No soft-delete; permanent removal via Qdrant point deletion. This matches the existing write/search command pattern." \
+  --tags "delete,safety,issue-37,intent" \
+  --entry-type decision \
+  --source agent \
+  --story "ISSUE-37" \
+  --json
+```
+
+---
+
+### Outcome Entry — Summarize After Completing
+
+When finishing a task, write an **outcome entry** that captures what actually happened vs. what was intended:
+
+```bash
+memo write \
+  --rationale "Completed ISSUE-37 safe delete command. Shipped: --id single delete, --all-by-repo and --all-by-org bulk delete (interactive only), --yes to skip confirm, preview before deletion. Deviation from intent: bulk delete also disallowed with --json (not just flagged) after discovering Qdrant batch delete has no confirmation step. Modified: src/commands/delete.ts (new), tests/unit/commands/delete.test.ts (new)." \
+  --tags "delete,safety,issue-37,outcome" \
+  --entry-type decision \
+  --source agent \
+  --story "ISSUE-37" \
+  --files "src/commands/delete.ts,tests/unit/commands/delete.test.ts" \
+  --json
+```
+
+---
+
+## Writing Quality
+
+The `--rationale` field must be **precise enough that a different developer or agent — with no prior context — can understand what was decided, why, and what it affects.** A good entry answers three questions:
+
+1. **Context** — What is the situation, constraint, or problem?
+2. **Decision** — What was chosen or done?
+3. **Rationale** — Why this choice over the alternatives?
+
+### Good vs. Bad Examples
+
+**Too vague — useless to a future reader:**
+> "Updated auth to use JWT."
+
+**Precise — useful across sessions and developers:**
+> "Switched authentication from server-side sessions to JWT (HS256, 15-min access + 7-day refresh). Sessions required sticky routing which is incompatible with the planned horizontal scaling. JWTs are stateless — any instance can validate without a shared session store. Trade-off: revocation requires a Redis blacklist (added to ISSUE-51 backlog). Files: src/auth/jwt.ts, src/middleware/auth.ts."
+
+---
+
+**Too vague:**
+> "Changed config validation."
+
+**Precise:**
+> "Added Zod validation to memo.config.json loader (src/lib/config.ts). Previously the code trusted the file's shape; malformed configs caused cryptic runtime errors deep in Qdrant queries. Now the CLI fails immediately at startup with a structured error message. This is the single place config is read — no other validation needed."
+
+---
+
+**Too vague:**
+> "Used Redis for caching."
+
+**Precise:**
+> "Chose Redis (via ioredis) over in-process LRU cache for rate-limit counters. In-process cache doesn't survive pod restarts and is not shared across replicas. Redis TTL natively aligns with the sliding window algorithm. Accepted dependency: Redis must be available in all environments. Config: REDIS_URL env var, no auth in dev, TLS required in prod."
+
+---
+
+### Structural Rule
+
+Write `--rationale` as a single coherent paragraph (or 2-3 short sentences). **Avoid bullet points** in the rationale field — they fragment reasoning and lose connective logic. Save structure for tags.
+
+Minimum viable rationale: **context sentence + decision sentence + why sentence**.
+
+---
+
+## Tag Strategy
+
+Tags are the primary way to discover entries. Good tagging makes the difference between a searchable knowledge base and an unsearchable archive.
+
+### Tag Layers
+
+Apply tags across **multiple layers** simultaneously:
+
+| Layer | Purpose | Examples |
+|-------|---------|---------|
+| **Domain/feature** | What area of the system | `auth`, `rate-limiting`, `config`, `delete`, `storage` |
+| **Technology** | What tech is involved | `qdrant`, `redis`, `openai`, `zod`, `jwt` |
+| **Entry nature** | What kind of change | `intent`, `outcome`, `constraint`, `trade-off`, `adr` |
+| **Story/task ref** | Traceability | `issue-37`, `story-s003`, `prd-001` |
+| **Scope** | How broad the impact | `cross-repo`, `breaking-change`, `config-change` |
+
+Every write SHOULD include tags from at least **2–3 layers**.
+
+### Before Inventing a Tag — Check What Exists
+
+```bash
+memo tags list --sort frequency --json
+```
+
+Re-use existing tags whenever possible. Consistent vocabulary is what allows `memo search` to surface related entries from weeks ago or from a different repository.
+
+### Tag Naming Rules
+
+- Kebab-case only: `rate-limiting`, not `rateLimiting` or `rate_limiting`.
+- Prefer specific over generic: `qdrant-collection` over `database`.
+- For story/task refs: `issue-37`, `story-s003` (numeric, no spaces).
+- Session markers: `intent` (beginning of task) and `outcome` (completion).
+- For cross-cutting concerns: `breaking-change`, `security`, `performance`, `config-change`.
+
+### Tag Examples by Scenario
+
+**Architectural decision on storage:**
+```
+qdrant,collection-design,multi-tenancy,decision,adr
+```
+
+**Config change:**
+```
+config,env-vars,config-change,issue-42
+```
+
+**Integration contract between two services:**
+```
+api-contract,auth-service,cross-repo,integration-point,breaking-change
+```
+
+**Starting a new feature (intent):**
+```
+delete-command,safety,issue-37,intent
+```
+
+**Completing a feature (outcome):**
+```
+delete-command,safety,issue-37,outcome
+```
+
+**Performance trade-off:**
+```
+embeddings,openai,performance,trade-off,caching
 ```
 
 ---
 
 ## Multi-Developer & Cross-Session Context
 
-`memo-cli` is designed so that **every agent and developer shares the same decision history**. This is what makes it valuable in teams:
+`memo-cli` is designed so that **every agent and every developer shares the same decision history**. This is what enables continuity across days, team rotations, and parallel workstreams.
 
 ### Shared Knowledge Base
 
-All entries are stored in a shared Qdrant instance. When Developer A records a decision, Developer B (or Agent B) can immediately find it via `memo search` or `memo list`. There is no per-user silo.
+All entries are stored in a shared Qdrant instance. When Developer A (or Agent A) records a decision, Developer B can immediately find it via `memo search`. There is no per-user silo.
 
 ### Cross-Repository Visibility
 
-Use `--scope related` alongside the `relates_to` configuration to query decisions from connected repositories. This is critical for:
+Use `--scope related` to query across connected repositories:
+
+```bash
+memo search "auth contract" --scope related --json
+```
+
+This is critical for:
 - Microservice architectures where contracts span repos.
-- Monorepo-adjacent setups where domain boundaries cross packages.
+- Agent workflows that touch multiple repositories in sequence.
+- Detecting when a decision in one repo contradicts a constraint in another.
+
+Configure related repos in `memo.config.json`:
+```json
+{
+  "relates_to": ["auth-service", "api-gateway", "shared-lib"]
+}
+```
 
 ### Session Continuity for Agents
 
 Agents are stateless between sessions. To maintain continuity:
 
-1. **Start every session** with `memo list` and `memo search` to load prior context.
-2. **End every session** by writing any significant decisions made.
-3. **Tag consistently** — use the same tag vocabulary across sessions so future searches find related entries. Run `memo tags list` to see what tags already exist before inventing new ones.
+1. **Start every session** with `memo list` and `memo search` — always.
+2. **Write an intent entry** before starting significant work.
+3. **Write as you decide**, not as a batch at the end.
+4. **Write an outcome entry** when completing a task, including any deviations from intent.
+5. **Tag consistently** — check `memo tags list` before picking tags.
 
-### What to Record (Guidelines)
+### Multi-Day Work Pattern
+
+For work that spans multiple days:
+
+- **Day 1 end**: Write an outcome entry with current state, what's done, what's next, any open questions.
+- **Day 2 start**: `memo search "<task name or issue number>" --json` to restore exact context.
+- The tags `intent` and `outcome` combined with a story tag (e.g., `issue-37`) make the full arc of a feature retrievable as a timeline.
+
+### What to Record vs. What to Skip
 
 | Record | Skip |
 |--------|------|
-| Architectural choices and their rationale | Trivial implementation details |
-| Technology selections with trade-off analysis | Routine bug fixes |
-| API contracts and integration boundaries | Formatting or style preferences (use linters) |
-| Data model decisions | Temporary workarounds (unless they become permanent) |
-| Security-sensitive design choices | Build/CI configuration (use config files) |
-| Performance trade-offs | Dependency version bumps |
+| Architectural choices and their rationale | Trivial implementation details (variable names, formatting) |
+| Technology selections with trade-off analysis | Routine bug fixes with no design impact |
+| Configuration changes that affect behavior | Code style choices (use linters) |
+| API contracts and integration boundaries | Dependency version bumps (use lockfile) |
+| Security-sensitive design choices | Temporary workarounds expected to be removed within hours |
+| Performance trade-offs and their context | Generated code |
+| Rejected alternatives and why | CI/build configuration (use config files) |
+| Constraints discovered during implementation | Debugging steps |
 
 ---
 
 ## Memory Scopes (IDE / Agent Memory vs. memo-cli)
 
-Many agent runtimes (e.g., VS Code Copilot) have a built-in memory system alongside `memo-cli`. Understanding when to use each is key:
+Many agent runtimes (e.g., VS Code Copilot) have a built-in memory system alongside `memo-cli`. Understanding when to use each prevents both redundancy and gaps.
 
-| Scope | Path | Persistence | Use For |
-|-------|------|-------------|---------|
-| **User memory** | `/memories/` | Across all workspaces & sessions | Personal preferences, debugging patterns, general insights |
-| **Session memory** | `/memories/session/` | Current conversation only | Task-specific scratch notes, in-progress state |
-| **Repository memory** | `/memories/repo/` | Current workspace | Repo-specific facts: build commands, conventions, gotchas |
-| **memo-cli** | Qdrant (shared) | Permanent, shared across all agents & developers | Architectural decisions, integration points, structural choices |
+| Scope | Where | Persistence | Use For |
+|-------|-------|-------------|---------|
+| **User memory** | `/memories/` | All workspaces, all sessions | Personal preferences, debugging patterns, general agent insights |
+| **Session memory** | `/memories/session/` | Current conversation only | Scratch notes, in-progress state, temporary checklists |
+| **Repository memory** | `/memories/repo/` | Current workspace | Repo gotchas, build commands, local conventions — fast-access notes for this repo |
+| **memo-cli** | Qdrant (shared remote) | Permanent, shared across all people and agents | Architectural decisions, integration contracts, structural choices, configuration rationale |
 
-### Decision Tree: Where to Store Information
+### Decision Tree: Where Does This Information Belong?
 
-1. **Is it an architectural decision, design rationale, or integration contract?** → `memo write`
-2. **Is it a repo-specific convention or gotcha that all agents should know?** → `/memories/repo/` AND consider `memo write` if it reflects an architectural choice
-3. **Is it a personal preference or general pattern?** → `/memories/` (user memory)
-4. **Is it temporary, in-progress context for this session only?** → `/memories/session/`
+```
+Is it a decision, rationale, constraint, contract, or config choice?
+  └─ YES → memo write  (it belongs to the shared knowledge base)
+
+Is it a repo-specific gotcha or quick operational fact?
+  └─ YES → /memories/repo/ (and also memo write if it reflects a real design choice)
+
+Is it a personal preference or general agent pattern?
+  └─ YES → /memories/ (user memory)
+
+Is it temporary context that only matters for the current session?
+  └─ YES → /memories/session/
+```
+
+**Key principle:** If the information would help a *different* developer or agent working in the same codebase — even a year from now — it belongs in `memo-cli`.
 
 ---
 
