@@ -19,6 +19,7 @@
 | S-007    | Bootstrap Prompt Documentation & Validation Workflow             | https://github.com/llipe/memo-cli/issues/7  | story, mvp          | MVP — PRD-001 Core Loop |
 | S-008    | First Release — Package Build, Publish, and Install Verification | https://github.com/llipe/memo-cli/issues/8  | story, mvp, release | MVP — PRD-001 Core Loop |
 | S-009    | Automated Registry Deployment Workflow (npm)                     | https://github.com/llipe/memo-cli/issues/21 | story, mvp, release | MVP — PRD-001 Core Loop |
+| S-010    | `memo get` — Read a Specific Entry by ID                         | https://github.com/llipe/memo-cli/issues/32 | story, mvp          | MVP — PRD-001 Core Loop |
 
 ## Labels Created
 
@@ -47,6 +48,7 @@ S-001 (no deps)
 
 - Initial publication (S-001 to S-008) completed on 2026-04-10 under milestone **MVP — PRD-001 Core Loop** (#1)
 - Sync update on 2026-04-17 created S-009: https://github.com/llipe/memo-cli/issues/21
+- Sync update on 2026-04-18 created S-010: https://github.com/llipe/memo-cli/issues/32
 - No stories skipped — full PRD-001 coverage (see coverage report in `user-stories-prd-001-mvp.md`)
 - GitHub is now the source of truth for execution tracking
 - Suggested next step: run the **plan** activity to create task lists from selected stories

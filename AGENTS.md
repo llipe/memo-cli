@@ -67,6 +67,7 @@ Skills are in `.github/skills/` and are loaded only on demand.
 | Skill | Directory | Purpose | Primary Consumer |
 | --- | --- | --- | --- |
 | git-ops | `.github/skills/git-ops/` | Branch creation, sync/rebase workflow, merge/conflict handling, and recovery. | developer, planner |
+| memo-cli-usage | `.github/skills/memo-cli-usage/` | Agent guidance for memo-cli operations: command reference, workflows, memory scopes, and safe-operation guardrails. | Any agent |
 | webapp-mockup | `.github/skills/webapp-mockup/` | Build mockups for UX validation loops. | ux-engineer |
 
 ---

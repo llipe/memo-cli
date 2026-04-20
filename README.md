@@ -2,7 +2,9 @@
 
 > Agent-first CLI for capturing and querying development decisions via a Qdrant vector store.
 
-`@llipe/memo-cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
+GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
+
+`@llipe.com/memo-cli` lets AI agents and developers record architectural decisions, integration points, and structural choices during development — then retrieve them semantically at any time.
 
 ---
 
@@ -22,6 +24,7 @@
   - [Step 8: Delete Entries](#step-8-delete-entries)
 - [Command Reference](#command-reference)
 - [Agent Integration](#agent-integration)
+  - [Agent Skill (memo-cli-usage)](#agent-skill-memo-cli-usage)
 - [Bootstrap Workflow](#bootstrap-workflow)
 - [Development](#development)
 - [Project Structure](#project-structure)
@@ -44,7 +47,7 @@
 ### From npm (recommended)
 
 ```bash
-npm install -g @llipe/memo-cli
+npm install -g @llipe.com/memo-cli
 memo --version
 ```
 
@@ -571,6 +574,46 @@ export EMBEDDINGS_API_KEY=sk-...
 
 No `.env` file needed — agents should inject variables directly into the process environment.
 
+### Agent Skill (memo-cli-usage)
+
+This repository ships a reusable agent skill at [`.github/skills/memo-cli-usage/SKILL.md`](.github/skills/memo-cli-usage/SKILL.md) that teaches AI agents (and developers) how to operate memo-cli correctly and consistently.
+
+The skill is **self-contained and installable** — copy the `memo-cli-usage/` folder into any repository's `.github/skills/` directory and reference it from that repo's agent registry.
+
+#### What the skill covers
+
+| Section | Description |
+|---------|-------------|
+| **When to write / when to search** | Precise trigger tables — which moment calls for a `memo write`, which calls for a `memo search` first |
+| **`repo`, `org`, `domain` explained** | What each identity field means, how to choose values, and why they matter for scoping |
+| **`relates_to` explained** | When to add a repo, how cross-repo queries work, and how to avoid over-populating the list |
+| **Tag strategy** | Five-layer taxonomy (domain, technology, entry nature, story ref, scope), naming rules, and ready-made examples |
+| **Writing quality** | The context + decision + rationale formula with side-by-side good/bad examples |
+| **Intent & outcome entries** | How to narrate agent work as it happens — write before starting, write after finishing |
+| **Recording file changes** | How to annotate which files changed and explain why those were the right files |
+| **Recording config decisions** | Env vars, storage layout, feature flags, schema versions — what to capture and why |
+| **Multi-developer & cross-session** | Shared KB, session continuity for stateless agents, multi-day work pattern |
+| **Memory scope decision tree** | When to use IDE/agent memory (`/memories/`) vs. memo-cli |
+| **Safe operation guardrails** | Non-destructive defaults, `--json` mode rules, error handling, credential safety |
+
+#### Install into another repository
+
+```bash
+# 1. Copy the skill
+cp -r .github/skills/memo-cli-usage /path/to/your-repo/.github/skills/
+
+# 2. Register it in your AGENTS.md or skill registry:
+# | memo-cli-usage | .github/skills/memo-cli-usage/ | Agent guidance for memo-cli | Any agent |
+
+# 3. Install memo-cli
+pnpm add -D @llipe.com/memo-cli
+
+# 4. Initialize the repo
+npx memo setup init --repo <name> --org <org> --domain <domain>
+```
+
+Once the skill is registered, any agent (GitHub Copilot, Claude, GPT-4, etc.) that loads it will know how to record decisions, restore session context, tag consistently, and stay safe.
+
 ---
 
 ## Bootstrap Workflow
@@ -606,15 +649,17 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                   | Description                                  |
-| ------------------------ | -------------------------------------------- |
-| `pnpm run build`         | Compile TypeScript to `dist/`                |
-| `pnpm run typecheck`     | Type-check without emitting                  |
-| `pnpm run lint`          | ESLint (v9 flat config, strict type-checked) |
-| `pnpm run lint:fix`      | ESLint with auto-fix                         |
-| `pnpm run format`        | Prettier format                              |
-| `pnpm run test`          | Run Jest test suite                          |
-| `pnpm run test:coverage` | Run Jest with coverage report                |
+| Script                     | Description                                  |
+| -------------------------- | -------------------------------------------- |
+| `pnpm run build`           | Compile TypeScript to `dist/`                |
+| `pnpm run build:watch`     | Compile in watch mode                        |
+| `pnpm run typecheck`       | Type-check without emitting                  |
+| `pnpm run lint`            | ESLint (v9 flat config, strict type-checked) |
+| `pnpm run lint:fix`        | ESLint with auto-fix                         |
+| `pnpm run format`          | Prettier format                              |
+| `pnpm run format:check`    | Check formatting without writing             |
+| `pnpm run test`            | Run Jest test suite                          |
+| `pnpm run test:coverage`   | Run Jest with coverage report                |
 
 ### Testing
 
