@@ -22,6 +22,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
   - [Step 6: Discover Tags](#step-6-discover-tags)
   - [Step 7: Inspect the Knowledge Base](#step-7-inspect-the-knowledge-base)
   - [Step 8: Delete Entries](#step-8-delete-entries)
+  - [Step 9: Read a Single Entry](#step-9-read-a-single-entry)
 - [Command Reference](#command-reference)
 - [Agent Integration](#agent-integration)
   - [Agent Skill (memo-cli-usage)](#agent-skill-memo-cli-usage)
@@ -507,6 +508,33 @@ memo delete --id <id> --json
 
 ---
 
+### Step 9: Read a Single Entry
+
+Fetch one exact memo entry when you already know its ID.
+
+```bash
+memo read --id 550e8400-e29b-41d4-a716-446655440000
+```
+
+This command is read-only and does not require local `memo.config.json`.
+
+#### JSON mode
+
+```bash
+memo read --id 550e8400-e29b-41d4-a716-446655440000 --json
+```
+
+Returns the flat entry payload as JSON.
+
+#### All read flags
+
+| Flag     | Default | Description                 |
+| -------- | ------- | --------------------------- |
+| `--id`   | —       | Required entry id to fetch  |
+| `--json` | `false` | Output as JSON              |
+
+---
+
 ## Command Reference
 
 | Command               | Purpose                       | Key Flags                                                                       |
@@ -520,6 +548,7 @@ memo delete --id <id> --json
 | `memo tags list`      | Browse unique tags            | `--scope`, `--sort`, `--json`                                                   |
 | `memo inspect`        | Discover orgs/repos/domains   | `--orgs`, `--repos`, `--domains`, `--json`                                      |
 | `memo delete`         | Delete entries                | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
+| `memo read`           | Read one specific entry by id | `--id`, `--json`                                                                 |
 
 ### Global flags
 
@@ -690,7 +719,8 @@ src/
 │   ├── list.ts           # memo list (chronological + date range)
 │   ├── tags.ts           # memo tags list (unique tags with counts)
 │   ├── inspect.ts        # memo inspect (org/repo/domain facets)
-│   └── delete.ts         # memo delete (safe single + bulk delete)
+│   ├── delete.ts         # memo delete (safe single + bulk delete)
+│   └── read.ts           # memo read (single entry by ID)
 ├── lib/
 │   ├── qdrant.ts         # Qdrant collection management & queries
 │   ├── facets.ts         # Scroll-based facet aggregation

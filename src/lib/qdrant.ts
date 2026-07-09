@@ -157,6 +157,11 @@ export class QdrantRepository {
     return results[0] ?? null;
   }
 
+  async getById(id: string): Promise<ScrollResult | null> {
+    const results = await this.scroll({ must: [{ has_id: [id] }] }, 1);
+    return results[0] ?? null;
+  }
+
   async deleteById(id: string): Promise<void> {
     try {
       const existing = await this.scroll({ must: [{ has_id: [id] }] }, 1);

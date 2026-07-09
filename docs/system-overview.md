@@ -44,6 +44,7 @@ graph LR
 | `memo tags list`   | `tags.ts`    | Browse all unique tags stored in the collection with counts and sort options    |
 | `memo inspect`     | `inspect.ts` | Discover orgs, repos, and domains across the knowledge base with facet filters |
 | `memo delete`      | `delete.ts`  | Safely delete a single entry by ID or bulk-delete by repo/org                  |
+| `memo read`        | `read.ts`    | Read one exact entry by ID with human or JSON output                           |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
@@ -149,6 +150,14 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 3. **Single delete:** scroll to verify entry exists → show preview → prompt for confirmation (unless `--json` or `--yes`) → `deleteById(id)` → output result
 4. **Bulk delete:** scroll to count matching entries → prompt for confirmation (unless `--yes`) → `deleteByFilter(filter)` → output deleted count
 5. Empty-match bulk delete returns exit 0 with a no-entries-found message
+
+### Read Flow
+
+1. Validate `--id` and normalize non-empty value
+2. Auto-bootstrap Qdrant collection if needed
+3. Execute exact lookup by ID via `getById(id)`
+4. If no entry is found: return `ENTRY_NOT_FOUND` (exit code 1)
+5. If found: return full payload + `id` as flat object (`--json`) or ordered human-readable fields
 
 ---
 
