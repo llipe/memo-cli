@@ -28,6 +28,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
   - [Agent Skill (memo-cli-usage)](#agent-skill-memo-cli-usage)
 - [Bootstrap Workflow](#bootstrap-workflow)
 - [Development](#development)
+- [Release Process](#release-process)
 - [Project Structure](#project-structure)
 - [License](#license)
 
@@ -704,6 +705,44 @@ pnpm run test:coverage                 # with coverage report
 
 - **CI** runs on every push: typecheck → lint → test → build → audit
 - **Publish** triggers on semver tag push (`v*.*.*`) → npm publish
+
+## Release Process
+
+Releases are tag-driven and version-locked.
+
+Rules:
+
+- Tag format must be `vX.Y.Z` for stable releases and `vX.Y.Z-rc.N` for pre-releases.
+- CI only publishes when a matching tag is pushed.
+- CI fails if tag version and `package.json` version do not match.
+- CI fails if the version already exists on npm.
+- Pre-release tags are published to npm with `--tag next`.
+
+### How to release (stable)
+
+```bash
+pnpm install
+pnpm run test
+
+# Bump version and create matching git tag (example: v1.1.1)
+npm version patch
+
+# Push commit + tag
+git push origin main --follow-tags
+```
+
+### How to release (pre-release)
+
+```bash
+# Example: creates package version 1.2.0-rc.0 and tag v1.2.0-rc.0
+npm version prerelease --preid=rc
+git push origin main --follow-tags
+```
+
+### Notes
+
+- Do not manually create a tag that differs from `package.json` version.
+- If publish fails with "already published", bump version and create a new tag.
 
 ---
 

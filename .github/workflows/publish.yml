@@ -1,11 +1,9 @@
 name: Publish
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - 'release'
-      - 'release/**'
+    tags:
+      - 'v*.*.*'
 
 jobs:
   publish:
@@ -41,5 +39,32 @@ jobs:
       - name: Test
         run: pnpm run test --no-coverage
 
-      - name: Publish package
+      - name: Validate tag version matches package version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version)")"
+
+          echo "TAG_VERSION=${TAG_VERSION}" >> "$GITHUB_ENV"
+          echo "PKG_VERSION=${PKG_VERSION}" >> "$GITHUB_ENV"
+
+          if [[ "$TAG_VERSION" != "$PKG_VERSION" ]]; then
+            echo "Tag version ($TAG_VERSION) does not match package version ($PKG_VERSION)."
+            exit 1
+          fi
+
+      - name: Ensure npm version is not already published
+        run: |
+          PKG_NAME="$(node -e "console.log(JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).name)")"
+
+          if npm view "$PKG_NAME@$TAG_VERSION" version >/dev/null 2>&1; then
+            echo "Version $PKG_NAME@$TAG_VERSION is already published on npm."
+            exit 1
+          fi
+
+      - name: Publish package (stable)
+        if: ${{ !contains(env.TAG_VERSION, '-') }}
         run: npm publish --access public --provenance
+
+      - name: Publish package (pre-release)
+        if: ${{ contains(env.TAG_VERSION, '-') }}
+        run: npm publish --access public --provenance --tag next
