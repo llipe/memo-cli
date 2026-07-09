@@ -80,7 +80,8 @@ CLI Entry (src/index.ts)
         ├── commands/list.ts       → ListCommand (chronological + date range)
         ├── commands/tags.ts       → TagsCommand (list unique tags with counts)
         ├── commands/inspect.ts    → InspectCommand (org/repo/domain facets)
-        └── commands/delete.ts     → DeleteCommand (safe single + bulk delete)
+        ├── commands/delete.ts     → DeleteCommand (safe single + bulk delete)
+        └── commands/read.ts       → ReadCommand (single-entry lookup by ID)
 
 lib/
   ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll, deleteById, deleteByFilter)
@@ -419,7 +420,11 @@ memo-cli/
 │   │   ├── setup.ts              ← memo setup (init / show / validate)
 │   │   ├── write.ts              ← memo write (with duplicate detection)
 │   │   ├── search.ts             ← memo search (semantic + pre-filters)
-│   │   └── list.ts               ← memo list (chronological + date range)
+│   │   ├── list.ts               ← memo list (chronological + date range)
+│   │   ├── tags.ts               ← memo tags list (unique tags with counts)
+│   │   ├── inspect.ts            ← memo inspect (org/repo/domain facets)
+│   │   ├── delete.ts             ← memo delete (safe single + bulk delete)
+│   │   └── read.ts               ← memo read (single entry by ID)
 │   ├── lib/
 │   │   ├── qdrant.ts             ← QdrantRepository
 │   │   ├── embeddings.ts         ← EmbeddingsAdapter interface + factory

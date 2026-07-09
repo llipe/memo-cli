@@ -71,6 +71,7 @@ The MVP (Phase 1) has been fully implemented and merged. All eight original user
 | #18   | `memo tags list` — browse unique tags with sort and scope options | ✅ Complete |
 | #19   | `memo inspect` — discover orgs, repos, and domains in the store  | ✅ Complete |
 | #20   | `memo delete` — safe single and bulk delete with guardrails      | ✅ Complete |
+| #32   | `memo read --id` — read one specific entry by known ID           | ✅ Complete |
 
 The package is published as `@memo-ai/cli` on npm. CI/CD pipelines are green. The publish workflow triggers on semver tag push.
 

@@ -142,6 +142,35 @@ describe('QdrantRepository', () => {
     });
   });
 
+  describe('getById()', () => {
+    it('returns the matching entry when found', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: 'entry-1', payload: { repo: 'memo-cli' } }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const result = await repo.getById('entry-1');
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          filter: { must: [{ has_id: ['entry-1'] }] },
+          limit: 1,
+        }),
+      );
+      expect(result).toEqual({ id: 'entry-1', payload: { repo: 'memo-cli' } });
+    });
+
+    it('returns null when id does not exist', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const result = await repo.getById('missing-id');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('deleteById()', () => {
     it('calls client.delete with points when id exists', async () => {
       mockScroll.mockResolvedValueOnce({ points: [{ id: 'entry-1', payload: {} }] });
