@@ -11,6 +11,7 @@ import list from './commands/list.js';
 import tags from './commands/tags.js';
 import inspect from './commands/inspect.js';
 import del from './commands/delete.js';
+import read from './commands/read.js';
 import { MemoError } from './lib/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +33,7 @@ program.addCommand(list);
 program.addCommand(tags);
 program.addCommand(inspect);
 program.addCommand(del);
+program.addCommand(read);
 
 let fatalHandled = false;
 
