@@ -703,32 +703,59 @@ pnpm run test:coverage                 # with coverage report
 
 ### CI/CD
 
-- **CI** runs on every push: typecheck → lint → test → build → audit
-- **Publish** triggers on semver tag push (`v*.*.*`) → npm publish
+> **Current status:** there is no `.github/workflows/` pipeline in this repository yet. Typecheck, lint, test, build, audit, and npm publish are all run **manually** by the releaser. The steps below reflect the actual manual process, not an automated one.
 
 ## Release Process
 
-Releases are tag-driven and version-locked.
+Releases are tag-driven and version-locked, but published manually until an automated workflow exists.
 
 Rules:
 
 - Tag format must be `vX.Y.Z` for stable releases and `vX.Y.Z-rc.N` for pre-releases.
-- CI only publishes when a matching tag is pushed.
-- CI fails if tag version and `package.json` version do not match.
-- CI fails if the version already exists on npm.
-- Pre-release tags are published to npm with `--tag next`.
+- The git tag and `package.json` `version` field must match exactly.
+- Do not manually create a tag that differs from `package.json` version.
+- If publish fails with "already published" (`npm` rejects re-publishing an existing version), bump the version and create a new tag.
 
 ### How to release (stable)
 
 ```bash
+# 1. Make sure you're on the correct Node version (see .nvmrc)
+nvm use
+
+# 2. Install deps and run the full local quality gate
 pnpm install
+pnpm run typecheck
+pnpm run lint
 pnpm run test
+pnpm run build
+pnpm audit
 
-# Bump version and create matching git tag (example: v1.1.1)
-npm version patch
+# 3. Bump version and create matching git tag (example: v1.1.2)
+npm version patch   # or: minor | major
 
-# Push commit + tag
+# 4. Push commit + tag
 git push origin main --follow-tags
+```
+
+Pushing the tag only updates git history — it does **not** publish to npm by itself. Publishing is a separate, manual step:
+
+```bash
+# 5. Authenticate to npm (skip if npm whoami already succeeds)
+npm login
+npm whoami   # confirm you're logged in as the expected account
+
+# 6. Sanity-check exactly what will be published
+npm pack --dry-run
+# Confirm the tarball only contains dist/, README.md, LICENSE, package.json,
+# and that the version matches the tag you just pushed.
+
+# 7. Publish (runs the `prepublishOnly` build automatically)
+npm publish
+
+# 8. Verify the release landed
+npm view @llipe.com/memo-cli version
+npm install -g @llipe.com/memo-cli@latest
+memo --version
 ```
 
 ### How to release (pre-release)
@@ -737,12 +764,16 @@ git push origin main --follow-tags
 # Example: creates package version 1.2.0-rc.0 and tag v1.2.0-rc.0
 npm version prerelease --preid=rc
 git push origin main --follow-tags
+
+npm login   # if not already authenticated
+npm publish --tag next
 ```
 
 ### Notes
 
-- Do not manually create a tag that differs from `package.json` version.
-- If publish fails with "already published", bump version and create a new tag.
+- `package.json` already sets `"publishConfig": { "access": "public" }` and a `prepublishOnly` script that runs `pnpm run build`, so `npm publish` always ships a freshly built `dist/`.
+- If your local `~/.npmrc` auth token has expired, `npm publish` fails with `401 Unauthorized` — run `npm login` again before retrying.
+- Automating this (tag push → CI build/test → npm publish) is tracked as future work; see Issue #21 in `workstream/tasks-prd-001-mvp-plan.md` for the planned `release.yml` workflow. Until that lands, treat every release as a manual, checklist-driven step.
 
 ---
 
