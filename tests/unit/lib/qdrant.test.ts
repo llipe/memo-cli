@@ -10,7 +10,7 @@ const mockGetCollection = jest.fn();
 const mockCreateCollection = jest.fn();
 const mockCreatePayloadIndex = jest.fn();
 const mockUpsert = jest.fn();
-const mockSearch = jest.fn();
+const mockQuery = jest.fn();
 const mockScroll = jest.fn();
 const mockDelete = jest.fn();
 
@@ -20,7 +20,7 @@ jest.mock('@qdrant/js-client-rest', () => ({
     createCollection: mockCreateCollection,
     createPayloadIndex: mockCreatePayloadIndex,
     upsert: mockUpsert,
-    search: mockSearch,
+    query: mockQuery,
     scroll: mockScroll,
     delete: mockDelete,
   })),
@@ -92,17 +92,19 @@ describe('QdrantRepository', () => {
   });
 
   describe('search()', () => {
-    it('calls client.search with filter and limit', async () => {
-      mockSearch.mockResolvedValueOnce([{ id: '1', score: 0.9, payload: { text: 'hello' } }]);
+    it('calls client.query with filter and limit', async () => {
+      mockQuery.mockResolvedValueOnce({
+        points: [{ id: '1', score: 0.9, payload: { text: 'hello' } }],
+      });
 
       const repo = new QdrantRepository('http://localhost:6333');
       const vector = Array(1536).fill(0.1) as number[];
       const filter = { must: [] };
       const results = await repo.search(vector, filter, 5);
 
-      expect(mockSearch).toHaveBeenCalledWith(
+      expect(mockQuery).toHaveBeenCalledWith(
         'decisions',
-        expect.objectContaining({ filter, limit: 5 }),
+        expect.objectContaining({ query: vector, filter, limit: 5 }),
       );
       expect(results).toHaveLength(1);
       expect(results[0]?.score).toBe(0.9);
