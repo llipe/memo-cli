@@ -1,7 +1,7 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
 import type { Schemas } from '@qdrant/js-client-rest';
 
-export type QdrantFilter = Schemas['SearchRequest']['filter'];
+export type QdrantFilter = Schemas['QueryRequest']['filter'];
 import { MemoError } from './errors.js';
 import { withRetry } from './retry.js';
 import { debugLog } from './debug.js';
@@ -96,21 +96,24 @@ export class QdrantRepository {
 
   async search(vector: number[], filter?: QdrantFilter, limit = 10): Promise<SearchResult[]> {
     try {
-      const results = await withRetry(() =>
-        this.client.search(COLLECTION_NAME, {
-          vector,
+      const response = await withRetry(() =>
+        this.client.query(COLLECTION_NAME, {
+          query: vector,
           filter,
           limit,
           with_payload: true,
         }),
       );
-      return (
-        results as {
-          id: string | number;
-          score: number;
-          payload?: Record<string, unknown> | null;
-        }[]
-      ).map((r) => ({
+      const results = (
+        response as {
+          points: {
+            id: string | number;
+            score: number;
+            payload?: Record<string, unknown> | null;
+          }[];
+        }
+      ).points;
+      return results.map((r) => ({
         id: r.id,
         score: r.score,
         payload: r.payload ?? undefined,
