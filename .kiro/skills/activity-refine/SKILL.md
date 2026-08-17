@@ -1,6 +1,6 @@
 ---
 name: activity-refine
-description: "Clarify scope: produce a lightweight issue refinement or a full PRD. Use in product-engineer Feature or Issue Mode."
+description: 'Clarify scope: produce a lightweight issue refinement or a full PRD. Use in product-engineer Feature or Issue Mode.'
 ---
 
 # Activity: Refine Scope

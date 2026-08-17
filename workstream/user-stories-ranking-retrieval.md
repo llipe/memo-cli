@@ -2,13 +2,13 @@
 
 ## GitHub Issues
 
-| Story | Issue | Title |
-|-------|-------|-------|
+| Story   | Issue                                              | Title                                            |
+| ------- | -------------------------------------------------- | ------------------------------------------------ |
 | Story 1 | [#34](https://github.com/llipe/memo-cli/issues/34) | feat: composite ranking score for search results |
-| Story 2 | [#35](https://github.com/llipe/memo-cli/issues/35) | feat: dynamic confidence tiers in search output |
-| Story 3 | [#36](https://github.com/llipe/memo-cli/issues/36) | feat: tag overlap boosting in search results |
+| Story 2 | [#35](https://github.com/llipe/memo-cli/issues/35) | feat: dynamic confidence tiers in search output  |
+| Story 3 | [#36](https://github.com/llipe/memo-cli/issues/36) | feat: tag overlap boosting in search results     |
 | Story 4 | [#38](https://github.com/llipe/memo-cli/issues/38) | feat: staleness detection flag on search results |
-| Story 5 | [#37](https://github.com/llipe/memo-cli/issues/37) | feat: memo ask command with LLM re-ranking |
+| Story 5 | [#37](https://github.com/llipe/memo-cli/issues/37) | feat: memo ask command with LLM re-ranking       |
 
 ## Dependency Map
 
@@ -24,13 +24,13 @@ Story 3 — Tag Overlap Boosting (#36)   ← independent
 
 ## Recommended Implementation Order
 
-| # | Story | Issue | Depends On | Complexity |
-|---|-------|-------|------------|------------|
-| 1 | Composite Ranking Score | #34 | — | Medium |
-| 2 | Tag Overlap Boosting | #36 | — | Low |
-| 3 | Confidence Tiers | #35 | #34 | Low |
-| 4 | Staleness Detection | #38 | #34 | Medium |
-| 5 | `ask` Command | #37 | #34, #35 | High |
+| #   | Story                   | Issue | Depends On | Complexity |
+| --- | ----------------------- | ----- | ---------- | ---------- |
+| 1   | Composite Ranking Score | #34   | —          | Medium     |
+| 2   | Tag Overlap Boosting    | #36   | —          | Low        |
+| 3   | Confidence Tiers        | #35   | #34        | Low        |
+| 4   | Staleness Detection     | #38   | #34        | Medium     |
+| 5   | `ask` Command           | #37   | #34, #35   | High       |
 
 Stories 1 (#34) and 3 (#36) can be worked in parallel. Stories 2 (#35) and 4 (#38) unlock after Story 1 ships.
 

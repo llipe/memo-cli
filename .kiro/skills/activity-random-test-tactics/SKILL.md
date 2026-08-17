@@ -1,6 +1,6 @@
 ---
 name: activity-random-test-tactics
-description: "Generate randomized, fuzz, and property-inspired tests with reproducible seeds. Use for randomized compliance testing."
+description: 'Generate randomized, fuzz, and property-inspired tests with reproducible seeds. Use for randomized compliance testing.'
 ---
 
 # Activity: Randomized Test Tactics

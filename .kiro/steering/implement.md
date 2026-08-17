@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "workstream/**/tasks-*.md"
+fileMatchPattern: 'workstream/**/tasks-*.md'
 ---
 
 # Activity: Implement Task List

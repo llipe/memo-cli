@@ -1,5 +1,5 @@
 ---
-description: "Autonomous documentation maintenance agent that keeps system and end-user documentation current and accurate"
+description: 'Autonomous documentation maintenance agent that keeps system and end-user documentation current and accurate'
 tools: [read, write, shell]
 ---
 

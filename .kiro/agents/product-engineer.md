@@ -1,5 +1,5 @@
 ---
-description: "Design and preparation agent — owns the full pre-coding chain: scope refinement, PRDs, technical specifications, user stories, GitHub publication, and task planning. Hands off execution-ready task lists to developer."
+description: 'Design and preparation agent — owns the full pre-coding chain: scope refinement, PRDs, technical specifications, user stories, GitHub publication, and task planning. Hands off execution-ready task lists to developer.'
 tools: [read, write, shell, web, subagent]
 ---
 

@@ -1,5 +1,5 @@
 ---
-description: "Orchestration agent for multi-story execution from /workstream or milestone, with dependency-ordered sequential execution and one consolidated PR."
+description: 'Orchestration agent for multi-story execution from /workstream or milestone, with dependency-ordered sequential execution and one consolidated PR.'
 tools: [read, write, shell, subagent]
 ---
 

@@ -2,9 +2,9 @@
 
 ## Changelog
 
-| Version | Date       | Summary                                                     | Author           |
-| ------- | ---------- | ----------------------------------------------------------- | ---------------- |
-| 0.1     | 2026-04-15 | Initial draft covering issues #34, #36, #35, #38, #37       | product-engineer |
+| Version | Date       | Summary                                               | Author           |
+| ------- | ---------- | ----------------------------------------------------- | ---------------- |
+| 0.1     | 2026-04-15 | Initial draft covering issues #34, #36, #35, #38, #37 | product-engineer |
 
 ## 1. Executive Summary
 
@@ -67,13 +67,13 @@ flowchart LR
 
 Detailed stories and dependency map live in `workstream/user-stories-ranking-retrieval.md`. Issues:
 
-| Story | Issue                                              | Title                                       | Depends on |
-| ----- | -------------------------------------------------- | ------------------------------------------- | ---------- |
-| 1     | [#34](https://github.com/llipe/memo-cli/issues/34) | Composite ranking score for search results  | —          |
-| 2     | [#36](https://github.com/llipe/memo-cli/issues/36) | Tag overlap boosting in search results      | —          |
-| 3     | [#35](https://github.com/llipe/memo-cli/issues/35) | Dynamic confidence tiers in search output   | #34        |
-| 4     | [#38](https://github.com/llipe/memo-cli/issues/38) | Staleness detection flag on search results  | #34        |
-| 5     | [#37](https://github.com/llipe/memo-cli/issues/37) | `memo ask` command with LLM re-ranking      | #34, #35   |
+| Story | Issue                                              | Title                                      | Depends on |
+| ----- | -------------------------------------------------- | ------------------------------------------ | ---------- |
+| 1     | [#34](https://github.com/llipe/memo-cli/issues/34) | Composite ranking score for search results | —          |
+| 2     | [#36](https://github.com/llipe/memo-cli/issues/36) | Tag overlap boosting in search results     | —          |
+| 3     | [#35](https://github.com/llipe/memo-cli/issues/35) | Dynamic confidence tiers in search output  | #34        |
+| 4     | [#38](https://github.com/llipe/memo-cli/issues/38) | Staleness detection flag on search results | #34        |
+| 5     | [#37](https://github.com/llipe/memo-cli/issues/37) | `memo ask` command with LLM re-ranking     | #34, #35   |
 
 ## 7. Functional Requirements
 
@@ -123,22 +123,22 @@ Detailed stories and dependency map live in `workstream/user-stories-ranking-ret
 
 ## 8. Delivery Phases
 
-| Phase | Scope                        | Issues     | Rationale                                                        |
-| ----- | ---------------------------- | ---------- | ---------------------------------------------------------------- |
-| A     | Ranking foundation + boost   | #34, #36   | Independent, high-leverage, no LLM cost. #34 unlocks B and C.    |
-| B     | Agent-facing signals         | #35, #38   | Cheap annotations built on #34; improve agent decision quality.  |
-| C     | Advisory answer              | #37        | Highest value; adds an LLM dependency — gated behind A and B.    |
+| Phase | Scope                      | Issues   | Rationale                                                       |
+| ----- | -------------------------- | -------- | --------------------------------------------------------------- |
+| A     | Ranking foundation + boost | #34, #36 | Independent, high-leverage, no LLM cost. #34 unlocks B and C.   |
+| B     | Agent-facing signals       | #35, #38 | Cheap annotations built on #34; improve agent decision quality. |
+| C     | Advisory answer            | #37      | Highest value; adds an LLM dependency — gated behind A and B.   |
 
 ## 9. Success Metrics
 
-| Metric                         | Target                                                                                  |
-| ------------------------------ | --------------------------------------------------------------------------------------- |
-| Top-3 relevance                | ≥ 80% of eval-set queries return a relevant result in the top 3 (see §9.1)              |
-| Ranking correctness            | A fresh mid-similarity entry outranks a stale high-similarity entry under default config |
-| `memo ask` grounding           | 100% of answers either cite a stored entry ID or return the explicit no-decisions reply |
-| Cost per `ask`                 | < $0.005 per call at default config                                                     |
-| Performance                    | `memo search` stays < 2.5s; `memo ask` < 5s end-to-end                                  |
-| Coverage                       | ≥ 80% overall maintained; `lib/` ≥ 85%                                                   |
+| Metric               | Target                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| Top-3 relevance      | ≥ 80% of eval-set queries return a relevant result in the top 3 (see §9.1)               |
+| Ranking correctness  | A fresh mid-similarity entry outranks a stale high-similarity entry under default config |
+| `memo ask` grounding | 100% of answers either cite a stored entry ID or return the explicit no-decisions reply  |
+| Cost per `ask`       | < $0.005 per call at default config                                                      |
+| Performance          | `memo search` stays < 2.5s; `memo ask` < 5s end-to-end                                   |
+| Coverage             | ≥ 80% overall maintained; `lib/` ≥ 85%                                                   |
 
 ### 9.1 Relevance evaluation set
 
@@ -163,12 +163,12 @@ Detailed stories and dependency map live in `workstream/user-stories-ranking-ret
 
 ## 12. Risks & Mitigations
 
-| Risk                                                            | Mitigation                                                                 |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Risk                                                             | Mitigation                                                                  |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Output shape change (`similarity` → `final_score`) breaks agents | Keep `similarity` in output alongside `final_score`; document in changelog. |
-| Staleness scroll adds latency on large repos                    | One cached scroll per invocation; measure against the < 2.5s target.        |
-| LLM hallucination in `memo ask`                                 | Strict grounding prompt, low-confidence filtering, explicit no-answer path. |
-| Default weights tuned poorly                                    | Validate against the §9.1 eval set before finalizing defaults.              |
+| Staleness scroll adds latency on large repos                     | One cached scroll per invocation; measure against the < 2.5s target.        |
+| LLM hallucination in `memo ask`                                  | Strict grounding prompt, low-confidence filtering, explicit no-answer path. |
+| Default weights tuned poorly                                     | Validate against the §9.1 eval set before finalizing defaults.              |
 
 ## 13. Open Questions
 

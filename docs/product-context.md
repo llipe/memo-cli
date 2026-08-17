@@ -58,20 +58,20 @@ AI agents have no memory between sessions and no visibility into the broader cod
 
 The MVP (Phase 1) has been fully implemented and merged. All eight original user stories (S-001 through S-008) are delivered, plus three additional capabilities from the post-MVP backlog:
 
-| Story | Scope                                                            | Status      |
-| ----- | ---------------------------------------------------------------- | ----------- |
-| S-001 | Project setup (TypeScript, pnpm, CI, npm skeleton)               | ✅ Complete |
-| S-002 | `memo setup` (init / show / validate)                            | ✅ Complete |
-| S-003 | Foundation libraries (errors, output, qdrant, embeddings, retry) | ✅ Complete |
-| S-004 | `memo write` with duplicate detection                            | ✅ Complete |
-| S-005 | `memo search` with semantic + pre-filters                        | ✅ Complete |
-| S-006 | `memo list` with date-range filtering                            | ✅ Complete |
-| S-007 | Bootstrap documentation and validation                           | ✅ Complete |
-| S-008 | First release packaging and publish workflow                     | ✅ Complete |
+| Story | Scope                                                             | Status      |
+| ----- | ----------------------------------------------------------------- | ----------- |
+| S-001 | Project setup (TypeScript, pnpm, CI, npm skeleton)                | ✅ Complete |
+| S-002 | `memo setup` (init / show / validate)                             | ✅ Complete |
+| S-003 | Foundation libraries (errors, output, qdrant, embeddings, retry)  | ✅ Complete |
+| S-004 | `memo write` with duplicate detection                             | ✅ Complete |
+| S-005 | `memo search` with semantic + pre-filters                         | ✅ Complete |
+| S-006 | `memo list` with date-range filtering                             | ✅ Complete |
+| S-007 | Bootstrap documentation and validation                            | ✅ Complete |
+| S-008 | First release packaging and publish workflow                      | ✅ Complete |
 | #18   | `memo tags list` — browse unique tags with sort and scope options | ✅ Complete |
-| #19   | `memo inspect` — discover orgs, repos, and domains in the store  | ✅ Complete |
-| #20   | `memo delete` — safe single and bulk delete with guardrails      | ✅ Complete |
-| #32   | `memo read --id` — read one specific entry by known ID           | ✅ Complete |
+| #19   | `memo inspect` — discover orgs, repos, and domains in the store   | ✅ Complete |
+| #20   | `memo delete` — safe single and bulk delete with guardrails       | ✅ Complete |
+| #32   | `memo read --id` — read one specific entry by known ID            | ✅ Complete |
 
 The package is published as `@memo-ai/cli` on npm. CI/CD pipelines are green. The publish workflow triggers on semver tag push.
 

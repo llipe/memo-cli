@@ -1,5 +1,5 @@
 ---
-description: "Execution agent — implements code from an existing task list with step-gated approval, branch/PR discipline, testing, and mandatory documentation gates. Use product-engineer for preparation work (PRDs, specs, stories, planning)."
+description: 'Execution agent — implements code from an existing task list with step-gated approval, branch/PR discipline, testing, and mandatory documentation gates. Use product-engineer for preparation work (PRDs, specs, stories, planning).'
 tools: [read, write, shell]
 ---
 

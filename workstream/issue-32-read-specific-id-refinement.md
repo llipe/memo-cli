@@ -2,8 +2,8 @@
 
 ## Changelog
 
-| Version | Date       | Summary                                                 | Author           |
-|---------|------------|---------------------------------------------------------|------------------|
+| Version | Date       | Summary                                               | Author           |
+| ------- | ---------- | ----------------------------------------------------- | ---------------- |
 | 1.0     | 2026-07-09 | Refined existing issue and aligned CLI to `memo read` | product-engineer |
 | 1.1     | 2026-07-09 | Finalized naming: adopt `memo read --id` only         | product-engineer |
 

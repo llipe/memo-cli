@@ -1,5 +1,5 @@
 ---
-description: "Fixes lint errors, type errors, and broken test wiring. Never changes test logic, business logic, or dependency versions without explicit confirmation."
+description: 'Fixes lint errors, type errors, and broken test wiring. Never changes test logic, business logic, or dependency versions without explicit confirmation.'
 tools: [read, write, shell]
 ---
 
