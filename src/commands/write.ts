@@ -124,9 +124,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
 
   const source = (flags.source ?? cfg?.defaults.source ?? 'agent') as 'agent' | 'manual';
   const entry_type = (flags.entryType ?? 'decision') as
-    | 'decision'
-    | 'integration_point'
-    | 'structure';
+    'decision' | 'integration_point' | 'structure';
   const confidence = sourceToConfidence(source);
   const now = new Date().toISOString();
   const id = randomUUID();
@@ -248,11 +246,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
   try {
     const embedText = buildEmbedText(finalPayload.rationale, finalPayload.tags);
     const vector = await embeddings.embed(embedText);
-    await qdrant.upsert(
-      finalPayload.id,
-      vector,
-      finalPayload as unknown as Record<string, unknown>,
-    );
+    await qdrant.upsert(finalPayload.id, vector, finalPayload);
     spinner.succeed('Entry stored.');
   } catch (err) {
     spinner.fail('Failed to store entry.');

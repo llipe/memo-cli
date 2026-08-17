@@ -1,6 +1,6 @@
 ---
 name: activity-e2e-test-design
-description: "Generate end-to-end black-box test scenarios from a spec or user stories. Use when deriving E2E compliance scenarios."
+description: 'Generate end-to-end black-box test scenarios from a spec or user stories. Use when deriving E2E compliance scenarios.'
 ---
 
 # Activity: E2E Black-Box Test Design

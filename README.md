@@ -406,11 +406,11 @@ memo tags list --json
 
 #### All tags list flags
 
-| Flag      | Default     | Description                              |
-| --------- | ----------- | ---------------------------------------- |
-| `--scope` | `repo`      | `repo` or `related`                      |
-| `--sort`  | `frequency` | `frequency` (count desc) or `alpha`      |
-| `--json`  | `false`     | Output as JSON                           |
+| Flag      | Default     | Description                         |
+| --------- | ----------- | ----------------------------------- |
+| `--scope` | `repo`      | `repo` or `related`                 |
+| `--sort`  | `frequency` | `frequency` (count desc) or `alpha` |
+| `--json`  | `false`     | Output as JSON                      |
 
 ---
 
@@ -444,12 +444,12 @@ memo inspect --json
 
 #### All inspect flags
 
-| Flag        | Default | Description                              |
-| ----------- | ------- | ---------------------------------------- |
-| `--orgs`    | —       | Show only organizations                  |
-| `--repos`   | —       | Show only repositories                   |
-| `--domains` | —       | Show only domains                        |
-| `--json`    | `false` | Output as JSON                           |
+| Flag        | Default | Description             |
+| ----------- | ------- | ----------------------- |
+| `--orgs`    | —       | Show only organizations |
+| `--repos`   | —       | Show only repositories  |
+| `--domains` | —       | Show only domains       |
+| `--json`    | `false` | Output as JSON          |
 
 > When no filter flags are passed, all three facets are shown.
 
@@ -497,13 +497,13 @@ memo delete --id <id> --json
 
 #### All delete flags
 
-| Flag             | Default | Description                                              |
-| ---------------- | ------- | -------------------------------------------------------- |
-| `--id`           | —       | Delete a single entry by UUID                            |
-| `--all-by-repo`  | —       | Delete all entries for the given repo name               |
-| `--all-by-org`   | —       | Delete all entries for the given organization            |
-| `--yes`          | `false` | Skip confirmation prompt                                 |
-| `--json`         | `false` | JSON output (single-delete only)                         |
+| Flag            | Default | Description                                   |
+| --------------- | ------- | --------------------------------------------- |
+| `--id`          | —       | Delete a single entry by UUID                 |
+| `--all-by-repo` | —       | Delete all entries for the given repo name    |
+| `--all-by-org`  | —       | Delete all entries for the given organization |
+| `--yes`         | `false` | Skip confirmation prompt                      |
+| `--json`        | `false` | JSON output (single-delete only)              |
 
 > `--id`, `--all-by-repo`, and `--all-by-org` are mutually exclusive.
 
@@ -529,10 +529,10 @@ Returns the flat entry payload as JSON.
 
 #### All read flags
 
-| Flag     | Default | Description                 |
-| -------- | ------- | --------------------------- |
-| `--id`   | —       | Required entry id to fetch  |
-| `--json` | `false` | Output as JSON              |
+| Flag     | Default | Description                |
+| -------- | ------- | -------------------------- |
+| `--id`   | —       | Required entry id to fetch |
+| `--json` | `false` | Output as JSON             |
 
 ---
 
@@ -549,7 +549,7 @@ Returns the flat entry payload as JSON.
 | `memo tags list`      | Browse unique tags            | `--scope`, `--sort`, `--json`                                                   |
 | `memo inspect`        | Discover orgs/repos/domains   | `--orgs`, `--repos`, `--domains`, `--json`                                      |
 | `memo delete`         | Delete entries                | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
-| `memo read`           | Read one specific entry by id | `--id`, `--json`                                                                 |
+| `memo read`           | Read one specific entry by id | `--id`, `--json`                                                                |
 
 ### Global flags
 
@@ -612,19 +612,19 @@ The skill is **self-contained and installable** — copy the `memo-cli-usage/` f
 
 #### What the skill covers
 
-| Section | Description |
-|---------|-------------|
-| **When to write / when to search** | Precise trigger tables — which moment calls for a `memo write`, which calls for a `memo search` first |
-| **`repo`, `org`, `domain` explained** | What each identity field means, how to choose values, and why they matter for scoping |
-| **`relates_to` explained** | When to add a repo, how cross-repo queries work, and how to avoid over-populating the list |
-| **Tag strategy** | Five-layer taxonomy (domain, technology, entry nature, story ref, scope), naming rules, and ready-made examples |
-| **Writing quality** | The context + decision + rationale formula with side-by-side good/bad examples |
-| **Intent & outcome entries** | How to narrate agent work as it happens — write before starting, write after finishing |
-| **Recording file changes** | How to annotate which files changed and explain why those were the right files |
-| **Recording config decisions** | Env vars, storage layout, feature flags, schema versions — what to capture and why |
-| **Multi-developer & cross-session** | Shared KB, session continuity for stateless agents, multi-day work pattern |
-| **Memory scope decision tree** | When to use IDE/agent memory (`/memories/`) vs. memo-cli |
-| **Safe operation guardrails** | Non-destructive defaults, `--json` mode rules, error handling, credential safety |
+| Section                               | Description                                                                                                     |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **When to write / when to search**    | Precise trigger tables — which moment calls for a `memo write`, which calls for a `memo search` first           |
+| **`repo`, `org`, `domain` explained** | What each identity field means, how to choose values, and why they matter for scoping                           |
+| **`relates_to` explained**            | When to add a repo, how cross-repo queries work, and how to avoid over-populating the list                      |
+| **Tag strategy**                      | Five-layer taxonomy (domain, technology, entry nature, story ref, scope), naming rules, and ready-made examples |
+| **Writing quality**                   | The context + decision + rationale formula with side-by-side good/bad examples                                  |
+| **Intent & outcome entries**          | How to narrate agent work as it happens — write before starting, write after finishing                          |
+| **Recording file changes**            | How to annotate which files changed and explain why those were the right files                                  |
+| **Recording config decisions**        | Env vars, storage layout, feature flags, schema versions — what to capture and why                              |
+| **Multi-developer & cross-session**   | Shared KB, session continuity for stateless agents, multi-day work pattern                                      |
+| **Memory scope decision tree**        | When to use IDE/agent memory (`/memories/`) vs. memo-cli                                                        |
+| **Safe operation guardrails**         | Non-destructive defaults, `--json` mode rules, error handling, credential safety                                |
 
 #### Install into another repository
 
@@ -679,17 +679,17 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                     | Description                                  |
-| -------------------------- | -------------------------------------------- |
-| `pnpm run build`           | Compile TypeScript to `dist/`                |
-| `pnpm run build:watch`     | Compile in watch mode                        |
-| `pnpm run typecheck`       | Type-check without emitting                  |
-| `pnpm run lint`            | ESLint (v9 flat config, strict type-checked) |
-| `pnpm run lint:fix`        | ESLint with auto-fix                         |
-| `pnpm run format`          | Prettier format                              |
-| `pnpm run format:check`    | Check formatting without writing             |
-| `pnpm run test`            | Run Jest test suite                          |
-| `pnpm run test:coverage`   | Run Jest with coverage report                |
+| Script                   | Description                                  |
+| ------------------------ | -------------------------------------------- |
+| `pnpm run build`         | Compile TypeScript to `dist/`                |
+| `pnpm run build:watch`   | Compile in watch mode                        |
+| `pnpm run typecheck`     | Type-check without emitting                  |
+| `pnpm run lint`          | ESLint (v9 flat config, strict type-checked) |
+| `pnpm run lint:fix`      | ESLint with auto-fix                         |
+| `pnpm run format`        | Prettier format                              |
+| `pnpm run format:check`  | Check formatting without writing             |
+| `pnpm run test`          | Run Jest test suite                          |
+| `pnpm run test:coverage` | Run Jest with coverage report                |
 
 ### Testing
 

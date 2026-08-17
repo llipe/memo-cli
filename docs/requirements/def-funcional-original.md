@@ -348,12 +348,12 @@ memo ask "where is the right place to integrate <feature> in this ecosystem"
 
 Write the decision before finishing your response:
 memo write \
- --repo "<current-repo>" \
- --story "<story-id>" \
- --commit "<last-commit-hash>" \
- --files "<comma-separated-modified-files>" \
- --tags "<2-5-relevant-tags>" \
- --rationale "<2-5 sentences: what was decided, why, what alternatives were discarded>"
+--repo "<current-repo>" \
+--story "<story-id>" \
+--commit "<last-commit-hash>" \
+--files "<comma-separated-modified-files>" \
+--tags "<2-5-relevant-tags>" \
+--rationale "<2-5 sentences: what was decided, why, what alternatives were discarded>"
 
 ### Rules
 

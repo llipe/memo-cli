@@ -35,35 +35,35 @@ graph LR
 
 ### Commands (`src/commands/`)
 
-| Command            | File         | Purpose                                                                        |
-| ------------------ | ------------ | ------------------------------------------------------------------------------ |
-| `memo setup`       | `setup.ts`   | Initialize `memo.config.json`, show effective config, validate config          |
-| `memo write`       | `write.ts`   | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant |
-| `memo search`      | `search.ts`  | Semantic vector search with exact pre-filters (repo, tags, scope)              |
-| `memo list`        | `list.ts`    | Chronological entry listing with optional date-range filtering                 |
-| `memo tags list`   | `tags.ts`    | Browse all unique tags stored in the collection with counts and sort options    |
-| `memo inspect`     | `inspect.ts` | Discover orgs, repos, and domains across the knowledge base with facet filters |
-| `memo delete`      | `delete.ts`  | Safely delete a single entry by ID or bulk-delete by repo/org                  |
-| `memo read`        | `read.ts`    | Read one exact entry by ID with human or JSON output                           |
+| Command          | File         | Purpose                                                                        |
+| ---------------- | ------------ | ------------------------------------------------------------------------------ |
+| `memo setup`     | `setup.ts`   | Initialize `memo.config.json`, show effective config, validate config          |
+| `memo write`     | `write.ts`   | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant |
+| `memo search`    | `search.ts`  | Semantic vector search with exact pre-filters (repo, tags, scope)              |
+| `memo list`      | `list.ts`    | Chronological entry listing with optional date-range filtering                 |
+| `memo tags list` | `tags.ts`    | Browse all unique tags stored in the collection with counts and sort options   |
+| `memo inspect`   | `inspect.ts` | Discover orgs, repos, and domains across the knowledge base with facet filters |
+| `memo delete`    | `delete.ts`  | Safely delete a single entry by ID or bulk-delete by repo/org                  |
+| `memo read`      | `read.ts`    | Read one exact entry by ID with human or JSON output                           |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
 ### Libraries (`src/lib/`)
 
-| Module              | Purpose                                                                                            |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter     |
+| Module              | Purpose                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                          |
 | `facets.ts`         | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting |
-| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                |
-| `config.ts`         | Load, write, and validate `memo.config.json`                                                       |
-| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                               |
-| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                   |
-| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                              |
-| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                     |
-| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                              |
-| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                   |
-| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                   |
-| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                            |
+| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                    |
+| `config.ts`         | Load, write, and validate `memo.config.json`                                                                           |
+| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                                                   |
+| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                                       |
+| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                                                  |
+| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                                         |
+| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                                                  |
+| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                                       |
+| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                       |
+| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                |
 
 ### Adapters (`src/adapters/`)
 

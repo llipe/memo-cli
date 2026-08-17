@@ -26,25 +26,28 @@ No behavior, CLI contract, tests, or implementation code changes were made.
 ## Alternatives Considered
 
 1. Leave docs unchanged because README already had `memo read` usage.
-Rejected: canonical docs would remain internally inconsistent and not represent current behavior.
+   Rejected: canonical docs would remain internally inconsistent and not represent current behavior.
 
 2. Update only one canonical doc (for example, system overview).
-Rejected: partial updates preserve cross-document drift.
+   Rejected: partial updates preserve cross-document drift.
 
 3. Introduce a new standalone feature note file.
-Rejected: violates update-in-place principle and creates unnecessary documentation sprawl.
+   Rejected: violates update-in-place principle and creates unnecessary documentation sprawl.
 
 ## Consequences
 
 Positive:
+
 - Canonical docs now consistently represent implemented command surface.
 - Reduced ambiguity for contributors and agents relying on command inventories.
 - Maintains current-state documentation policy.
 
 Negative:
+
 - Requires ongoing discipline to keep command inventory sections synchronized as commands evolve.
 
 Follow-up:
+
 - Future command additions should include a documentation parity checklist across system overview, technical guidelines, product context, and README structure.
 
 ## Related

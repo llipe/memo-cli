@@ -2,9 +2,9 @@
 
 ## Changelog
 
-| Version | Date       | Summary                  | Author              |
-|---------|------------|--------------------------|---------------------|
-| 1.0     | 2026-04-18 | Initial refinement       | product-engineer    |
+| Version | Date       | Summary            | Author           |
+| ------- | ---------- | ------------------ | ---------------- |
+| 1.0     | 2026-04-18 | Initial refinement | product-engineer |
 
 ---
 
@@ -30,11 +30,11 @@ Currently, `memo-cli` reads `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDINGS_PROVIDER
 
 Credentials are resolved in priority order (highest first):
 
-| Priority | Source | Location | Notes |
-|----------|--------|----------|-------|
-| 1 | Environment variables | `process.env` | Existing behavior; always wins |
-| 2 | Local directory file | `.memo.local` in CWD | Per-project override; **must be gitignored** |
-| 3 | Global user config | `~/.config/memo/config.json` | Machine-wide default; written by `memo setup credentials` |
+| Priority | Source                | Location                     | Notes                                                     |
+| -------- | --------------------- | ---------------------------- | --------------------------------------------------------- |
+| 1        | Environment variables | `process.env`                | Existing behavior; always wins                            |
+| 2        | Local directory file  | `.memo.local` in CWD         | Per-project override; **must be gitignored**              |
+| 3        | Global user config    | `~/.config/memo/config.json` | Machine-wide default; written by `memo setup credentials` |
 
 Partial merges are supported: a field present in a lower-priority source fills in gaps not covered by higher-priority sources.
 
@@ -61,14 +61,14 @@ On POSIX systems, both files are written with mode `0600` (owner read/write only
 
 ## Key Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Config format | JSON (same as `memo.config.json`) | Consistent with existing tooling; easy to read/write with existing Zod/Node.js stack |
-| Global config path | `~/.config/memo/config.json` | Follows XDG Base Directory spec; widely used by modern CLI tools |
-| Local override filename | `.memo.local` | Clear memo namespace; `.local` suffix signals machine-local content not for VCS |
-| **Not** INI format | JSON chosen over INI | INI would require a new parser dependency; JSON matches the existing stack |
-| No named profiles (v1) | Single credential set per scope | Keeps complexity low; profiles can follow as a later story |
-| `.gitignore` auto-injection | Yes, for `--local` | Prevents accidental credential commits |
+| Decision                    | Choice                            | Rationale                                                                            |
+| --------------------------- | --------------------------------- | ------------------------------------------------------------------------------------ |
+| Config format               | JSON (same as `memo.config.json`) | Consistent with existing tooling; easy to read/write with existing Zod/Node.js stack |
+| Global config path          | `~/.config/memo/config.json`      | Follows XDG Base Directory spec; widely used by modern CLI tools                     |
+| Local override filename     | `.memo.local`                     | Clear memo namespace; `.local` suffix signals machine-local content not for VCS      |
+| **Not** INI format          | JSON chosen over INI              | INI would require a new parser dependency; JSON matches the existing stack           |
+| No named profiles (v1)      | Single credential set per scope   | Keeps complexity low; profiles can follow as a later story                           |
+| `.gitignore` auto-injection | Yes, for `--local`                | Prevents accidental credential commits                                               |
 
 ---
 
@@ -97,14 +97,14 @@ On POSIX systems, both files are written with mode `0600` (owner read/write only
 
 ## Risks and Edge Cases
 
-| Risk / Edge Case | Mitigation |
-|------------------|------------|
-| `.memo.local` accidentally committed | Auto-inject into `.gitignore` on `--local` write |
-| Global config file not yet created; command expects credentials | Clear `MISSING_CREDENTIAL` error with actionable hint |
-| Multiple `QDRANT_URL` sources (env + global) | Env always wins; log source in `show` for debugging |
-| Partial `.memo.local` (only some fields set) | Layer merge fills remaining fields from global config |
-| XDG `$HOME` not writable | Propagate `NODE:EACCES` as `MemoError('CONFIG_WRITE_FAILED', ...)` |
-| Existing `process.env` reads in commands | All six existing commands + future `get` (#32) must be updated |
+| Risk / Edge Case                                                | Mitigation                                                         |
+| --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `.memo.local` accidentally committed                            | Auto-inject into `.gitignore` on `--local` write                   |
+| Global config file not yet created; command expects credentials | Clear `MISSING_CREDENTIAL` error with actionable hint              |
+| Multiple `QDRANT_URL` sources (env + global)                    | Env always wins; log source in `show` for debugging                |
+| Partial `.memo.local` (only some fields set)                    | Layer merge fills remaining fields from global config              |
+| XDG `$HOME` not writable                                        | Propagate `NODE:EACCES` as `MemoError('CONFIG_WRITE_FAILED', ...)` |
+| Existing `process.env` reads in commands                        | All six existing commands + future `get` (#32) must be updated     |
 
 ---
 

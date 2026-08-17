@@ -1,6 +1,6 @@
 ---
 name: webapp-mockup
-description: "Scaffold and generate runnable React mockups for UX testing. Use when prototyping UI before full implementation."
+description: 'Scaffold and generate runnable React mockups for UX testing. Use when prototyping UI before full implementation.'
 ---
 
 # Webapp Mockup Skill

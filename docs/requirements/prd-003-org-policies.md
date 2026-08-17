@@ -2,8 +2,8 @@
 
 ## Changelog
 
-| Version | Date       | Summary                                                          | Author           |
-| ------- | ---------- | ---------------------------------------------------------------- | ---------------- |
+| Version | Date       | Summary                                                              | Author           |
+| ------- | ---------- | -------------------------------------------------------------------- | ---------------- |
 | 0.1     | 2026-04-15 | Initial draft: org-wide policy entries, surfacing, self-service help | product-engineer |
 
 ## 1. Executive Summary
@@ -43,8 +43,8 @@ flowchart LR
 
 ## 4. Affected Repositories
 
-| Repository       | Role / Impact                                                                                      |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
+| Repository       | Role / Impact                                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
 | `llipe/memo-cli` | Primary implementation: policy entry type, `memo policy` commands, search/ask surfacing, help system. |
 
 ## 5. Target Users
@@ -108,14 +108,14 @@ flowchart LR
 
 ## 8. Success Metrics
 
-| Metric                     | Target                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------- |
-| Policy surfacing           | 100% of `memo search` runs in an org with policies surface them unless `--no-policies` |
-| Pinning correctness        | Applicable policies always appear above ranked repo results                       |
-| `memo ask` policy grounding | Policies included in grounding context on 100% of `ask` runs (unless opted out)   |
-| Help completeness          | 100% of commands/subcommands expose a description and ≥ 1 example                 |
-| Backward compatibility     | Existing entries and consumers unaffected; all changes additive                   |
-| Performance                | ≤ 1 extra Qdrant query per search; `memo search` stays < 2.5s                     |
+| Metric                      | Target                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| Policy surfacing            | 100% of `memo search` runs in an org with policies surface them unless `--no-policies` |
+| Pinning correctness         | Applicable policies always appear above ranked repo results                            |
+| `memo ask` policy grounding | Policies included in grounding context on 100% of `ask` runs (unless opted out)        |
+| Help completeness           | 100% of commands/subcommands expose a description and ≥ 1 example                      |
+| Backward compatibility      | Existing entries and consumers unaffected; all changes additive                        |
+| Performance                 | ≤ 1 extra Qdrant query per search; `memo search` stays < 2.5s                          |
 
 ## 9. Non-Goals
 
@@ -126,12 +126,12 @@ flowchart LR
 
 ## 10. Risks & Mitigations
 
-| Risk                                                        | Mitigation                                                                  |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Policies drown out repo-specific results                    | Pin in a distinct, capped section; `--no-policies` opt-out.                 |
-| JSON shape change breaks existing search consumers          | Additive keys only; consumers ignoring new keys are unaffected; document.   |
-| Anyone can write org policies (no RBAC)                     | `memo policy list` visibility + human review; document limitation.          |
-| Extra Qdrant query adds latency                             | One query per invocation; measure against < 2.5s target.                    |
+| Risk                                               | Mitigation                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------- |
+| Policies drown out repo-specific results           | Pin in a distinct, capped section; `--no-policies` opt-out.               |
+| JSON shape change breaks existing search consumers | Additive keys only; consumers ignoring new keys are unaffected; document. |
+| Anyone can write org policies (no RBAC)            | `memo policy list` visibility + human review; document limitation.        |
+| Extra Qdrant query adds latency                    | One query per invocation; measure against < 2.5s target.                  |
 
 ## 11. Open Questions
 

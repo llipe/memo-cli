@@ -1,6 +1,6 @@
 ---
 name: activity-generate-spec
-description: "Transform an approved PRD into a technical specification. Use in product-engineer Feature Mode after refine."
+description: 'Transform an approved PRD into a technical specification. Use in product-engineer Feature Mode after refine.'
 ---
 
 # Activity: Generate Technical Specification

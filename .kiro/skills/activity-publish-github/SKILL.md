@@ -1,6 +1,6 @@
 ---
 name: activity-publish-github
-description: "Publish user stories as GitHub Issues following github-ops conventions. Use after generate-stories."
+description: 'Publish user stories as GitHub Issues following github-ops conventions. Use after generate-stories.'
 ---
 
 # Activity: Publish to GitHub

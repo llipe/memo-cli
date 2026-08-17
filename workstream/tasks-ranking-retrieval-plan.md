@@ -33,6 +33,7 @@
   - [ ] 1.9 Run tests: `pnpm test -- --testPathPattern="ranking|search|setup"`
 
 - [ ] 2.0 Implement Issue #36: Tag Overlap Boosting ([https://github.com/llipe/memo-cli/issues/36](https://github.com/llipe/memo-cli/issues/36))
+
   > Can be done in parallel with Task 1.0 — independent story.
   - [ ] 2.1 Add `tag_boost_factor` to `RankingConfig` in `src/types/config.ts`
   - [ ] 2.2 Add `computeTagBoost(query, entryTags, boostFactor)` to `src/lib/ranking.ts` (or create standalone if 1.0 not yet merged)
@@ -43,6 +44,7 @@
   - [ ] 2.7 Run tests: `pnpm test -- --testPathPattern="ranking|search"`
 
 - [ ] 3.0 Implement Issue #35: Dynamic Confidence Tiers ([https://github.com/llipe/memo-cli/issues/35](https://github.com/llipe/memo-cli/issues/35))
+
   > Requires Task 1.0 to be completed first.
   - [ ] 3.1 Add `confidence_thresholds` to `RankingConfig` in `src/types/config.ts`
   - [ ] 3.2 Add `computeConfidenceTier(finalScore, thresholds)` to `src/lib/ranking.ts`
@@ -56,6 +58,7 @@
   - [ ] 3.10 Run tests: `pnpm test -- --testPathPattern="ranking|search"`
 
 - [ ] 4.0 Implement Issue #38: Staleness Detection ([https://github.com/llipe/memo-cli/issues/38](https://github.com/llipe/memo-cli/issues/38))
+
   > Requires Task 1.0 to be completed first.
   - [ ] 4.1 Add staleness fields (`staleness_threshold_days`, `staleness_tag_overlap_threshold`) to `RankingConfig` in `src/types/config.ts`
   - [ ] 4.2 Create `src/lib/staleness.ts` with `computeJaccardOverlap` and `detectStaleness`
