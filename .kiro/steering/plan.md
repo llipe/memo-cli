@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: 'workstream/**'
+fileMatchPattern: "workstream/**"
 ---
 
 # Activity: Plan Implementation
@@ -64,6 +64,7 @@ The task list **MUST** follow this structure:
 ## Tasks
 
 - [ ] 1.0 Implement Story [ID]: [Story Title] (or: Implement Issue [#] - [Github_Issue_URL]: [Title])
+
   - [ ] 1.1 [First implementation step]
   - [ ] 1.2 [Second implementation step]
   - [ ] 1.x Verify Acceptance Criterion: [Criterion 1]

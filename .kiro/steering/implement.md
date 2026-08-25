@@ -1,6 +1,10 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: 'workstream/**/tasks-*.md'
+fileMatchPattern: "workstream/**/tasks-*.md"
+# NOTE: Per glob convention, ** matches zero or more path segments.
+# This pattern covers both workstream/tasks-*.md and workstream/sub/tasks-*.md.
+# If Kiro's glob does not match zero segments, this pattern must be duplicated
+# or changed to an array (pending Kiro runtime support confirmation).
 ---
 
 # Activity: Implement Task List
@@ -32,9 +36,14 @@ This activity assumes:
 ## Before Starting Work
 
 1. You **MUST** confirm the GitHub Issue is open.
-2. You **MUST** create a new branch from the latest default branch by delegating branch naming and creation to `github-ops` whenever possible.
+2. **Branch gate (hard requirement):** You **MUST** verify you are on a feature branch before any implementation work:
+   - Run `git rev-parse --abbrev-ref HEAD` to determine the current branch.
+   - If HEAD is the default branch (`main`) or does not match `issue/*` or `story/*` pattern, you **MUST** create a new branch from the latest default branch by delegating branch naming and creation to `github-ops` whenever possible.
+   - You **MUST NOT** proceed with any implementation sub-task, write any code, create any files, or make any commits until a feature branch is checked out.
+   - If HEAD is already a valid feature branch (matching `issue/*` or `story/*`), proceed to step 3.
    - Branch format: `issue/<issue-number>-<short-description>` or `story/<id>-<short-description>`
 3. You **MUST** open a **draft Pull Request** by delegating to `github-ops` whenever possible.
+   - A PR requires at least one commit. Open it immediately after the first commit on the feature branch — never before — and you **MUST NOT** continue past that first commit without it.
    - Base branch is the default branch unless an orchestrating caller explicitly provides a base-branch override.
    - PR title **MUST** follow Conventional Commits (e.g., `feat: implement issue 37`).
    - PR description **MUST** include `Closes #<issue-number>`.
@@ -92,25 +101,26 @@ If `github-ops` delegation is unavailable in the current runtime, you **MUST** a
    - apply step executed only after user confirmation
    - post-apply verification recorded
 5. `technical-writer` validation **MUST** include a drift/stale-doc check report, and completion **MUST NOT** proceed while unresolved drift remains.
-6. A `verifier` audit in `audit` mode **MUST** have run against the delivered implementation, with its human-readable summary posted to the issue/PR. This gate is mandatory and non-skippable — it **MUST NOT** be skipped regardless of drift findings, and drift findings reported by this audit **MUST NOT** block completion. This condition is satisfied once the audit has run and been posted; any resulting drift is handled by `product-engineer`'s `activity-drift-reconciliation` flow after this gate, not before it.
-7. The PR **MUST** be converted from draft to ready for review.
-8. The PR **MUST** be approved by the appropriate reviewer per the merge authority policy in `github-ops`:
+6. A `qa-engineer` pass **MUST** have run and `coverage_gate` **MUST** be recorded as `PASS`, `FAIL`, or `SKIPPED(<reason>)`. The reason **MUST** be non-empty when skipped; an omitted field is treated as incomplete. A `FAIL` or `SKIPPED` value does not block completion — only omission does.
+7. A `verifier` audit in `audit` mode **MUST** have run against the delivered implementation, with its human-readable summary posted to the issue/PR. This gate is mandatory and non-skippable — it **MUST NOT** be skipped regardless of drift findings, and drift findings reported by this audit **MUST NOT** block completion. This condition is satisfied once the audit has run and been posted; any resulting drift is handled by `product-engineer`'s `activity-drift-reconciliation` flow after this gate, not before it.
+8. The PR **MUST** be converted from draft to ready for review.
+9. The PR **MUST** be approved by the appropriate reviewer per the merge authority policy in `github-ops`:
    - PRs targeting an **integration branch**: `planner` reviews and approves.
    - PRs targeting **`main`**: the **user** reviews and approves.
-9. The PR **MUST** be merged by the authorized party (planner for integration branches, user for `main`).
-10. You **MUST NOT** close the GitHub Issue until the PR is approved **AND** merged.
-11. You **MUST NOT** close the issue while the PR is still in draft or pending review.
-12. You **MUST** notify the user when the PR is ready for review — explicitly inform them so they can review and merge.
+10. The PR **MUST** be merged by the authorized party (planner for integration branches, user for `main`).
+11. You **MUST NOT** close the GitHub Issue until the PR is approved **AND** merged.
+12. You **MUST NOT** close the issue while the PR is still in draft or pending review.
+13. You **MUST** notify the user when the PR is ready for review — explicitly inform them so they can review and merge.
 
 ---
 
 ## GitHub Execution Rules Summary
 
-| Phase              | Rule                                                                                                                                                                                                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Before coding**  | Confirm issue open → Create branch (`github-ops`) → Open draft PR (`github-ops`) → Sync checklists                                                                                                                                                                        |
-| **During coding**  | One sub-task at a time → Mark `[x]` locally + GitHub → Wait for approval                                                                                                                                                                                                  |
-| **Before closing** | All ACs verified → Quality gates pass (test/lint/format/typecheck/audit) → migration confirmation/apply/verify (when applicable) → docs drift check clear → verifier audit run + summary posted (non-blocking on drift) → PR ready → Approved → Merged → Then close issue |
+| Phase              | Rule                                                                                                                                                                                                                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Before coding**  | Confirm issue open → Create branch (`github-ops`) → First commit → Open draft PR (`github-ops`) → Sync checklists                                                                                                                                                                                  |
+| **During coding**  | One sub-task at a time → Mark `[x]` locally + GitHub → Wait for approval                                                                                                                                                                                                                           |
+| **Before closing** | All ACs verified → Quality gates pass (test/lint/format/typecheck/audit) → migration confirmation/apply/verify (when applicable) → docs drift check clear → coverage_gate recorded → verifier audit run + summary posted (non-blocking on drift) → PR ready → Approved → Merged → Then close issue |
 
 ---
 
