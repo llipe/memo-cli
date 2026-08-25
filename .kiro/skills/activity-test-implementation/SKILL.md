@@ -1,6 +1,6 @@
 ---
 name: activity-test-implementation
-description: "Author tests for Layer 1 and Layer 2 — unit, schema validation, backend component, mocked APIs, fixtures and gold datasets — with enforceable per-layer boundaries and a mandatory security-negative category. Use when writing or backfilling tests."
+description: 'Author tests for Layer 1 and Layer 2 — unit, schema validation, backend component, mocked APIs, fixtures and gold datasets — with enforceable per-layer boundaries and a mandatory security-negative category. Use when writing or backfilling tests.'
 ---
 
 # Activity: Test Implementation
