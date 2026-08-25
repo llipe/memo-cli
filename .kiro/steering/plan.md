@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "workstream/**"
+fileMatchPattern: 'workstream/**'
 ---
 
 # Activity: Plan Implementation

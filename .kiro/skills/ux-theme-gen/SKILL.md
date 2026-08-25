@@ -1,6 +1,6 @@
 ---
 name: ux-theme-gen
-description: "Generate platform-specific theme artifacts from DESIGN.md. Use when mockups or production code need consumable tokens derived from the canonical design contract."
+description: 'Generate platform-specific theme artifacts from DESIGN.md. Use when mockups or production code need consumable tokens derived from the canonical design contract.'
 ---
 
 # UX Theme Generation
@@ -49,7 +49,7 @@ Generated into `{theme_output}` (default `/mockups/.theme/`):
 /* DO NOT EDIT — generated from /DESIGN.md by ux-theme-gen */
 
 @theme inline {
-  --font-sans: "<fontFamily from typography.body-md>";
+  --font-sans: '<fontFamily from typography.body-md>';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);

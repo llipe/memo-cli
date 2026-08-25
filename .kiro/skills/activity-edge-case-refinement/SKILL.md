@@ -1,6 +1,6 @@
 ---
 name: activity-edge-case-refinement
-description: "Systematically discover edge cases by category with concrete examples. Use when expanding coverage for input domains, state transitions, timing, and failure modes."
+description: 'Systematically discover edge cases by category with concrete examples. Use when expanding coverage for input domains, state transitions, timing, and failure modes.'
 ---
 
 # Activity: Edge-Case Refinement
