@@ -2,9 +2,9 @@
 
 ## Changelog
 
-| Version | Date       | Summary            | Author           |
-| ------- | ---------- | ------------------ | ---------------- |
-| 1.0     | 2026-08-25 | Initial task list  | product-engineer |
+| Version | Date       | Summary           | Author           |
+| ------- | ---------- | ----------------- | ---------------- |
+| 1.0     | 2026-08-25 | Initial task list | product-engineer |
 
 ## Source Documents
 
@@ -16,10 +16,10 @@
 
 Two deviations from the issue's "Files to Create/Modify" table, both discovered during planning:
 
-| Finding | Detail |
-| ------- | ------ |
-| **`src/lib/output.ts` was missing from the issue's file table** | AC6 (human output shows `final_score`) cannot be satisfied without it. `output.searchResults()` reads `result.similarity` at `src/lib/output.ts:143`. Added to scope along with `tests/unit/lib/output.test.ts`. |
-| **`src/commands/setup.ts` likely needs no change** | `handleValidate` → `validateConfig` → `MemoConfigSchema.safeParse`, and errors are already rendered with their `path`. A `superRefine` issue on the `ranking` block surfaces automatically. Task 1.10 **verifies** this rather than assuming a code change; only if propagation fails does `setup.ts` get touched. |
+| Finding                                                         | Detail                                                                                                                                                                                                                                                                                                             |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`src/lib/output.ts` was missing from the issue's file table** | AC6 (human output shows `final_score`) cannot be satisfied without it. `output.searchResults()` reads `result.similarity` at `src/lib/output.ts:143`. Added to scope along with `tests/unit/lib/output.test.ts`.                                                                                                   |
+| **`src/commands/setup.ts` likely needs no change**              | `handleValidate` → `validateConfig` → `MemoConfigSchema.safeParse`, and errors are already rendered with their `path`. A `superRefine` issue on the `ranking` block surfaces automatically. Task 1.10 **verifies** this rather than assuming a code change; only if propagation fails does `setup.ts` get touched. |
 
 Additional deviation from the issue body, carried over from refinement: over-fetch is computed in `src/commands/search.ts`, **not** `src/lib/qdrant.ts`, to keep `QdrantRepository` free of ranking policy. `QdrantRepository.search`'s signature is unchanged, so `src/lib/qdrant.ts` is **not** modified by this issue.
 

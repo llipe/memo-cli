@@ -23,8 +23,8 @@
 
 These items were ambiguous in the original issue body and are now settled.
 
-| #   | Question                            | Decision                                                                                                                                                                             |
-| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #   | Question                            | Decision                                                                                                                                                                              |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | Age reference field                 | Use **`timestamp_utc`** (ISO-8601 UTC string), confirmed present in stored payloads. The issue body's `created_at` does not exist in the schema and is a typo.                        |
 | D2  | Over-fetch formula                  | `max(limit, min(limit * 3, 50))`. The outer `max` prevents under-fetching when `--limit > 50`.                                                                                        |
 | D3  | Breaking-change posture             | Additive, minor version. `similarity` is **retained** alongside the new `final_score`; only the **ordering** and the human-output percentage change. No opt-out flag (YAGNI).         |
@@ -33,7 +33,7 @@ These items were ambiguous in the original issue body and are now settled.
 | D6  | Human output position               | Unchanged layout (`repo  score  rationale`). Only the value changes from `similarity` to `final_score`. The issue's "prefix" wording is imprecise; position is after the repo label.  |
 | D7  | Weight validation at search time    | **Fail fast.** Invalid `ranking` weights raise `CONFIG_INVALID` from `loadConfig`, so `memo search` errors rather than silently falling back to defaults. Enforced in the Zod schema. |
 | D8  | Similarity clamping                 | Clamp `similarity` into `[0, 1]` before compositing. Cosine distance can theoretically return negative values, which would otherwise break the bounded-output guarantee.              |
-| D9  | Recency semantics on update         | `timestamp_utc` is refreshed by the dedupe-update path, so recency reflects **last write**, not first creation. This is intended: a re-affirmed decision is legitimately fresher.      |
+| D9  | Recency semantics on update         | `timestamp_utc` is refreshed by the dedupe-update path, so recency reflects **last write**, not first creation. This is intended: a re-affirmed decision is legitimately fresher.     |
 
 ## Defects Found in the Original Issue
 
@@ -128,19 +128,19 @@ Rationale: this change adds an optional block to the local `memo.config.json` fi
 
 ## Risks and Edge Cases
 
-| ID  | Risk / Edge case                                                                         | Mitigation                                                                                                |
-| --- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| R1  | Recency weight buries a genuinely correct older decision                                 | Weights are configurable; `similarity` stays visible in output so agents can inspect the tradeoff.         |
-| R2  | Over-fetch changes which candidates Qdrant returns, altering results even before scoring  | Documented as intended. Covered by AC13/AC14.                                                             |
-| R3  | Floating-point weight sums (`0.6 + 0.3 + 0.1 !== 1.0` exactly in IEEE 754)                | Compare with ±0.001 tolerance, exactly as the issue specifies. Do not use `===`.                          |
-| R4  | Future `timestamp_utc` (clock skew) yields `recency_score > 1`                            | Clamp negative age to `0`, so score clamps to `1.0`.                                                      |
-| R5  | Malformed `timestamp_utc` string produces `NaN`, poisoning the sort                       | Guard with `Number.isFinite`; fall back to `recency_score = 0` per D4. Explicit test required.             |
-| R6  | Negative cosine similarity breaks the `[0,1]` bound                                       | Clamp per D8. Explicit test required.                                                                     |
-| R7  | Empty result set                                                                          | `rankResults([])` returns `[]`; existing empty-state output path must remain reachable (covered by test).  |
-| R8  | Name collision between existing payload `confidence` and Story 2's `confidence_tier`       | Out of scope here, but the distinct field name is deliberate — flagged forward to #35.                     |
-| R9  | Ties in `final_score` produce nondeterministic ordering across runs                        | Use a stable sort with a documented tiebreak: `final_score` desc, then `timestamp_utc` desc, then `id` asc. |
-| R10 | Half-life of `0` or negative causes division by zero / `Infinity`                          | Zod constraint: `recency_half_life_days` must be a positive number (`.positive()`).                        |
-| R11 | Weights individually outside `[0,1]` (e.g. `2.0` and `-1.0`) still sum to `1.0`            | Zod constraint: each weight `.min(0).max(1)` in addition to the sum check.                                 |
+| ID  | Risk / Edge case                                                                         | Mitigation                                                                                                  |
+| --- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| R1  | Recency weight buries a genuinely correct older decision                                 | Weights are configurable; `similarity` stays visible in output so agents can inspect the tradeoff.          |
+| R2  | Over-fetch changes which candidates Qdrant returns, altering results even before scoring | Documented as intended. Covered by AC13/AC14.                                                               |
+| R3  | Floating-point weight sums (`0.6 + 0.3 + 0.1 !== 1.0` exactly in IEEE 754)               | Compare with ±0.001 tolerance, exactly as the issue specifies. Do not use `===`.                            |
+| R4  | Future `timestamp_utc` (clock skew) yields `recency_score > 1`                           | Clamp negative age to `0`, so score clamps to `1.0`.                                                        |
+| R5  | Malformed `timestamp_utc` string produces `NaN`, poisoning the sort                      | Guard with `Number.isFinite`; fall back to `recency_score = 0` per D4. Explicit test required.              |
+| R6  | Negative cosine similarity breaks the `[0,1]` bound                                      | Clamp per D8. Explicit test required.                                                                       |
+| R7  | Empty result set                                                                         | `rankResults([])` returns `[]`; existing empty-state output path must remain reachable (covered by test).   |
+| R8  | Name collision between existing payload `confidence` and Story 2's `confidence_tier`     | Out of scope here, but the distinct field name is deliberate — flagged forward to #35.                      |
+| R9  | Ties in `final_score` produce nondeterministic ordering across runs                      | Use a stable sort with a documented tiebreak: `final_score` desc, then `timestamp_utc` desc, then `id` asc. |
+| R10 | Half-life of `0` or negative causes division by zero / `Infinity`                        | Zod constraint: `recency_half_life_days` must be a positive number (`.positive()`).                         |
+| R11 | Weights individually outside `[0,1]` (e.g. `2.0` and `-1.0`) still sum to `1.0`          | Zod constraint: each weight `.min(0).max(1)` in addition to the sum check.                                  |
 
 ## Dependencies
 
@@ -201,18 +201,18 @@ memo setup validate; echo "exit=$?"           # exit 1, clear message
 
 | AC         | Validation                                                                       |
 | ---------- | -------------------------------------------------------------------------------- |
-| AC1        | `ranking.test.ts` → `rankResults` ordering; `search.test.ts` ordering             |
+| AC1        | `ranking.test.ts` → `rankResults` ordering; `search.test.ts` ordering            |
 | AC2        | `ranking.test.ts` → newer-beats-older case                                       |
 | AC3        | `ranking.test.ts` → `computeSourceScore` + composite delta                       |
 | AC4        | `ranking.test.ts` → bounded output + negative-similarity clamp                   |
 | AC5, AC7   | `search.test.ts` → `--json` shape assertions                                     |
-| AC6        | `output.test.ts` → `searchResults` percentage source                              |
+| AC6        | `output.test.ts` → `searchResults` percentage source                             |
 | AC8–AC11   | `config.test.ts` + `setup.test.ts`                                               |
 | AC12       | `search.test.ts` → invalid-config propagation                                    |
 | AC13, AC14 | `search.test.ts` → over-fetch limit assertions                                   |
 | AC15       | full `pnpm test` run                                                             |
 | AC16       | `ranking.test.ts` suite completeness                                             |
-| AC17       | `pnpm run test:coverage`                                                          |
+| AC17       | `pnpm run test:coverage`                                                         |
 | AC18       | `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run audit` |
 
 ## Open Questions
