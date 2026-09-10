@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "**/app/**/*.tsx"
+fileMatchPattern: '**/app/**/*.tsx'
 ---
 
 <!-- Consumers: adjust fileMatchPattern to match your Next.js app path. For React Native projects, replace with a react-native steering file (see issue #13). -->

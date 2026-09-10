@@ -1,5 +1,5 @@
 ---
-description: "Quality agent that establishes the testing standard, authors tests for layers the project lacks, and reports coverage and structural gaps. Use when a project needs its /TESTING.md contract filled, a missing test harness built, or a coverage and gap report produced."
+description: 'Quality agent that establishes the testing standard, authors tests for layers the project lacks, and reports coverage and structural gaps. Use when a project needs its /TESTING.md contract filled, a missing test harness built, or a coverage and gap report produced.'
 tools: [read, write, shell]
 resources:
   - file://AGENTS.md

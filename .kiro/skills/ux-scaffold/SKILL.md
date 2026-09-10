@@ -1,6 +1,6 @@
 ---
 name: ux-scaffold
-description: "Template-aware mockup project creation with DESIGN.md-derived tokens. Supports html-lite (zero-install, navigable) and react-full (shadcn + Vite + Radix). Use when generating mockups from a PRD or spec."
+description: 'Template-aware mockup project creation with DESIGN.md-derived tokens. Supports html-lite (zero-install, navigable) and react-full (shadcn + Vite + Radix). Use when generating mockups from a PRD or spec.'
 ---
 
 # UX Scaffold
