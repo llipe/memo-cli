@@ -1,0 +1,17 @@
+# Configuración de gitleaks para memo-cli.
+# Extiende el conjunto de reglas por defecto y añade una allowlist para
+# falsos positivos conocidos en artefactos de documentación.
+[extend]
+useDefault = true
+
+# Allowlist global: los documentos de /workstream contienen ejemplos JSON
+# (specs, PRDs, planes) con hashes SHA-256 ficticios en campos como
+# `dedupe_key_sha256`. La regla generic-api-key los detecta por entropía,
+# pero no son credenciales reales.
+[[allowlists]]
+description = "Ejemplos de documentación en workstream/ con hashes SHA-256 ficticios (no son secretos)"
+targetRules = ["generic-api-key"]
+paths = ['''workstream/.*\.md''']
+# Restringe la excepción a hashes hex de 64 caracteres (SHA-256), de modo que
+# un secreto real con otro formato en estos archivos siga siendo detectado.
+regexes = ['''[0-9a-f]{64}''']
