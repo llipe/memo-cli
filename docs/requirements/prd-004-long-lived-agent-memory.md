@@ -6,6 +6,7 @@
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap.                                                                                                                                          | product-engineer |
 | 1.1     | 2026-09-19 | Review round 1: agent identity types, SELF recall section, PRD-002 folded in and superseded, purge default confirmed, issue reuse deferred to spec.                                                                                                | product-engineer |
+| 1.3     | 2026-09-19 | Spec alignment: lexical matching is a boost in the unified formula (not RRF); retention-based archive applies to `semantic` only; `stability_since` anchors the retention clock; initial stabilities 90/30/3 days; per-kind dedupe keys.           | product-engineer |
 | 1.2     | 2026-09-19 | Review round 2: replace spaces/agent ids with memory banks keyed by a unique id; collapse purpose-typed entries into three kinds (`self`, `episodic`, `semantic`); rewrite §2.4–§2.6 as the binding memory and deletion contract; name who purges. | product-engineer |
 
 ## 1. Executive Summary
@@ -132,8 +133,8 @@ stateDiagram-v2
 | Kind / bank type     | Archived when                                                                                                          | Archived by        | Purged when                             | Purged by                              | Defaults                                      |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------ | --------------------------------------- | -------------------------------------- | --------------------------------------------- |
 | `self` / private     | never automatically                                                                                                    | `memo forget` only | never automatically                     | `memo forget --purge` (owner or human) | no policy keys                                |
-| `episodic` / private | `expires_at` passed (30 d after write), or `consolidated` and `promoted_grace_days` (7 d) passed, or retention < 0.05  | `memo decay`       | `purge_after_days` (30 d) after archive | `memo decay --purge-expired`           | archive on, **purge on**                      |
-| `episodic` / `kb`    | `expires_at` passed (90 d), or `consolidated` + grace, or retention < 0.05                                             | `memo decay`       | never automatically                     | `memo forget --purge`                  | archive on, purge off                         |
+| `episodic` / private | `expires_at` passed (30 d after write), or `consolidated` and `promoted_grace_days` (7 d) passed                       | `memo decay`       | `purge_after_days` (30 d) after archive | `memo decay --purge-expired`           | archive on, **purge on**                      |
+| `episodic` / `kb`    | `expires_at` passed (90 d), or `consolidated` + grace                                                                  | `memo decay`       | never automatically                     | `memo forget --purge`                  | archive on, purge off                         |
 | `semantic` / private | superseded + `superseded_grace_days` (30 d), or retention < 0.05, or noisy (`retrieval_count ≥ 10`, `use_ratio < 0.1`) | `memo decay`       | `purge_after_days` (90 d) after archive | `memo decay --purge-expired`           | archive on, purge on                          |
 | `semantic` / `kb`    | superseded + grace (30 d), or retention < 0.05, or noisy; `pinned` exempt                                              | `memo decay`       | never automatically                     | `memo forget --purge`, `memo delete`   | archive on, purge off, `archive_noisy: false` |
 
@@ -208,7 +209,7 @@ Guarantees:
 
 - FR-1.1 Ship a versioned relevance evaluation set under `tests/fixtures/relevance/` (20–30 query/expected-id pairs seeded from real dev-tasks queries: story planning, file-name lookups, cross-repo contracts) and a script that reports top-3 hit rate. The baseline **MUST** be recorded in this changelog before any ranking change merges.
 - FR-1.2 Composite ranking (#34), tag overlap boosting (#36), dynamic confidence tiers (#35), and staleness detection (#38) **MUST** be implemented as refined in `workstream/issue-34-composite-ranking-score-refinement.md` and the corresponding issues, with the single change that `final_score` is produced by the unified formula in §8.2.
-- FR-1.3 `memo search` **MUST** add lexical matching: a Qdrant full-text payload index on `rationale` and `files_modified`, queried alongside the dense vector and fused by reciprocal rank fusion, with a `--lexical off` escape hatch.
+- FR-1.3 `memo search` **MUST** add lexical matching: a Qdrant full-text payload index on `rationale` and `files_modified`, queried alongside the dense vector; lexical candidates join the candidate set and receive a `lexical_boost` in the unified formula (§8.2). `--lexical off` disables it.
 - FR-1.4 Every `memo search` response **MUST** include a `query_id` (UUID). Phase 1 stores nothing for it; Phase 3 makes it actionable.
 - FR-1.5 `memo search --explain` **MUST** print each ranking factor and the final score per result.
 
@@ -216,7 +217,7 @@ Guarantees:
 
 - FR-2.1 The payload **MUST** gain `bank`, `kind`, `session_id`, `seq`, `contexts`, `provenance`, `valid_from`, `valid_to`, `superseded_by`, `consolidated`, `pinned`, `expires_at`, and `schema_version: "2"`. All additive; indexed where filtered (§9).
 - FR-2.2 `memo write` **MUST** accept `--bank`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--manual`, `--supersedes <id>`, `--pin`, `--expires-in <duration>`. Defaults per §2.4 B3 and §2.5 K1. `--supersedes` **MUST** set `valid_to = now` and `superseded_by = <new id>` on the target in the same bank and fail if the target is a different kind.
-- FR-2.3 The dedupe key **MUST** become `v2|<bank>|<repo_or_na>|<commit_or_na>|<story_or_na>|<session_or_na>|<kind>|<entry_type>|<source>`. v1 keys remain readable.
+- FR-2.3 The dedupe key **MUST** become kind-aware: semantic `v2|<bank>|<repo_or_na>|<commit_or_na>|<story_or_na>|na|semantic|<entry_type>|<source>`; episodic adds `<session>|<seq>` so consecutive episodes never collide; `self` entries bypass dedupe. v1 keys remain readable.
 - FR-2.4 `memo search`, `memo list`, `memo tags list` **MUST** accept `--bank`, `--kind self|episodic|semantic|all`, `--session`, `--include-archived`, `--include-superseded`, `--as-of <date>`. Defaults: `bank = kb`, `kind = all` minus `self`, archived and superseded excluded.
 - FR-2.5 `memo timeline --bank <id> [--session <id>] [--last <n>] [--since <date>]` **MUST** return episodic entries in `seq` then `timestamp_utc` order, never re-ranked.
 - FR-2.6 `memo recall "<task>" [--bank <id>] [--scope repo|related] [--max-tokens <n>] [--json]` **MUST** return one bundle with sections in this order: `SELF` (all valid `self` entries of the bank, never trimmed), `POLICIES` (when PRD-003 is present), `SHARED` (`kb` semantic for the task), `MINE` (bank semantic for the task), `LAST SESSION` (bank episodic, most recent session, chronological), `CONFLICTS` (`pending_contradiction` entries). Lower sections are trimmed first to honor `--max-tokens` (characters ÷ 4). One `query_id` covers every entry; ids are deduplicated across sections. With `bank = kb`, `SELF`, `MINE`, and `LAST SESSION` are omitted.
@@ -238,7 +239,7 @@ Guarantees:
 
 - FR-3.1 `memo used --query <query_id> --ids <csv> [--wrong <csv>]` **MUST** validate that every id belongs to that query's result set (exit 1 otherwise), increment `used_count`, apply the used bonus to stability, and append a `usage_event` to `~/.memo/usage.jsonl`. `--wrong` ids are flagged `pending_contradiction = true` and receive no bonus. Result sets are persisted at `~/.memo/queries/<query_id>.json` with a 7-day TTL.
 - FR-3.2 `memo search` and `memo recall` **MUST** increment `retrieval_count` and, when spaced (outside `min_spacing_hours`, default 12), update `stability` and `last_retrieved_at` per #54, in one batched payload update per invocation, adding ≤ 300 ms. `self` entries are excluded (K4).
-- FR-3.3 `retention = exp(-t / stability)` is computed at ranking time, never stored, and applied per §8.2. Initial stability: `1.0` (episodic), `7.0` (semantic), cap `max_stability_days` 365.
+- FR-3.3 `retention = exp(-t / stability)` is computed at ranking time, never stored, and applied per §8.2; `t` counts from `last_retrieved_at`, else from `stability_since` (set at write or migration). Initial stability per §8.4, cap `max_stability_days` 365. Retention drives archiving for `semantic` only; `episodic` entries archive on expiry or promotion.
 - FR-3.4 `memo decay [--bank <id>] [--dry-run] [--purge-expired] [--verbose] [--json]` **MUST** implement §2.6 exactly: archive per the table, purge only entries archived longer than `purge_after_days` and only where policy sets it, skip `self` and `pinned`, never call an LLM, be idempotent, and print counts per bank and kind.
 - FR-3.5 `memo forget` **MUST** support selectors `--id`, `--session`, `--bank`, `--kind`, `--older-than <duration>`, `--tags`, combinable with AND semantics, plus `--dry-run`, `--yes`, `--purge`, `--json`, with the guards in §2.6 D2, D4, D5. Default action is archive with `archived_reason = forget`.
 - FR-3.6 Retention policy keys per bank type and kind (§8.4) **MUST** drive `expires_at` at write time and `memo decay` behavior.
@@ -271,7 +272,7 @@ One function, `rankResults`, in `src/lib/ranking.ts`. Factors not yet implemente
 
 ```
 base        = w_similarity * sim + w_recency * recency + w_source * source      # #34, weights sum to 1.0
-boosted     = min(1, base + tag_boost)                                            # #36
+boosted     = min(1, base + tag_boost + lexical_boost)                            # #36, FR-1.3
 final_score = min(1,
               boosted
               * (0.5 + 0.5 * retention)          # #54, neutral 1 when stability absent
@@ -301,10 +302,10 @@ stale           = staleness(entry, same-scope newer entries)                    
 | Bank type / kind     | Initial stability | `expires_in_days` | `archive_threshold` | `archive_noisy` | `promoted_grace_days` | `superseded_grace_days` | `purge_after_days` |
 | -------------------- | ----------------- | ----------------- | ------------------- | --------------- | --------------------- | ----------------------- | ------------------ |
 | private / `self`     | n/a               | none              | n/a                 | n/a             | n/a                   | n/a (stays superseded)  | never              |
-| private / `episodic` | 1 day             | 30                | 0.05                | n/a             | 7                     | n/a                     | 30                 |
-| private / `semantic` | 7 days            | none              | 0.05                | true            | n/a                   | 30                      | 90                 |
-| `kb` / `episodic`    | 1 day             | 90                | 0.05                | n/a             | 7                     | n/a                     | never              |
-| `kb` / `semantic`    | 7 days            | none              | 0.05                | false           | n/a                   | 30                      | never              |
+| private / `episodic` | 3 days            | 30                | n/a (ranking only)  | n/a             | 7                     | n/a                     | 30                 |
+| private / `semantic` | 30 days           | none              | 0.05                | true            | n/a                   | 30                      | 90                 |
+| `kb` / `episodic`    | 3 days            | 90                | n/a (ranking only)  | n/a             | 7                     | n/a                     | never              |
+| `kb` / `semantic`    | 90 days           | none              | 0.05                | false           | n/a                   | 30                      | never              |
 
 `never` means the key is absent and `memo decay --purge-expired` skips that class. Setting `purge_after_days` on `kb` is allowed but requires an explicit value; there is no default.
 
