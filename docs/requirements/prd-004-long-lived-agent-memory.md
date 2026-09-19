@@ -1,279 +1,312 @@
-# PRD-004 — Long-Lived Agent Memory: Spaces, Episodic/Semantic Kinds, Recall, Feedback, and Forgetting
+# PRD-004 — Long-Lived Agent Memory: Banks, Memory Kinds, Recall, Feedback, and Forgetting
 
 ## Changelog
 
-| Version | Date       | Summary                                                                                                                                                                                                                       | Author           |
-| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap.                                                                                                                     | product-engineer |
-| 1.1     | 2026-09-19 | Review round 1: agent memory bank gets identity-class entry types and a SELF recall section; PRD-002 folded in and superseded (`memo ask` moves to Phase 5, optional); purge default confirmed; issue reuse deferred to spec. | product-engineer |
+| Version | Date       | Summary                                                                                                                                                                                                                                            | Author           |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap.                                                                                                                                          | product-engineer |
+| 1.1     | 2026-09-19 | Review round 1: agent identity types, SELF recall section, PRD-002 folded in and superseded, purge default confirmed, issue reuse deferred to spec.                                                                                                | product-engineer |
+| 1.2     | 2026-09-19 | Review round 2: replace spaces/agent ids with memory banks keyed by a unique id; collapse purpose-typed entries into three kinds (`self`, `episodic`, `semantic`); rewrite §2.4–§2.6 as the binding memory and deletion contract; name who purges. | product-engineer |
 
 ## 1. Executive Summary
 
-memo-cli today is a single shared knowledge base of repo-scoped decisions with cosine-similarity search. dev-tasks agents write intent, outcome, and ADR entries into it, but retrieval is noisy, nothing is ever forgotten, and no signal flows back about whether a retrieved entry was useful. PRD-004 turns memo-cli into a long-lived memory layer for autonomous agents: it introduces **memory spaces** (a shared knowledge base per org/repo plus a private memory bank per named agent), **episodic and semantic kinds** with a sequential session timeline, a one-call **`memo recall`** context bundle, a **feedback loop** (`memo used`) that drives ranking, and a principled **forgetting** model (decay, supersession, explicit `memo forget`) that never silently destroys data. Delivery is phased so retrieval quality is measured first and every later phase is gated on that measurement. PRD-002 (search ranking and retrieval) is folded into this PRD and superseded by it.
+memo-cli today is a single shared knowledge base of repo-scoped decisions with cosine-similarity search. dev-tasks agents write intent, outcome, and ADR entries into it, but retrieval is noisy, nothing is ever forgotten, and no signal flows back about whether a retrieved entry was useful. PRD-004 turns memo-cli into a long-lived memory layer for autonomous agents: **memory banks** keyed by a unique id (the shared knowledge base is one bank; each long-lived agent owns another), three **memory kinds** with explicit lifecycles (`self` is permanent, `episodic` is short-term and sequential, `semantic` is long-term), a one-call **`memo recall`** bundle, a **feedback loop** (`memo used`) that drives ranking and forgetting, and a **deletion contract** that states for every kind what removes it, who runs that removal, and when. Delivery is phased so retrieval quality is measured first. PRD-002 is folded into this PRD and superseded by it.
 
 ## 2. Feature Overview
 
 ### 2.1 Where we are
 
-| Area           | Shipped (v1.1.4)                                                                | Refined, not built                                     | Proposed in issues, not refined                                                     |
-| -------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Store          | One Qdrant collection `decisions`, isolation by `repo`/`org` payload            | —                                                      | `kind: episodic \| semantic` (#53), event journal (#58)                             |
-| Write          | `memo write` with `rationale`, 2–5 tags, `entry_type`, dedupe by story/commit   | —                                                      | `memo add --kind/--context/--session` (#53), links (#56)                            |
-| Retrieval      | `memo search` = cosine similarity + exact pre-filters; `memo list`; `memo read` | composite score, tag boost, tiers, staleness (#34–#38) | retention factor (#54), use ratio (#55), link-aware ranking and `--expand` (#56)    |
-| Feedback       | none                                                                            | —                                                      | `memo used --query <id>` (#55)                                                      |
-| Forgetting     | `memo delete` (hard delete, bulk blocked in `--json`)                           | —                                                      | `memo decay` → archive (#54), reconsolidation with `valid_to`/`superseded_by` (#57) |
-| Consolidation  | none                                                                            | —                                                      | `memo consolidate` offline LLM job (#57)                                            |
-| Agent identity | none (`source: agent` only)                                                     | —                                                      | `source_agent`, `contexts` (#53)                                                    |
+| Area          | Shipped (v1.1.4)                                                                | Refined, not built                                     | Proposed in issues, not refined                                                     |
+| ------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Store         | One Qdrant collection `decisions`, isolation by `repo`/`org` payload            | —                                                      | `kind: episodic \| semantic` (#53), event journal (#58)                             |
+| Write         | `memo write` with `rationale`, 2–5 tags, `entry_type`, dedupe by story/commit   | —                                                      | `memo add --kind/--context/--session` (#53), links (#56)                            |
+| Retrieval     | `memo search` = cosine similarity + exact pre-filters; `memo list`; `memo read` | composite score, tag boost, tiers, staleness (#34–#38) | retention factor (#54), use ratio (#55), link-aware ranking and `--expand` (#56)    |
+| Feedback      | none                                                                            | —                                                      | `memo used --query <id>` (#55)                                                      |
+| Forgetting    | `memo delete` (hard delete, bulk blocked in `--json`)                           | —                                                      | `memo decay` → archive (#54), reconsolidation with `valid_to`/`superseded_by` (#57) |
+| Consolidation | none                                                                            | —                                                      | `memo consolidate` offline LLM job (#57)                                            |
+| Ownership     | none (`source: agent` only)                                                     | —                                                      | `source_agent`, `contexts` (#53)                                                    |
 
 Three gaps block the vision and are not covered by any existing artifact:
 
-1. **No notion of whose memory it is.** An agent is a defined loop, tool set, prompt, and data. Such an agent has nowhere to keep its own identity, preferences, open commitments, short-term episodes, and long-term lessons apart from the team's decision record, so it cannot resume months later as the same persona. Today its per-story intent/outcome entries land in the shared KB and crowd out durable decisions.
-2. **No single recall primitive.** dev-tasks agents run four commands at session start (`list`, `tags list`, two `search`es) and synthesize by hand. There is no ranked, deduplicated, token-budgeted bundle.
-3. **No governed forgetting.** The only removal path is hard delete. There is no retention policy, no soft archive, no "what should I forget and why" report.
+1. **No notion of whose memory it is.** A long-lived agent (a defined loop, tool set, prompt, and data) has nowhere to keep its permanent self-description, its short-term session stream, and its long-term lessons apart from the team's decision record, so it cannot resume months later as the same persona. Today its per-story intent/outcome entries land in the shared KB and crowd out durable decisions.
+2. **No single recall primitive.** dev-tasks agents run four commands at session start and synthesize by hand. There is no ranked, deduplicated, token-budgeted bundle.
+3. **No governed forgetting.** The only removal path is hard delete. There is no retention policy, no soft archive, and no statement of what gets removed, by whom, and when.
 
-Issues #53–#58 were also written against a CLI vocabulary that does not exist (`memo add`, `memo get`, `content`, `source_agent`, `tier`) and #56 declares that it "replaces" the ranking formula #34 was refined against. This PRD reconciles both into the shipped vocabulary and a single ranking function.
+Issues #53–#58 were written against a CLI vocabulary that does not exist (`memo add`, `memo get`, `content`, `source_agent`, `tier`), and #56 declares that it "replaces" the ranking formula #34 was refined against. This PRD reconciles both into the shipped vocabulary and a single ranking function.
 
 ### 2.2 Target model
 
 ```mermaid
 flowchart TB
-  subgraph Spaces["Memory spaces (one Qdrant collection, filtered by payload)"]
-    subgraph KB["space = kb  (shared, scoped by org/repo)"]
-      KS[semantic: decisions, ADRs, integration points, structure, policies]
-      KE[episodic: story intent/outcome, incidents]
+  subgraph Q["One Qdrant collection, filtered by bank and kind"]
+    subgraph KB["bank = kb  (shared, scoped by org/repo)"]
+      KS["semantic: decisions, ADRs, integration points, structure, policies"]
+      KE["episodic: story intent/outcome, incidents"]
     end
-    subgraph AG["space = agent  (private, scoped by agent_id)"]
-      AE[episodic: session timeline, observations, tool outcomes]
-      AI[identity: profile, preferences, goals, relationships]
-      AS[semantic: consolidated lessons, heuristics]
+    subgraph B["bank = jarvis-memory  (private, one per long-lived agent)"]
+      BS["self: permanent persona, standing preferences, open commitments"]
+      BE["episodic: session stream, in order"]
+      BL["semantic: consolidated lessons, private decisions"]
     end
   end
   KE -- "memo consolidate" --> KS
-  AE -- "memo consolidate --agent jarvis" --> AS
-  AS -- "promote (review-gated)" --> KS
-  R["memo recall"] --> KS
-  R --> AI
-  R --> AS
-  R --> AE
-  U["memo used --query"] --> Rank[ranking: retention × use × links]
+  BE -- "memo consolidate --bank jarvis-memory" --> BL
+  BL -- "promote (review-gated)" --> KS
+  R["memo recall"] --> BS
+  R --> KS
+  R --> BL
+  R --> BE
+  U["memo used --query"] --> Rank["ranking: retention × use"]
   D["memo decay / memo forget"] --> KE
-  D --> AE
+  D --> BE
+  D --> BL
 ```
 
-Short-term memory is the episodic stream of the current and recent sessions (low initial stability, retention policy per space). Long-term memory is semantic: either written directly by a human or an agent with provenance, or promoted by consolidation. "Sequential" memory is the episodic timeline ordered by `session_id` and `timestamp_utc`.
-
-### 2.3 Lifecycle of a memory
+### 2.3 Lifecycle of one session
 
 ```mermaid
 sequenceDiagram
-  participant A as Agent (jarvis)
+  participant A as Agent harness
   participant M as memo-cli
   participant Q as Qdrant
-  A->>M: memo recall "plan story #42" --agent jarvis
-  M->>Q: policies + kb semantic + agent semantic + agent last-session episodes
+  A->>M: memo recall "plan story #42" --bank jarvis-memory
+  M->>Q: self + policies + kb semantic + bank semantic + bank last-session episodes
   M-->>A: bundle + query_id
-  A->>M: memo write --space agent --kind episodic --session s-42 ...
+  A->>M: memo write --kind episodic --session s-42 ... (repeated during the task)
   A->>M: memo used --query <query_id> --ids a,b
   M->>Q: used_count++, stability grows on spaced retrieval
+  A->>M: memo decay --bank jarvis-memory --json (session close)
+  M->>Q: archive expired/decayed episodes, purge past purge_after_days
   Note over M,Q: offline, scheduled
-  M->>Q: memo decay → archive retention < threshold (never delete)
-  M->>Q: memo consolidate --agent jarvis → promote repeated episodes to semantic facts
-  A->>M: memo forget --session s-42 --dry-run
+  M->>Q: memo consolidate --bank jarvis-memory → promote repeated episodes to semantic
 ```
 
-### 2.4 The agent memory bank
+### 2.4 Memory banks
 
-An agent memory bank is the `agent` space for one `agent_id`. It holds entry types that exist only there and are never accepted in `kb`:
+A **memory bank** is a store identified by one unique key, `bank` (kebab-case string or UUID, for example `kb`, `jarvis-memory`, `planner-memory`). memo-cli does not model agents, roles, or personas. It models banks. What owns a bank is the caller's concern.
 
-| Entry type     | Kind     | Class     | Purpose                                                                                    | Removed by                     |
-| -------------- | -------- | --------- | ------------------------------------------------------------------------------------------ | ------------------------------ |
-| `profile`      | semantic | identity  | Who the agent is: persona, tone, standing instructions, capabilities, definition reference | supersession, explicit forget  |
-| `preference`   | semantic | identity  | How it likes to work; choices it has settled                                               | supersession, explicit forget  |
-| `goal`         | semantic | identity  | Open commitments and in-flight work with `status: open \| done \| dropped`                 | status change, explicit forget |
-| `relationship` | semantic | identity  | People, agents, and repos it works with and how                                            | supersession, explicit forget  |
-| `lesson`       | semantic | knowledge | Heuristic learned from experience; written explicitly or promoted by consolidation         | decay, supersession, forget    |
-| `observation`  | episodic | event     | What happened, in session order                                                            | expiry, decay, forget          |
+| Rule | Statement                                                                                                                                                                                           |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1   | The shared knowledge base is the bank `kb`. It keeps today's `org`/`repo` scoping and is the default bank for every command, so existing callers see no change.                                     |
+| B2   | Any other bank id is a **private bank**. Private banks are not scoped by repo by default (their owner works across repos); entries may still carry `repo`/`org` for filtering.                      |
+| B3   | Bank resolution order: `--bank <id>`, then `MEMO_BANK`, then `config.bank.default`, then `kb`.                                                                                                      |
+| B4   | There is no cross-bank search. Knowledge crosses from a private bank into `kb` only through promotion (§7.4), which is review-gated by default.                                                     |
+| B5   | `memo bank init --id <id>` creates a bank by writing its first `self` entry. `memo bank list` shows bank ids with counts per kind. `memo bank show --id <id>` prints the `self` entries and counts. |
+| B6   | Deleting a bank is `memo forget --bank <id> --purge`, human-confirmed or `--yes`, never in `--json` mode. It writes one tombstone per entry.                                                        |
 
-Identity-class entries are exempt from decay and expiry: a persona must survive months of silence. They change only by supersession (a new `profile` entry with `--supersedes <id>`) or explicit forget. Knowledge and event entries follow the retention ladder in §8.3. The existing shared types (`decision`, `integration_point`, `structure`) remain valid in an agent space for private notes.
+### 2.5 Memory kinds (binding contract)
 
-`memo recall --agent <id>` opens with a `SELF` section (current profile, preferences, open goals, relationships) so that the agent restores its persona before it restores task context.
+Every entry has exactly one `kind`. `kind` is orthogonal to `entry_type` (`decision`, `integration_point`, `structure`, `policy`, `observation`), which remains the content category; `observation` is the default `entry_type` for episodic entries.
+
+| Kind       | What it is                                                                                                                                 | Allowed in         | How it is written                                                                                                                                        | How it is retrieved                                                                                                                       | How it leaves the store (exhaustive)                                                                                                                                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `self`     | Permanent memory of the bank owner: persona, tone, standing instructions, settled preferences, open commitments, who it works with. Small. | private banks only | `memo write --kind self`, explicit. `memo bank init` seeds one. Replace with `memo write --kind self --supersedes <id>`. Soft cap 50 per bank (warning). | Whole, unranked, newest first, as the first section of `memo recall`; `memo bank show`. Excluded from `memo search` unless `--kind self`. | Only two ways: (1) superseded via `--supersedes`, which sets `valid_to` and `superseded_by` and hides it from `recall`; (2) `memo forget --id` or `--bank … --purge`. Never by `memo decay`, expiry, or consolidation.                                                                                          |
+| `episodic` | Short-term, sequential: what happened, in session order. High volume, low individual value.                                                | all banks          | `memo write --kind episodic --session <id> [--seq <n>]`. Default kind in private banks. `expires_at` set from bank policy unless `--expires-in`.         | `memo timeline` (sequence order, never ranked); `recall` LAST SESSION section; `memo search --kind episodic \| all`.                      | Exactly two exits: (a) **promoted**: `memo consolidate` folds it into a `semantic` entry, marks it `consolidated`, and it is then removed by policy after a grace period; (b) **not promoted**: it expires or decays, is archived, and is purged by policy. Either way it ends deleted.                         |
+| `semantic` | Long-term: decontextualized facts, decisions, lessons, contracts. Low volume, durable.                                                     | all banks          | `memo write --kind semantic` with `--provenance <ids>` (agent) or `--manual` (human). Default kind in `kb`. Also produced by `memo consolidate`.         | `memo search` (ranked, §8.2), `recall` SHARED and MINE sections, `memo search --as-of <date>` for history.                                | Three ways: (a) **superseded** by a newer fact (reconsolidation or `--supersedes`), then archived after grace; (b) **irrelevant or unused**: retention below threshold, or noisy (retrieved often, rarely used), archived by `memo decay`, then purged by policy; (c) `memo forget`. `pinned` entries skip (b). |
+
+Application rules:
+
+- K1 `kind` is required on every v2 write. Missing `kind` resolves by bank: `semantic` in `kb`, `episodic` in private banks. `--kind self` in `kb` fails with `VALIDATION_FAILED`.
+- K2 `episodic` entries in a private bank need no `repo`; in `kb` they need `repo` like every other entry today.
+- K3 A `semantic` entry written with `source: agent` must carry at least one `provenance` id unless `--manual` is passed. Provenance ids are an audit trail; the semantic entry must stand on its own text, because its episodes will be deleted.
+- K4 `self` entries are never ranked, never decay, never consolidate, and never count toward retrieval statistics.
+- K5 An entry never changes kind in place. Promotion creates a new `semantic` entry; the episode keeps its kind and is later deleted.
+
+### 2.6 Deletion contract (who removes what, when)
+
+Every removal passes through one state machine. Automated jobs only ever move entries along the arrows labeled `memo decay`; humans and owners use `memo forget`.
+
+```mermaid
+stateDiagram-v2
+  [*] --> active
+  active --> consolidated: memo consolidate (episodic only)
+  active --> superseded: --supersedes or reconsolidation (self, semantic)
+  active --> archived: memo decay (expired, retention < threshold, noisy) or memo forget (default)
+  consolidated --> archived: memo decay after promoted_grace_days
+  superseded --> archived: memo decay after superseded_grace_days (semantic only; self stays superseded)
+  archived --> active: memo restore --id
+  archived --> [*]: memo decay --purge-expired after purge_after_days, or memo forget --purge
+  active --> [*]: memo forget --purge or memo delete (explicit, tombstoned)
+```
+
+| Kind / bank type     | Archived when                                                                                                          | Archived by        | Purged when                             | Purged by                              | Defaults                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------ | --------------------------------------- | -------------------------------------- | --------------------------------------------- |
+| `self` / private     | never automatically                                                                                                    | `memo forget` only | never automatically                     | `memo forget --purge` (owner or human) | no policy keys                                |
+| `episodic` / private | `expires_at` passed (30 d after write), or `consolidated` and `promoted_grace_days` (7 d) passed, or retention < 0.05  | `memo decay`       | `purge_after_days` (30 d) after archive | `memo decay --purge-expired`           | archive on, **purge on**                      |
+| `episodic` / `kb`    | `expires_at` passed (90 d), or `consolidated` + grace, or retention < 0.05                                             | `memo decay`       | never automatically                     | `memo forget --purge`                  | archive on, purge off                         |
+| `semantic` / private | superseded + `superseded_grace_days` (30 d), or retention < 0.05, or noisy (`retrieval_count ≥ 10`, `use_ratio < 0.1`) | `memo decay`       | `purge_after_days` (90 d) after archive | `memo decay --purge-expired`           | archive on, purge on                          |
+| `semantic` / `kb`    | superseded + grace (30 d), or retention < 0.05, or noisy; `pinned` exempt                                              | `memo decay`       | never automatically                     | `memo forget --purge`, `memo delete`   | archive on, purge off, `archive_noisy: false` |
+
+Who runs `memo decay`:
+
+- **The bank owner's harness, at session close.** dev-tasks agent prompts end a session with `memo decay --bank <id> --json`. The command is idempotent, needs one scroll and one batched payload update, and exits 0 on no-op.
+- **A scheduler for `kb`.** A weekly cron or CI job runs `memo decay --bank kb --json`. It archives; it never purges in `kb`.
+- **A human**, via `memo forget`, for anything the policy does not cover.
+
+Guarantees:
+
+- D1 `memo decay` never touches `self`, never purges in `kb`, never deletes anything that is not already archived past `purge_after_days`, and never runs an LLM.
+- D2 Every purge, by any command, appends a tombstone (`id`, `bank`, `kind`, selector, actor, timestamp) to `~/.memo/forget.jsonl`.
+- D3 `memo restore --id` un-archives an entry as long as it has not been purged.
+- D4 `--dry-run` on `memo decay` and `memo forget` prints the exact selector and the per-bank, per-kind counts and writes nothing.
+- D5 `memo forget --purge` in `--json` mode accepts only `--id` and `--session` selectors. Bank-wide purge requires a TTY or `--yes` outside `--json`.
+- D6 A semantic entry's `provenance` may point at deleted episodes. `memo read` shows them as `(deleted)`. No provenance-protection rule exists; long-term entries must be self-contained (K3).
 
 ## 3. Goals & Objectives
 
 1. **Measured retrieval quality.** Top-3 relevance on a versioned evaluation set rises from the measured baseline to ≥ 80%, and every ranking change is gated on that set.
-2. **Separate private agent memory from the shared knowledge base.** A defined agent can persist its identity, preferences, open goals, episodes, and lessons, then recall, consolidate, and forget them without polluting or being polluted by the org/repo KB, and resume as the same persona after months.
-3. **One call to restore context.** `memo recall` replaces the four-command session-start sequence with a ranked, deduplicated, token-budgeted bundle that carries a `query_id`.
+2. **Private memory banks.** A long-lived agent can persist its permanent self, its session stream, and its lessons in its own bank, then recall, consolidate, and forget them without polluting or being polluted by `kb`, and resume as the same persona after months.
+3. **One call to restore context.** `memo recall` replaces the four-command session start with a ranked, deduplicated, token-budgeted bundle that carries a `query_id`.
 4. **Close the feedback loop.** Agents report which recalled memories they used; that signal changes ranking, retention, and consolidation.
-5. **Forget on purpose, never by accident.** Retention policies, decay to archive, supersession, and an explicit `memo forget` with dry-run and audit. Automated jobs never hard-delete.
-6. **Backward compatibility.** Every payload and config change is additive; existing `write`/`search`/`list`/`read`/`delete` flags and JSON envelopes keep working. Existing entries remain in default search results after migration.
-7. **Cost discipline.** Stays within the product constraint of near-zero infrastructure cost; LLM calls only in offline jobs with `--dry-run` and cost reporting.
+5. **Forget on purpose, never by accident.** The deletion contract in §2.6 is exhaustive, every removal is attributable, automated jobs never hard-delete outside declared policy, and short-term memory always ends either promoted or deleted.
+6. **Backward compatibility.** Every payload and config change is additive; existing flags and JSON envelopes keep working. Existing entries remain in default search results after migration.
+7. **Cost discipline.** No new paid infrastructure. LLM calls only in `memo consolidate`, always with `--dry-run` available and cost reported.
 
 ## 4. Affected Repositories
 
-| Repository        | Role / Impact                                                                                                                                                                                                                                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `llipe/memo-cli`  | Primary implementation: payload schema v2 (`space`, `agent_id`, `kind`, session, provenance, validity, stability, archive fields), ranking library, new commands (`recall`, `timeline`, `used`, `decay`, `forget`, `stats`, `consolidate`, `migrate`), config v2, eval harness, docs.                              |
-| `llipe/dev-tasks` | Consumer changes: `memo-cli-usage` skill and the `developer`, `product-engineer`, `technical-writer`, `planner` prompts. Session start becomes `memo recall`; per-story intent/outcome entries move to the agent space (episodic); ADRs and decisions stay in `kb` (semantic); story completion calls `memo used`. |
+| Repository        | Role / Impact                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `llipe/memo-cli`  | Primary implementation: payload schema v2 (`bank`, `kind`, session, provenance, validity, stability, archive fields), ranking library, new commands (`recall`, `timeline`, `used`, `decay`, `forget`, `restore`, `stats`, `consolidate`, `migrate`, `bank`), config v2, eval harness, docs.                                                                      |
+| `llipe/dev-tasks` | Consumer changes: `memo-cli-usage` skill and the `developer`, `product-engineer`, `technical-writer`, `planner` prompts. Each long-lived agent definition declares a bank id; session start becomes `memo recall`; intent/outcome entries go to the agent's bank as episodic; ADRs and decisions stay in `kb`; session close calls `memo used` and `memo decay`. |
 
 ## 5. Target Users
 
 ### Primary Users
 
-- **Long-lived orchestrator agents** (e.g. a planner instance "Jarvis") that run many sessions over weeks and need their own short-term and long-term memory.
+- **Long-lived agents** (a defined loop, tools, prompt, and data) that run many sessions over months and need a private bank with permanent self, short-term stream, and long-term lessons.
 - **Worker agents** (developer, technical-writer) that need a fast, relevant context bundle at session start and a cheap way to report what helped.
-- **dev-tasks maintainers** who own the agent prompts and skill that call memo-cli.
+- **dev-tasks maintainers** who own the prompts and skill that call memo-cli.
 
 ### Secondary Users
 
-- **Tech leads** auditing what the team and its agents "believe", what is stale, and what was forgotten and why.
-- **Solo developers** running one agent across repos who want the agent to stop repeating mistakes.
+- **Tech leads** auditing what the team and its agents believe, what is stale, and what was forgotten and why.
+- **Solo developers** running one agent across repos who want it to stop repeating mistakes.
 
 ## 6. User Stories
 
-1. As a planner agent, I want a private memory bank keyed by my agent id so that my session notes and learned heuristics do not mix with the team's decision record.
-2. As a planner agent, I want to write episodic entries tagged with a session id so that I can replay what I did, in order, in a later session.
-3. As any agent, I want one `memo recall "<task>"` call that returns applicable policies, relevant shared decisions, my own relevant lessons, and my last session's episodes, within a token budget, so that I restore context without hand-synthesizing four command outputs.
-4. As any agent, I want to report which recalled entries I actually used so that future recall ranks them higher and unused noise ranks lower.
-5. As a developer agent, I want search to match exact identifiers (file names, issue numbers, flag names) as well as meaning so that "why does `search-filters.ts` build `should` clauses" finds the entry that names that file.
-6. As a tech lead, I want search results ordered by trust and actionability (similarity, recency, source, retention, use) with a confidence tier and a stale flag so that agents can decide act/verify/discard programmatically.
-7. As a tech lead, I want superseded decisions to keep their history (`valid_to`, `superseded_by`) and be queryable as of a date so that nothing is overwritten in place.
-8. As an operator, I want a scheduled `memo decay` that archives memories whose retention dropped below a threshold, never deletes, and can be dry-run, so that noise shrinks without data loss.
-9. As an agent or operator, I want `memo forget` to remove a session, an agent's short-term memory, or entries matching a filter, with a dry-run and an audit record, so that forgetting is explicit and reviewable.
-10. As an operator, I want per-space retention policies in config (for example, agent episodic entries archive after 30 days unless pinned or cited as provenance) so that "what to forget" is a policy, not a judgment call at runtime.
-11. As a planner agent, I want an offline `memo consolidate --agent jarvis` job that turns repeated episodes into durable semantic lessons with provenance so that my long-term memory grows from experience.
-12. As a tech lead, I want promotion of an agent's consolidated facts into the shared KB to require review so that LLM-generated generalizations do not silently become team truth.
-13. As an operator, I want `memo migrate --to-v2 --dry-run` to show how every existing entry will be classified before anything changes so that migration is safe.
-14. As an operator, I want `memo stats` to show noisy memories (retrieved often, rarely used), stability distribution, and archive counts per space so that I can tune retention.
-15. As any agent, I want `memo search --explain` to print every ranking factor so that I can understand and tune why something ranked where it did.
-16. As a long-lived agent, I want my profile, preferences, open goals, and relationships stored as identity-class entries that never decay so that a session started months later begins with the same persona and open commitments.
-17. As a tech lead or human at the terminal, I want `memo ask "<question>"` to synthesize a cited answer from the same bundle `recall` builds so that I do not have to read raw entries (optional, Phase 5).
+1. As a long-lived agent, I want a private bank keyed by my own id so that my memories never mix with the team's decision record.
+2. As a long-lived agent, I want permanent `self` entries that no job can remove so that a session started months later begins with the same persona and open commitments.
+3. As a long-lived agent, I want episodic entries tagged with a session id so that I can replay what I did, in order, in a later session.
+4. As any agent, I want one `memo recall "<task>"` call that returns my self entries, applicable policies, relevant shared decisions, my own lessons, and my last session, within a token budget, so that I restore context without hand-synthesizing four outputs.
+5. As any agent, I want to report which recalled entries I used so that future recall ranks them higher and unused noise ranks lower.
+6. As a developer agent, I want search to match exact identifiers (file names, issue numbers, flag names) as well as meaning.
+7. As a tech lead, I want results ordered by trust and actionability with a confidence tier and a stale flag so that agents can decide act/verify/discard programmatically.
+8. As a tech lead, I want superseded decisions to keep their history (`valid_to`, `superseded_by`) and be queryable as of a date so that nothing is overwritten in place.
+9. As an agent harness, I want `memo decay --bank <id>` at session close to archive and purge my short-term memory per policy so that my bank never grows without bound.
+10. As an operator, I want `memo forget` to remove a session, a bank, or entries matching a filter, with dry-run and tombstones, so that forgetting is explicit and reviewable.
+11. As an operator, I want per-bank, per-kind retention policy in config so that "what to forget" is policy, not a runtime judgment.
+12. As a long-lived agent, I want an offline `memo consolidate --bank <id>` job that turns repeated episodes into durable lessons with provenance so that my long-term memory grows from experience and my short-term memory can be deleted.
+13. As a tech lead, I want promotion of a private bank's lessons into `kb` to require review so that LLM-generated generalizations do not silently become team truth.
+14. As an operator, I want `memo migrate --to-v2 --dry-run` to show how every existing entry will be classified before anything changes.
+15. As an operator, I want `memo stats` to show noisy memories, stability distribution, and archive and purge counts per bank so that I can tune retention.
+16. As any agent, I want `memo search --explain` to print every ranking factor.
+17. As a human at the terminal, I want `memo ask "<question>"` to synthesize a cited answer from the same bundle `recall` builds (optional, Phase 5).
 
 ## 7. Functional Requirements
 
-Requirements are grouped by phase. "MUST" items are required for the phase to close.
+### 7.1 Phase 1 — Trustworthy retrieval (formerly PRD-002 Phases A and B, plus measurement)
 
-### 7.1 Phase 1 — Trustworthy retrieval (PRD-002 Phases A and B, plus measurement)
+- FR-1.1 Ship a versioned relevance evaluation set under `tests/fixtures/relevance/` (20–30 query/expected-id pairs seeded from real dev-tasks queries: story planning, file-name lookups, cross-repo contracts) and a script that reports top-3 hit rate. The baseline **MUST** be recorded in this changelog before any ranking change merges.
+- FR-1.2 Composite ranking (#34), tag overlap boosting (#36), dynamic confidence tiers (#35), and staleness detection (#38) **MUST** be implemented as refined in `workstream/issue-34-composite-ranking-score-refinement.md` and the corresponding issues, with the single change that `final_score` is produced by the unified formula in §8.2.
+- FR-1.3 `memo search` **MUST** add lexical matching: a Qdrant full-text payload index on `rationale` and `files_modified`, queried alongside the dense vector and fused by reciprocal rank fusion, with a `--lexical off` escape hatch.
+- FR-1.4 Every `memo search` response **MUST** include a `query_id` (UUID). Phase 1 stores nothing for it; Phase 3 makes it actionable.
+- FR-1.5 `memo search --explain` **MUST** print each ranking factor and the final score per result.
 
-- FR-1.1 The CLI **MUST** ship a versioned relevance evaluation set under `tests/fixtures/relevance/` (target 20–30 query/expected-id pairs seeded from real dev-tasks queries: story planning, file-name lookups, cross-repo contracts) and a script that reports top-3 hit rate. The baseline **MUST** be recorded in the PRD changelog before any ranking change merges.
-- FR-1.2 Composite ranking (#34), tag overlap boosting (#36), dynamic confidence tiers (#35), and staleness detection (#38) **MUST** be implemented exactly as refined in `workstream/issue-34-composite-ranking-score-refinement.md` and the corresponding issues, with the single change that `final_score` is produced by the unified formula in §8.2 (multiplicative factors default to 1 until later phases land).
-- FR-1.3 `memo search` **MUST** add lexical matching: a Qdrant full-text payload index on `rationale` (and `files_modified`), queried alongside the dense vector and fused by reciprocal rank fusion. Exact tokens such as file names, issue references, and flag names **MUST** be matchable. A `--lexical off` escape hatch **MUST** exist.
-- FR-1.4 Every `memo search` response **MUST** include a `query_id` (UUID) in JSON output. Phase 1 stores nothing for it; Phase 3 makes it actionable.
-- FR-1.5 `memo search --explain` **MUST** print each ranking factor and the final score per result (human and JSON).
+### 7.2 Phase 2 — Banks, kinds, sessions, recall
 
-### 7.2 Phase 2 — Memory model: spaces, kinds, sessions, recall
+- FR-2.1 The payload **MUST** gain `bank`, `kind`, `session_id`, `seq`, `contexts`, `provenance`, `valid_from`, `valid_to`, `superseded_by`, `consolidated`, `pinned`, `expires_at`, and `schema_version: "2"`. All additive; indexed where filtered (§9).
+- FR-2.2 `memo write` **MUST** accept `--bank`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--manual`, `--supersedes <id>`, `--pin`, `--expires-in <duration>`. Defaults per §2.4 B3 and §2.5 K1. `--supersedes` **MUST** set `valid_to = now` and `superseded_by = <new id>` on the target in the same bank and fail if the target is a different kind.
+- FR-2.3 The dedupe key **MUST** become `v2|<bank>|<repo_or_na>|<commit_or_na>|<story_or_na>|<session_or_na>|<kind>|<entry_type>|<source>`. v1 keys remain readable.
+- FR-2.4 `memo search`, `memo list`, `memo tags list` **MUST** accept `--bank`, `--kind self|episodic|semantic|all`, `--session`, `--include-archived`, `--include-superseded`, `--as-of <date>`. Defaults: `bank = kb`, `kind = all` minus `self`, archived and superseded excluded.
+- FR-2.5 `memo timeline --bank <id> [--session <id>] [--last <n>] [--since <date>]` **MUST** return episodic entries in `seq` then `timestamp_utc` order, never re-ranked.
+- FR-2.6 `memo recall "<task>" [--bank <id>] [--scope repo|related] [--max-tokens <n>] [--json]` **MUST** return one bundle with sections in this order: `SELF` (all valid `self` entries of the bank, never trimmed), `POLICIES` (when PRD-003 is present), `SHARED` (`kb` semantic for the task), `MINE` (bank semantic for the task), `LAST SESSION` (bank episodic, most recent session, chronological), `CONFLICTS` (`pending_contradiction` entries). Lower sections are trimmed first to honor `--max-tokens` (characters ÷ 4). One `query_id` covers every entry; ids are deduplicated across sections. With `bank = kb`, `SELF`, `MINE`, and `LAST SESSION` are omitted.
+- FR-2.7 `memo bank init|list|show` per §2.4 B5. `memo restore --id` per §2.6 D3.
+- FR-2.8 `memo migrate --to-v2 [--dry-run] [--rules <file>]` **MUST** apply the ordered rules below to every point lacking `schema_version = "2"`, print counts per rule, be idempotent, and write nothing under `--dry-run`.
 
-- FR-2.1 The payload **MUST** gain `space` (`kb` | `agent`), `agent_id` (required when `space = agent`), `kind` (`episodic` | `semantic`), `session_id`, `seq`, `contexts`, `provenance`, `valid_from`, `valid_to`, `superseded_by`, `consolidated`, `pinned`, and `schema_version: "2"`. All are additive and indexed where filtered (see §9).
-- FR-2.2 `memo write` **MUST** accept `--space`, `--agent`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--pin`. Defaults: `space = kb`; `kind = semantic` in `kb`, `episodic` in `agent`; `agent_id` from `--agent`, then `MEMO_AGENT`, then `config.agent.default_id`. A write with `space = agent` and no resolvable `agent_id` **MUST** fail with `VALIDATION_FAILED`. The agent-only entry types in §2.4 (`profile`, `preference`, `goal`, `relationship`, `lesson`, `observation`) **MUST** be rejected in `space = kb` with `VALIDATION_FAILED`; `goal` entries carry `status` (`open` default) and `--status done|dropped` closes them without deleting.
-- FR-2.3 A `semantic` entry written by `source: agent` **MUST** carry at least one `provenance` id unless `--manual` is passed; `--manual` sets `source: manual`.
-- FR-2.4 The dedupe key **MUST** become `v2|<space>|<agent_or_na>|<repo>|<commit_or_na>|<story_or_na>|<session_or_na>|<entry_type>|<source>` so that the same story in two spaces or two sessions does not collide. v1 keys remain readable.
-- FR-2.5 `memo search`, `memo list`, `memo tags list` **MUST** accept `--space`, `--agent`, `--kind`, `--session`, `--include-archived`, `--include-superseded`, and `--as-of <date>`. Default search scope is `space = kb`, `kind = all`, archived and superseded excluded. Searching `space = agent` **MUST** require a resolved `agent_id`; there is no cross-agent search.
-- FR-2.6 `memo timeline --session <id> | --agent <id> [--last <n>] [--since <date>]` **MUST** return episodic entries in sequence order (`seq`, then `timestamp_utc`), never re-ranked.
-- FR-2.7 `memo recall "<task>" [--agent <id>] [--scope repo|related] [--max-tokens <n>] [--json]` **MUST** return one bundle with labeled sections in this order: `SELF` (when `--agent` is resolved: current profile, preferences, open goals, relationships; never trimmed), applicable policies (when PRD-003 is present), shared semantic entries for the task, the agent's semantic entries, the agent's most recent session episodes (chronological), and open contradictions or `pending_contradiction` flags. Sections are trimmed from the bottom to honor `--max-tokens` (approximated as characters ÷ 4). The bundle **MUST** carry one `query_id` covering every entry it contains and **MUST** deduplicate by id across sections.
-- FR-2.8 `memo migrate --to-v2 [--dry-run] [--rules <file>]` **MUST** classify every existing point using an ordered rule table (default: tags containing `intent` or `outcome` → `kind = episodic`, `session_id = story`; `entry_type` in `integration_point`, `structure`, `policy` or tags containing `adr` → `semantic`; everything else → `semantic` with `source` unchanged), set `space = kb`, `schema_version = "2"`, `consolidated = false`, and print the classification counts. It **MUST** be idempotent and **MUST** write nothing under `--dry-run`. Points already at v2 are skipped.
-- FR-2.9 `memo read --id` **MUST** print the full v2 payload including the provenance chain (ids and first line of each provenance entry) and validity fields.
-- FR-2.10 `dev-tasks`: the `memo-cli-usage` skill and agent prompts **MUST** be updated so that session start is `memo recall`, per-story intent/outcome entries are written to `space = agent` as episodic with `--session ISSUE-<n>`, ADR and decision entries stay in `kb` as semantic, and each defined agent resolves its own `agent_id` (one per agent definition, with the role added as a context).
-- FR-2.11 `memo agent init --id <id> [--description <text>] [--definition-ref <ref>]` **MUST** create the agent space's first `profile` entry and set `config.agent.default_id` when unset. `memo agent show [--id <id>]` **MUST** print the current profile, preferences, open goals, relationships, entry counts per kind, and last session id. `memo agent list` **MUST** list agent ids with counts, without content.
-- FR-2.12 `profile` entries **SHOULD** carry `agent_definition_ref` (a path, version, or hash of the loop, tools, prompt, and data that define the agent). When the ref passed to `memo recall --definition-ref` differs from the one on the current profile, `recall` **MUST** print a `DEFINITION_CHANGED` notice in the `SELF` section; it never blocks.
+  | Order | Condition on the existing entry       | Result                                                                                               |
+  | ----- | ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+  | 1     | `tags` contains `intent` or `outcome` | `kind = episodic`, `session_id = story` (or `legacy` if absent), `expires_at = timestamp_utc + 90 d` |
+  | 2     | any other entry                       | `kind = semantic`, `valid_from = timestamp_utc`                                                      |
+  | all   | every migrated entry                  | `bank = kb`, `schema_version = "2"`, `consolidated = false`, counters `0`, `stability` per §8.4      |
+
+  Rule 2 defaults to `semantic` because a decision misclassified as episodic would expire and vanish, while an episode misclassified as semantic is only today's noise and can be re-tagged. Nothing is archived or deleted by migration.
+
+- FR-2.9 `memo read --id` **MUST** print the full v2 payload, provenance ids with `(deleted)` markers, and validity fields.
+- FR-2.10 `dev-tasks`: the `memo-cli-usage` skill and prompts **MUST** be updated so that each long-lived agent definition declares its bank id (exported as `MEMO_BANK`), session start is `memo recall`, intent/outcome entries are episodic in the agent's bank with `--session ISSUE-<n>`, ADR and decision entries stay in `kb` as semantic, and session close runs `memo used` then `memo decay --bank <id> --json`.
 
 ### 7.3 Phase 3 — Feedback and forgetting
 
-- FR-3.1 `memo used --query <query_id> --ids <csv> [--wrong <csv>] [--agent <id>]` **MUST** validate that every id belongs to the result set of that `query_id` (exit 1 on mismatch), increment `used_count`, apply the used bonus to stability, and append a `usage_event` to a local append-only log (`~/.memo/usage.jsonl`). Ids passed with `--wrong` **MUST** be flagged `pending_contradiction = true` and receive no bonus. Query result sets **MUST** be persisted locally (`~/.memo/queries/<query_id>.json`) with a 7-day TTL so validation works across processes.
-- FR-3.2 Every `memo search` and `memo recall` **MUST** increment `retrieval_count` and, when the retrieval is spaced (outside `MIN_SPACING_HOURS`, default 12), update `stability` and `last_retrieved_at` per the formulas in #54. Retrieval updates **MUST** be batched into one Qdrant payload update per invocation and **MUST NOT** add more than 300 ms to search latency.
-- FR-3.3 `retention = exp(-t / stability)` **MUST** be computed at ranking time (never stored) and applied as the multiplicative factor in §8.2. Initial stability: `1.0` (episodic), `7.0` (semantic), `MAX_STABILITY` 365 days, all configurable.
-- FR-3.4 `memo decay [--space] [--agent] [--dry-run] [--threshold <n>] [--verbose]` **MUST** set `archived = true`, `archived_reason = decay`, `archived_at` on memories with `retention < ARCHIVE_THRESHOLD` (default 0.05), except memories that are `pinned`, or are cited in `provenance` of a currently valid semantic fact. It **MUST NOT** delete. It **MUST** honor per-space policy (§8.4). It **MUST** be idempotent and print counts per space and kind.
-- FR-3.5 `memo forget` **MUST** support selectors `--id`, `--session`, `--agent` (whole agent space), `--space`, `--older-than <duration>`, `--tags`, `--kind`, combinable with AND semantics, plus `--dry-run`, `--yes`, `--json`. Default action is soft archive with `archived_reason = forget`. `--purge` performs a hard delete and **MUST** write a tombstone record (`id`, selector, actor, timestamp) to `~/.memo/forget.jsonl`. In `--json` mode, `--purge` **MUST** be limited to `--id` or `--session` selectors (mirrors the ADR-001 bulk-delete guard). Pinned entries are skipped unless `--include-pinned`.
-- FR-3.6 Per-space retention policy in config (§8.4) **MUST** drive `memo decay` defaults and an optional `expires_at` on episodic writes (`--expires-in <duration>` or policy default); expiry archives, never deletes. Purge of archived entries is opt-in per space via `purge_after_days` and only ever executed by an explicit `memo decay --purge-expired`.
-- FR-3.7 `memo stats [--space] [--agent] [--json]` **MUST** show per space and kind: counts (active, archived, superseded, pinned), stability distribution, top entries by `use_ratio`, and a "noisy" list (`retrieval_count ≥ 10` and `use_ratio < 0.1`).
-- FR-3.8 `memo decay` and `memo consolidate` **MUST** be safe to run from a scheduler (cron, CI) with `--json` output and exit code 0 on no-op.
+- FR-3.1 `memo used --query <query_id> --ids <csv> [--wrong <csv>]` **MUST** validate that every id belongs to that query's result set (exit 1 otherwise), increment `used_count`, apply the used bonus to stability, and append a `usage_event` to `~/.memo/usage.jsonl`. `--wrong` ids are flagged `pending_contradiction = true` and receive no bonus. Result sets are persisted at `~/.memo/queries/<query_id>.json` with a 7-day TTL.
+- FR-3.2 `memo search` and `memo recall` **MUST** increment `retrieval_count` and, when spaced (outside `min_spacing_hours`, default 12), update `stability` and `last_retrieved_at` per #54, in one batched payload update per invocation, adding ≤ 300 ms. `self` entries are excluded (K4).
+- FR-3.3 `retention = exp(-t / stability)` is computed at ranking time, never stored, and applied per §8.2. Initial stability: `1.0` (episodic), `7.0` (semantic), cap `max_stability_days` 365.
+- FR-3.4 `memo decay [--bank <id>] [--dry-run] [--purge-expired] [--verbose] [--json]` **MUST** implement §2.6 exactly: archive per the table, purge only entries archived longer than `purge_after_days` and only where policy sets it, skip `self` and `pinned`, never call an LLM, be idempotent, and print counts per bank and kind.
+- FR-3.5 `memo forget` **MUST** support selectors `--id`, `--session`, `--bank`, `--kind`, `--older-than <duration>`, `--tags`, combinable with AND semantics, plus `--dry-run`, `--yes`, `--purge`, `--json`, with the guards in §2.6 D2, D4, D5. Default action is archive with `archived_reason = forget`.
+- FR-3.6 Retention policy keys per bank type and kind (§8.4) **MUST** drive `expires_at` at write time and `memo decay` behavior.
+- FR-3.7 `memo stats [--bank <id>] [--json]` **MUST** show per kind: active, archived, superseded, consolidated, pinned counts; stability distribution; top entries by `use_ratio`; the noisy list; and purge counts from tombstones.
+- FR-3.8 `memo decay` and `memo consolidate` **MUST** be safe from a scheduler: `--json`, exit 0 on no-op.
 
 ### 7.4 Phase 4 — Consolidation and promotion
 
-- FR-4.1 `memo consolidate --space kb|agent [--agent <id>] [--dry-run] [--limit] [--since] [--report json|text]` **MUST** implement the pipeline in #57 (select unconsolidated episodes → cluster by embedding + tags → LLM proposes candidate facts as strict JSON with cited episode ids → gate on `MIN_EPISODES` 3, `MIN_CONTEXTS` 2, `MIN_SPAN_DAYS` 7, and schema consistency → write promoted facts with `provenance`, `valid_from`, `links_out = provenance` → mark episodes `consolidated = true` → demote or archive stale facts → report). Candidates citing ids outside their cluster **MUST** be rejected. Running twice on unchanged data **MUST** produce no duplicates.
-- FR-4.2 Reconsolidation **MUST** never overwrite a semantic fact in place: the old fact gets `valid_to = now` and `superseded_by`; the new fact gets `valid_from = now` and provenance including the contradicting episodes. A contradiction from a single episode in a single context **MUST NOT** supersede; it writes the candidate at the lowest tier with `pending_contradiction = true`.
-- FR-4.3 Consolidation within an agent space (agent episodes → agent semantic) **MAY** run autonomously on a schedule. Promotion from an agent space into `kb` **MUST** be a separate step, `memo consolidate --promote-to kb`, that writes candidates to a review file (`workstream/memo-promotions-<date>.md`) or, with `--yes`, writes them as `source: agent`, `confidence: medium`, tagged `promoted-from:<agent_id>`. The config key `consolidation.promote_to_kb` (`review` | `auto` | `off`, default `review`) governs this.
-- FR-4.4 `memo search --as-of <date>` **MUST** return the semantic facts that were valid at that date.
-- FR-4.5 The consolidation report **MUST** include LLM token usage and estimated cost per run.
+- FR-4.1 `memo consolidate --bank <id> [--dry-run] [--limit] [--since] [--report json|text]` **MUST** implement the #57 pipeline within one bank: select `episodic` where `consolidated = false` and not archived → cluster by embedding and tags → LLM proposes candidate facts as strict JSON citing episode ids → gate on `min_episodes` 3, `min_contexts` 2, `min_span_days` 7, and consistency with existing semantic facts → write promoted facts as `semantic` with `provenance`, `valid_from`, self-contained text → mark episodes `consolidated = true` → report. Candidates citing ids outside their cluster are rejected. Running twice on unchanged data produces no duplicates.
+- FR-4.2 Reconsolidation never overwrites: the old fact gets `valid_to` and `superseded_by`; the new fact gets `valid_from` and provenance including the contradicting episodes. A contradiction from one episode in one context does not supersede; it writes the candidate at the lowest tier with `pending_contradiction = true`.
+- FR-4.3 Promotion into `kb` is a separate step, `memo consolidate --bank <id> --promote-to kb`, governed by `consolidation.promote_to_kb` (`review` default | `auto` | `off`). `review` writes candidates to `workstream/memo-promotions-<date>.md`; `auto` or `--yes` writes them as `source: agent`, `confidence: medium`, tagged `promoted-from:<bank>`.
+- FR-4.4 `memo search --as-of <date>` returns the semantic facts valid at that date.
+- FR-4.5 The consolidation report includes token usage and estimated cost.
 
-### 7.5 Phase 5 — Associative memory and event journal (optional)
+### 7.5 Phase 5 — Associative memory, advisory answer, event journal (optional)
 
-- FR-5.1 Links (#56): `links_out`, `links_in_count`, `links_in_contexts`; `memo link`, `memo unlink`, `memo write --link`, `memo reindex-links`; link factor in §8.2; `memo search --expand` with the fan-out rule `N = clamp(round(6 / sqrt(|links_out|)), 1, 5)`.
-- FR-5.2 Event journal (#58): append-only `~/.memo/episodes.jsonl` mirror of episodic writes, `memo verify` drift report, `memo rebuild-semantic [--dry-run]`. Optional; ships only if Phase 4 shows consolidation parameters change often enough to need replay.
-- FR-5.3 `memo ask "<question>" [--agent] [--scope] [--json]` (formerly PRD-002 #37): builds the `recall` bundle, drops `confidence_tier: low`, sends it to the `LLMAdapter` introduced in Phase 4 with the grounding prompt from #37 (answer only from context, cite ids, return the fixed no-answer sentence, ≤ 150 words), and returns `answer`, `sources`, `grounded`. Human-facing convenience; agents use `recall` directly.
+- FR-5.1 Links (#56): `links_out`, `links_in_count`, `links_in_contexts`; `memo link`, `memo unlink`, `memo write --link`, `memo reindex-links`; link factor in §8.2; `memo search --expand` with `N = clamp(round(6 / sqrt(|links_out|)), 1, 5)`.
+- FR-5.2 `memo ask "<question>" [--bank] [--scope] [--json]` (formerly #37): builds the `recall` bundle, drops `confidence_tier: low`, sends it to the `LLMAdapter` from Phase 4 with the #37 grounding prompt, returns `answer`, `sources`, `grounded`. Human-facing; agents use `recall` directly.
+- FR-5.3 Event journal (#58): append-only `~/.memo/episodes.jsonl`, `memo verify`, `memo rebuild-semantic [--dry-run]`. Ships only if Phase 4 shows consolidation parameters change often enough to need replay.
 
 ## 8. Business Rules
 
-### 8.1 Spaces
+### 8.1 Banks and kinds
 
-| Rule | Statement                                                                                                                                                                   |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S1   | Exactly two space types exist: `kb` (scoped by `org`, `repo`) and `agent` (scoped by `agent_id`, optionally `org`/`repo`). No other space types in this PRD.                |
-| S2   | An agent space is readable and writable only when its `agent_id` is resolved. There is no cross-agent search. Cross-agent knowledge flows only through promotion into `kb`. |
-| S3   | `kb` remains the default space for every command, so existing callers see no behavior change.                                                                               |
-| S4   | `memo inspect` reports agent spaces as counts per `agent_id` without exposing their content.                                                                                |
-| S5   | One `agent_id` per agent definition (loop, tools, prompt, data). Roles are `contexts`. Two definitions never share a bank.                                                  |
-| S6   | Agent-only entry types (§2.4) are rejected in `kb`; identity-class entries are exempt from every automated removal level.                                                   |
+Rules B1–B6 (§2.4), K1–K5 (§2.5), and D1–D6 (§2.6) are normative and take precedence over any other section.
 
 ### 8.2 Unified ranking formula
 
-One function, `rankResults`, in `src/lib/ranking.ts`. Factors not yet implemented, or missing on a given payload, evaluate to their neutral value so every phase can ship independently.
+One function, `rankResults`, in `src/lib/ranking.ts`. Factors not yet implemented, or missing on a payload, evaluate to their neutral value so every phase ships independently. `self` entries are never ranked.
 
 ```
 base        = w_similarity * sim + w_recency * recency + w_source * source      # #34, weights sum to 1.0
 boosted     = min(1, base + tag_boost)                                            # #36
 final_score = min(1,
               boosted
-              * (0.5 + 0.5 * retention)          # #54 — neutral 1 when stability absent
-              * (1 + BETA * use_ratio)           # #55 — neutral 1 when counters absent; BETA 0.3
-              * (1 + ALPHA * log(1 + links_in_count) * diversity)   # #56 — neutral 1; ALPHA 0.15
+              * (0.5 + 0.5 * retention)          # #54, neutral 1 when stability absent
+              * (1 + BETA * use_ratio)           # #55, neutral 1 when counters absent; BETA 0.3
+              * (1 + ALPHA * log(1 + links_in_count) * diversity)   # #56, neutral 1; ALPHA 0.15
             )
 confidence_tier = tier(final_score)                                               # #35
 stale           = staleness(entry, same-scope newer entries)                       # #38, annotation only
 ```
 
-Rules:
-
-- R1 `similarity` is clamped to `[0, 1]`; `final_score` is always in `[0, 1]`.
+- R1 `similarity` clamped to `[0, 1]`; `final_score` always in `[0, 1]`.
 - R2 Tie-break: `final_score` desc, `timestamp_utc` desc, `id` asc.
-- R3 Archived and superseded entries are excluded before ranking unless explicitly included; `pinned` entries get no ranking bonus (pinning protects, it does not promote).
-- R4 Weights, `BETA`, `ALPHA`, half-life, thresholds live in `memo.config.json` under `ranking`; invalid values fail `memo setup validate` and `loadConfig` (fail fast, per #34 D7).
-- R5 Issue #56's "replaces the composite formula" statement is superseded by this section; #56 contributes the link factor only.
+- R3 Archived and superseded entries are excluded before ranking unless explicitly included; `pinned` gets no bonus.
+- R4 Weights and factors live in `memo.config.json` under `ranking`; invalid values fail `memo setup validate` and `loadConfig`.
+- R5 Issue #56's "replaces the composite formula" statement is superseded; #56 contributes the link factor only.
 - R6 Default weights are re-validated against the evaluation set at the end of every phase; a phase that lowers top-3 hit rate does not close.
 
-### 8.3 Forgetting ladder
+### 8.3 Feedback
 
-| Level | Mechanism                                  | Trigger                                                            | Reversible | Data loss |
-| ----- | ------------------------------------------ | ------------------------------------------------------------------ | ---------- | --------- |
-| 0     | Ranking demotion (retention, use ratio)    | automatic at query time                                            | yes        | none      |
-| 1     | Supersession (`valid_to`, `superseded_by`) | reconsolidation, `memo write --supersedes <id>`                    | yes        | none      |
-| 2     | Archive (`archived = true`)                | `memo decay`, `expires_at`, `memo forget` default                  | yes        | none      |
-| 3     | Purge (hard delete + tombstone)            | `memo forget --purge`, `memo decay --purge-expired`, `memo delete` | no         | yes       |
-
-Rules:
-
-- F1 No automated job crosses level 2 unless `purge_after_days` is explicitly set for that space.
-- F2 An episodic entry cited as `provenance` by a currently valid semantic fact cannot be archived or purged while that fact is valid; `memo forget --purge` on it fails with `PROVENANCE_PROTECTED` unless `--cascade` is passed, which supersedes the dependent fact first.
-- F3 `pinned` entries are exempt from levels 2 and 3 unless `--include-pinned`.
-- F4 Every level-3 action writes a tombstone record; `memo stats` reports purge counts.
-- F5 Identity-class entries (`profile`, `preference`, `goal`, `relationship`) never reach levels 2 or 3 through `memo decay` or expiry; only supersession, a `goal` status change, or `memo forget` with an explicit `--id` or `--agent` selector removes them.
-
-### 8.4 Default retention policy per space
-
-| Space / kind       | Initial stability | Archive threshold | `expires_at` default | Purge after archive |
-| ------------------ | ----------------- | ----------------- | -------------------- | ------------------- |
-| `kb` / semantic    | 7 days            | 0.05              | none                 | never               |
-| `kb` / episodic    | 1 day             | 0.05              | 90 days              | never               |
-| `agent` / semantic | 7 days            | 0.05              | none                 | never               |
-| `agent` / episodic | 1 day             | 0.05              | 30 days              | off (opt-in)        |
-| `agent` / identity | n/a (no decay)    | n/a               | none                 | never               |
-
-All values are config keys under `spaces.<space>.<kind>`.
-
-### 8.5 Feedback
-
-- FB1 `memo used` is the only positive signal; absence of a report is not a negative signal (many agents cannot call back).
+- FB1 `memo used` is the only positive signal; absence of a report is not a negative signal.
 - FB2 `--wrong` is the only negative signal; it flags, it never archives or supersedes on its own.
-- FB3 `memo search --auto-used` (top-1 counts as used) is off by default and marked as a weak signal in the usage log.
-- FB4 dev-tasks agents call `memo used` at story completion with the ids they cited in intent/outcome entries or acted on.
+- FB3 `memo search --auto-used` (top-1 counts as used) is off by default and marked weak in the usage log.
+- FB4 dev-tasks agents call `memo used` at story completion with the ids they cited or acted on.
+
+### 8.4 Retention policy defaults (config keys under `banks.<kb|private>.<kind>`)
+
+| Bank type / kind     | Initial stability | `expires_in_days` | `archive_threshold` | `archive_noisy` | `promoted_grace_days` | `superseded_grace_days` | `purge_after_days` |
+| -------------------- | ----------------- | ----------------- | ------------------- | --------------- | --------------------- | ----------------------- | ------------------ |
+| private / `self`     | n/a               | none              | n/a                 | n/a             | n/a                   | n/a (stays superseded)  | never              |
+| private / `episodic` | 1 day             | 30                | 0.05                | n/a             | 7                     | n/a                     | 30                 |
+| private / `semantic` | 7 days            | none              | 0.05                | true            | n/a                   | 30                      | 90                 |
+| `kb` / `episodic`    | 1 day             | 90                | 0.05                | n/a             | 7                     | n/a                     | never              |
+| `kb` / `semantic`    | 7 days            | none              | 0.05                | false           | n/a                   | 30                      | never              |
+
+`never` means the key is absent and `memo decay --purge-expired` skips that class. Setting `purge_after_days` on `kb` is allowed but requires an explicit value; there is no default.
 
 ## 9. Data Requirements
 
@@ -283,34 +316,31 @@ Single collection `decisions`, cosine, 1536 dims (unchanged). All new fields are
 erDiagram
     MEMORY {
         uuid id PK
-        string schema_version "\"1\" (absent) or \"2\""
-        enum space "kb | agent, indexed (new)"
-        string agent_id "kebab, indexed, required when space=agent (new)"
-        enum kind "episodic | semantic, indexed (new)"
-        string repo "indexed"
+        string schema_version "absent = v1, \"2\" = v2"
+        string bank "unique bank key, indexed (new); absent = kb"
+        enum kind "self | episodic | semantic, indexed (new)"
+        string repo "indexed; optional in private banks"
         string org "indexed"
         string domain
         string rationale "1-5000 chars, full-text indexed (new index)"
         string[] tags "2-5 kebab, indexed"
-        enum entry_type "decision | integration_point | structure | policy | profile | preference | goal | relationship | lesson | observation"
-        enum status "goal only: open | done | dropped (new)"
-        string agent_definition_ref "profile only (new)"
+        enum entry_type "decision | integration_point | structure | policy | observation"
         enum source "agent | manual | scan"
         enum confidence "payload only; output uses confidence_tier"
         datetime timestamp_utc "indexed"
         string session_id "episodic, indexed (new)"
         int seq "episodic, optional (new)"
         string[] contexts "kebab (new)"
-        uuid[] provenance "semantic (new)"
-        datetime valid_from "semantic (new)"
-        datetime valid_to "semantic, null = valid, indexed (new)"
-        uuid superseded_by "semantic (new)"
-        bool consolidated "episodic (new)"
+        uuid[] provenance "semantic; audit only, may dangle (new)"
+        datetime valid_from "self, semantic (new)"
+        datetime valid_to "null = valid, indexed (new)"
+        uuid superseded_by "(new)"
+        bool consolidated "episodic, indexed (new)"
         bool pinned "(new)"
         bool archived "indexed (new)"
-        enum archived_reason "decay | forget | superseded | expired (new)"
+        enum archived_reason "expired | decayed | noisy | promoted | superseded | forget (new)"
         datetime archived_at "(new)"
-        datetime expires_at "(new)"
+        datetime expires_at "episodic (new)"
         float stability "days (new)"
         datetime last_retrieved_at "(new)"
         int retrieval_count "(new)"
@@ -329,17 +359,17 @@ erDiagram
     MEMORY ||--o{ MEMORY : "provenance / superseded_by / links_out"
 ```
 
-Local files (never contain credentials):
+Local files (mode `0600`, never credentials):
 
 | Path                              | Purpose                                                   | Format     |
 | --------------------------------- | --------------------------------------------------------- | ---------- |
 | `~/.memo/queries/<query_id>.json` | Result-set snapshot for `memo used` validation, 7-day TTL | JSON       |
 | `~/.memo/usage.jsonl`             | Append-only usage events                                  | JSON lines |
-| `~/.memo/forget.jsonl`            | Tombstones for purges                                     | JSON lines |
+| `~/.memo/forget.jsonl`            | Tombstones for every purge                                | JSON lines |
 | `~/.memo/episodes.jsonl`          | Phase 5 optional episodic journal                         | JSON lines |
 | `tests/fixtures/relevance/`       | Evaluation set and seed entries                           | JSON       |
 
-Config v2 (`memo.config.json`, additive, `schema_version: "2"` optional; v1 files stay valid):
+Config v2 (`memo.config.json`, additive; v1 files stay valid):
 
 ```json
 {
@@ -347,10 +377,16 @@ Config v2 (`memo.config.json`, additive, `schema_version: "2"` optional; v1 file
   "repo": "memo-cli",
   "org": "llipe",
   "domain": "ai",
-  "agent": { "default_id": "jarvis" },
-  "spaces": {
-    "kb": { "episodic": { "expires_in_days": 90 } },
-    "agent": { "episodic": { "expires_in_days": 30, "purge_after_days": null } }
+  "bank": { "default": "kb" },
+  "banks": {
+    "kb": {
+      "episodic": { "expires_in_days": 90, "promoted_grace_days": 7 },
+      "semantic": { "superseded_grace_days": 30, "archive_noisy": false }
+    },
+    "private": {
+      "episodic": { "expires_in_days": 30, "promoted_grace_days": 7, "purge_after_days": 30 },
+      "semantic": { "superseded_grace_days": 30, "archive_noisy": true, "purge_after_days": 90 }
+    }
   },
   "ranking": {
     "w_similarity": 0.6,
@@ -370,7 +406,9 @@ Config v2 (`memo.config.json`, additive, `schema_version: "2"` optional; v1 file
     "base_gain": 1.6,
     "used_bonus": 0.5,
     "max_stability_days": 365,
-    "archive_threshold": 0.05
+    "archive_threshold": 0.05,
+    "noisy_min_retrievals": 10,
+    "noisy_max_use_ratio": 0.1
   },
   "consolidation": {
     "min_episodes": 3,
@@ -382,90 +420,92 @@ Config v2 (`memo.config.json`, additive, `schema_version: "2"` optional; v1 file
 }
 ```
 
-Sensitivity: agent spaces may contain task narratives and file paths; they are subject to the same "no secrets" rule as the KB. No PII is introduced. Agent ids are labels, not user identities.
+Sensitivity: private banks may contain task narratives and file paths; the "no secrets" rule applies. Bank ids are labels, not identities.
 
 ## 10. Non-Goals (Out of Scope)
 
-- RBAC, per-user identity, or access control between agents beyond the `agent_id` filter (the shared-cluster policy of v1 stands).
-- A standalone PRD-002 track. PRD-002 is superseded by this PRD: its Phases A and B are Phase 1 here, its evaluation set is FR-1.1, its LLM adapter ships with Phase 4, and `memo ask` is FR-5.3 (optional).
+- RBAC, per-user identity, or access control between banks beyond the `bank` filter (the shared-cluster policy of v1 stands).
+- A standalone PRD-002 track. PRD-002 is superseded by this PRD.
 - Org-wide policies (PRD-003). `recall` includes them when present; it does not implement them.
 - Layered credential configuration (#33).
 - Procedural memory (skills, prompts). Per #53, that belongs in versioned skill files.
+- Entry types that encode purpose (profile, preference, goal, lesson). Purpose lives in the text; the store models only `kind`.
 - Multiple Qdrant collections, other vector databases, or a graph database.
 - Web UI, real-time multi-machine sync beyond what Qdrant provides.
-- Automatic hard deletion by any scheduled job.
 
 ## 11. Design Considerations
 
 No UI. CLI output rules from `docs/technical-guidelines.md` §4 apply. Additions:
 
-- `memo recall` human output prints section headers (`POLICIES`, `SHARED`, `MINE`, `LAST SESSION`, `CONFLICTS`) and one line per entry: tier, score, first sentence, id.
+- `memo recall` prints section headers (`SELF`, `POLICIES`, `SHARED`, `MINE`, `LAST SESSION`, `CONFLICTS`) and one line per entry: tier, score, first sentence, id. `SELF` lines have no score.
 - `memo search --explain` prints an aligned factor table per result.
-- `memo forget --dry-run` and `memo decay --dry-run` print the exact selector, counts per space and kind, and up to 20 sample ids.
+- `memo decay --dry-run` and `memo forget --dry-run` print the selector, counts per bank and kind, and up to 20 sample ids per class.
 - Archived and superseded entries, when included, are prefixed `[archived]` / `[superseded]`.
-- `NO_COLOR` and non-TTY behavior unchanged.
 
 ## 12. Technical Considerations
 
-- **Single collection, payload isolation.** Chosen over one collection per space because `deleteByFilter`, facets, and cross-space `recall` already work on payload filters, and the free-tier cost constraint favors one index. Trade-off: "forget everything Jarvis knows" is a filter delete, not a collection drop; mitigated by `memo forget --agent <id> --dry-run` previews.
-- **Ranking stays post-retrieval and pure.** `src/lib/ranking.ts` is side-effect free with injected `now` (per #34 constraints). Over-fetch `max(limit, min(limit * 3, 50))` remains; lexical fusion over-fetches the same amount from the text index.
-- **Lexical index.** Qdrant `text` payload index on `rationale` and `files_modified` with word tokenizer, min 2 / max 20 token length. Adding an index to an existing collection is online in Qdrant; `ensureCollection` **MUST** create missing indexes idempotently.
-- **Retrieval counters.** One `setPayload` batch per search. On failure the search result still returns (counters are best-effort, logged under `MEMO_DEBUG`).
-- **LLM usage** is confined to `memo consolidate`, uses the `LLMAdapter` planned in PRD-002 §7.6 (OpenAI SDK, Ollama-compatible), and always reports cost.
-- **Migration** is a scroll-and-update pass with `--dry-run`, resumable, idempotent (skips `schema_version = "2"`). No reindex of vectors.
-- **Performance targets.** `search` < 2.5 s (unchanged) including counters; `recall` < 4 s; `decay` and `consolidate` are offline and unbounded but report progress.
-- **Testing.** Ranking, retention, forgetting-ladder, and migration rules are pure functions with table-driven unit tests; commands are integration-tested against a mocked `QdrantRepository`; the evaluation script is a CI job that fails on regression below the recorded baseline.
-- **dev-tasks coupling.** The skill update ships in the same phase as `recall` (Phase 2) so agents adopt the new flow immediately; the old four-command sequence remains valid.
+- **Single collection, payload isolation.** One Qdrant collection filtered by `bank` and `kind`. `deleteByFilter`, facets, and `recall` already work on payload filters; the free-tier cost constraint favors one index. "Forget this bank" is a filter delete with a dry-run preview.
+- **Ranking stays post-retrieval and pure** (`src/lib/ranking.ts`, injected `now`). Over-fetch `max(limit, min(limit * 3, 50))`; lexical fusion over-fetches the same from the text index.
+- **Lexical index.** Qdrant `text` payload index on `rationale` and `files_modified`; `ensureCollection` creates missing indexes idempotently.
+- **Retrieval counters.** One `setPayload` batch per search; best-effort, logged under `MEMO_DEBUG`.
+- **Deletion jobs.** `memo decay` is one scroll per bank and one batched payload update, plus one filter delete for purges. No LLM. `memo consolidate` is the only LLM consumer and uses the `LLMAdapter` (OpenAI SDK, Ollama-compatible).
+- **Migration** is a scroll-and-update pass, resumable, idempotent, no vector reindex.
+- **Performance.** `search` < 2.5 s including counters; `recall` < 4 s; `decay` on a 10K-entry bank < 30 s; `consolidate` offline, reports progress.
+- **Testing.** Ranking, retention, the §2.6 state machine, and migration rules are pure, table-driven unit tests. Commands are integration-tested against a mocked `QdrantRepository`. The evaluation script is a CI job that fails below the recorded baseline.
+- **dev-tasks coupling.** The skill and prompt changes ship in Phase 2 with `recall` and Phase 3 with `used`/`decay`; the old sequence remains valid.
 
 Phase dependency graph:
 
 ```mermaid
 flowchart LR
-  P1["Phase 1\nTrustworthy retrieval\n#34 #36 #35 #38 + eval + lexical"] --> P2["Phase 2\nSpaces, kinds, sessions,\nrecall, migrate, dev-tasks skill"]
-  P2 --> P3["Phase 3\nFeedback + forgetting\n#55 #54 + forget + stats + policies"]
+  P1["Phase 1\nTrustworthy retrieval\n#34 #36 #35 #38 + eval + lexical"] --> P2["Phase 2\nBanks, kinds, sessions,\nrecall, migrate, dev-tasks skill"]
+  P2 --> P3["Phase 3\nFeedback + forgetting\n#55 #54 + decay, forget, restore, stats"]
   P3 --> P4["Phase 4\nConsolidation + promotion\n#57 + as-of"]
-  P4 --> P5["Phase 5 (optional)\nLinks #56, journal #58"]
+  P4 --> P5["Phase 5 (optional)\nLinks #56, ask #37, journal #58"]
 ```
 
 ## 13. Acceptance Criteria
 
-Phase-level exit criteria. Story-level criteria are produced in the spec and stories for each phase.
+Phase-level exit criteria. Story-level criteria are produced in each phase's spec and stories.
 
 **Phase 1**
 
-- [ ] AC-1.1 Evaluation set exists with ≥ 20 labeled queries; baseline top-3 hit rate is recorded in this PRD's changelog.
+- [ ] AC-1.1 Evaluation set exists with ≥ 20 labeled queries; baseline top-3 hit rate is recorded in this changelog.
 - [ ] AC-1.2 Under default config, a fresh mid-similarity entry outranks a stale high-similarity one (#34 AC2 scenario).
-- [ ] AC-1.3 A query containing an exact file name returns the entry that lists that file in `files_modified` in the top 3, with `--lexical off` it may not.
+- [ ] AC-1.3 A query containing an exact file name returns the entry listing that file in the top 3; with `--lexical off` it may not.
 - [ ] AC-1.4 JSON output carries `query_id`, `final_score`, `similarity`, `recency_score`, `source_score`, `tag_boost`, `confidence_tier`, and `stale`/`superseded_by` when applicable; existing envelope keys are unchanged.
-- [ ] AC-1.5 Top-3 hit rate on the evaluation set is ≥ 80% or ≥ baseline + 15 points, whichever is lower, and never below baseline.
+- [ ] AC-1.5 Top-3 hit rate is ≥ 80% or ≥ baseline + 15 points, whichever is lower, and never below baseline.
 
 **Phase 2**
 
-- [ ] AC-2.1 `memo write --space agent` without a resolvable `agent_id` exits 1 with `VALIDATION_FAILED`; with `MEMO_AGENT=jarvis` it succeeds and the point carries `space = agent`, `agent_id = jarvis`, `kind = episodic`.
-- [ ] AC-2.2 `memo search` with no new flags returns exactly the entries it returned before migration (default scope `kb`, archived/superseded excluded, none exist yet).
-- [ ] AC-2.3 `memo search --space agent --agent jarvis` never returns another agent's entries (tested with two agents).
-- [ ] AC-2.4 `memo timeline --session s-42` returns entries in `seq` then `timestamp_utc` order regardless of similarity.
-- [ ] AC-2.5 `memo recall` returns all five sections when data exists, deduplicates ids across sections, respects `--max-tokens` by trimming from the bottom, and returns one `query_id`.
-- [ ] AC-2.6 `memo migrate --to-v2 --dry-run` writes nothing; a real run classifies intent/outcome-tagged entries as episodic and everything else as semantic; a second run reports 0 changes.
-- [ ] AC-2.7 dev-tasks `developer` prompt uses `memo recall` at session start and writes intent/outcome entries with `--space agent --session ISSUE-<n>`.
-- [ ] AC-2.8 `memo write --entry-type profile` in `kb` exits 1 with `VALIDATION_FAILED`; in `space = agent` it succeeds. `memo recall --agent jarvis` returns a `SELF` section listing the profile, preferences, open goals, and relationships and omits goals with `status = done`; `SELF` survives `--max-tokens` trimming.
-- [ ] AC-2.9 `memo agent init --id jarvis` creates exactly one `profile` entry; running it twice reports the existing profile and creates nothing.
+- [ ] AC-2.1 `memo write --kind self` in bank `kb` exits 1 with `VALIDATION_FAILED`; with `MEMO_BANK=jarvis-memory` it succeeds and the point carries `bank = jarvis-memory`, `kind = self`.
+- [ ] AC-2.2 `memo write` in a private bank with no `--kind` produces `kind = episodic`; in `kb` it produces `kind = semantic`.
+- [ ] AC-2.3 `memo search` with no new flags returns exactly the entries it returned before migration.
+- [ ] AC-2.4 `memo search --bank a-memory` never returns entries of `b-memory` (tested with two banks).
+- [ ] AC-2.5 `memo timeline --bank x --session s-42` returns entries in `seq` then `timestamp_utc` order regardless of similarity.
+- [ ] AC-2.6 `memo recall --bank x` returns `SELF` first with every valid `self` entry, omits superseded `self` entries, keeps `SELF` intact under `--max-tokens` trimming, deduplicates ids across sections, and returns one `query_id`.
+- [ ] AC-2.7 `memo migrate --to-v2 --dry-run` writes nothing; a real run applies the FR-2.8 rules; a second run reports 0 changes; no entry is archived or deleted.
+- [ ] AC-2.8 `memo write --kind self --supersedes <id>` hides the old entry from `recall` and `memo bank show`; `memo read` still returns it with `valid_to` set.
+- [ ] AC-2.9 dev-tasks `developer` prompt uses `memo recall` at session start and writes intent/outcome entries as episodic in the agent's bank with `--session ISSUE-<n>`.
 
 **Phase 3**
 
 - [ ] AC-3.1 `memo used` with an id not in the query's result set exits 1; with valid ids it increments `used_count` and appends one usage event per id.
-- [ ] AC-3.2 Two retrievals within `min_spacing_hours` increment `retrieval_count` twice and change `stability` once.
-- [ ] AC-3.3 `memo decay --dry-run` archives nothing; a real run archives entries below threshold, skips pinned, identity-class, and provenance-protected entries, and never calls delete (asserted on the mock). A `profile` entry with `last_retrieved_at` 400 days ago is not archived.
-- [ ] AC-3.4 `memo forget --session s-42 --dry-run` lists the matching ids; without `--dry-run` it archives them with `archived_reason = forget`; `--purge` deletes them and writes tombstones; `--purge --space agent --json` is rejected.
-- [ ] AC-3.5 An entry with `use_ratio` 0.8 outranks an otherwise identical entry with `use_ratio` 0 under default `use_beta`.
-- [ ] AC-3.6 `memo stats` lists at least one noisy entry in a fixture where one entry has `retrieval_count` 12 and `used_count` 0.
+- [ ] AC-3.2 Two retrievals within `min_spacing_hours` increment `retrieval_count` twice and change `stability` once; `self` entries are never counted.
+- [ ] AC-3.3 `memo decay --dry-run` writes nothing. A real run on a private bank: archives episodic entries past `expires_at`, archives consolidated episodic entries past `promoted_grace_days`, archives semantic entries below `archive_threshold` or noisy, never touches `self` or `pinned`, and never calls delete unless `--purge-expired` is passed (asserted on the mock).
+- [ ] AC-3.4 `memo decay --purge-expired` on a private bank deletes only entries archived longer than `purge_after_days` and writes one tombstone each; on `kb` it deletes nothing.
+- [ ] AC-3.5 A `self` entry with `last_retrieved_at` 400 days ago and a `pinned` semantic entry with retention 0.001 survive `memo decay`.
+- [ ] AC-3.6 `memo forget --session s-42 --dry-run` lists ids; without `--dry-run` it archives them with `archived_reason = forget`; `--purge` deletes them with tombstones; `--purge --bank x --json` is rejected; `memo restore --id` brings an archived entry back.
+- [ ] AC-3.7 An entry with `use_ratio` 0.8 outranks an otherwise identical entry with `use_ratio` 0.
+- [ ] AC-3.8 `memo stats` lists a noisy entry in a fixture with `retrieval_count` 12 and `used_count` 0, and reports purge counts from tombstones.
 
 **Phase 4**
 
-- [ ] AC-4.1 `memo consolidate --dry-run` with a mocked LLM prints candidates and writes nothing; a real run promotes only clusters meeting all thresholds; a candidate with evidence in one context is rejected regardless of count.
+- [ ] AC-4.1 `memo consolidate --dry-run` with a mocked LLM prints candidates and writes nothing; a real run promotes only clusters meeting all thresholds; a candidate with evidence in one context is rejected regardless of count; promoted episodes are marked `consolidated`.
 - [ ] AC-4.2 A contradicting cluster sets `valid_to` and `superseded_by` on the old fact and never mutates its `rationale`; `memo search --as-of <before>` returns the old fact.
-- [ ] AC-4.3 `--promote-to kb` with `promote_to_kb = review` writes a review file and no KB points; with `--yes` it writes points tagged `promoted-from:<agent_id>`.
+- [ ] AC-4.3 `--promote-to kb` with `promote_to_kb = review` writes a review file and no `kb` points; with `--yes` it writes points tagged `promoted-from:<bank>`.
 - [ ] AC-4.4 The report includes token usage and cost; running twice on unchanged data produces no new facts.
+- [ ] AC-4.5 After promotion and `promoted_grace_days`, `memo decay` archives the source episodes and `memo read` on the semantic entry shows their ids as `(deleted)` once purged.
 
 **All phases**
 
@@ -474,54 +514,51 @@ Phase-level exit criteria. Story-level criteria are produced in the spec and sto
 
 ## 14. Success Metrics
 
-| Metric                                                          | Baseline            | Target                                    | Phase |
-| --------------------------------------------------------------- | ------------------- | ----------------------------------------- | ----- |
-| Top-3 relevance on evaluation set                               | measured in Phase 1 | ≥ 80%                                     | 1     |
-| Session-start commands per agent session                        | 4                   | 1 (`memo recall`)                         | 2     |
-| Share of default search results that are archived or superseded | n/a                 | 0%                                        | 3     |
-| Stories with a `memo used` report                               | 0%                  | ≥ 80% of dev-tasks stories                | 3     |
-| Use ratio of `recall` results                                   | unknown             | ≥ 30% of returned ids reported used       | 3     |
-| Noisy entries (`retrieval ≥ 10`, `use_ratio < 0.1`)             | unknown             | trending down month over month            | 3     |
-| Hard deletes by automated jobs                                  | n/a                 | 0                                         | 3     |
-| Consolidation cost                                              | n/a                 | < $0.05 per 100 episodes at default model | 4     |
-| `memo search` latency                                           | < 2.5 s             | < 2.5 s including counters                | 1–3   |
-| `memo recall` latency                                           | n/a                 | < 4 s                                     | 2     |
-| Persona resume                                                  | n/a                 | `SELF` section complete in one call       | 2     |
+| Metric                                                                        | Baseline            | Target                                    | Phase |
+| ----------------------------------------------------------------------------- | ------------------- | ----------------------------------------- | ----- |
+| Top-3 relevance on evaluation set                                             | measured in Phase 1 | ≥ 80%                                     | 1     |
+| Session-start commands per agent session                                      | 4                   | 1 (`memo recall`)                         | 2     |
+| Persona resume                                                                | n/a                 | `SELF` section complete in one call       | 2     |
+| Share of default search results that are archived or superseded               | n/a                 | 0%                                        | 3     |
+| Stories with a `memo used` report                                             | 0%                  | ≥ 80% of dev-tasks stories                | 3     |
+| Use ratio of `recall` results                                                 | unknown             | ≥ 30% of returned ids reported used       | 3     |
+| Private-bank episodic entries older than `expires_in_days + purge_after_days` | n/a                 | 0 after each `memo decay --purge-expired` | 3     |
+| Noisy entries (`retrieval ≥ 10`, `use_ratio < 0.1`)                           | unknown             | trending down month over month            | 3     |
+| Removals without a tombstone or an `archived_reason`                          | n/a                 | 0                                         | 3     |
+| Consolidation cost                                                            | n/a                 | < $0.05 per 100 episodes at default model | 4     |
+| `memo search` latency                                                         | < 2.5 s             | < 2.5 s including counters                | 1–3   |
+| `memo recall` latency                                                         | n/a                 | < 4 s                                     | 2     |
 
 ## 15. Assumptions
 
-- An agent is a defined loop, tool set, prompt, and data; each definition owns one `agent_id` and one memory bank. Roles (`planner`, `developer`) are `contexts`. One agent runs one session at a time.
-- The dev-tasks harness can inject `MEMO_AGENT` or pass `--agent`.
-- Existing entries written by dev-tasks are distinguishable by the `intent`/`outcome` tags the skill mandates; entries that do not follow the skill are classified semantic and can be re-classified by hand.
-- Qdrant ≥ 1.7 supports full-text payload indexes and batch payload updates (true since 1.1).
-- One LLM provider (OpenAI-compatible, Ollama for offline) is sufficient for consolidation.
-- The current low volume (hundreds to low thousands of entries per org) makes scroll-based jobs acceptable; no pagination redesign is needed before ~100K points.
+- A bank id is chosen by the caller and stable for the life of the agent definition. dev-tasks derives it from the agent definition name (for example `planner-memory`). One bank serves one session at a time.
+- The dev-tasks harness can export `MEMO_BANK`.
+- Existing dev-tasks entries carry the `intent`/`outcome` tags the skill mandates; entries that do not are classified semantic and can be re-tagged.
+- Qdrant ≥ 1.7 supports full-text payload indexes and batch payload updates.
+- One OpenAI-compatible LLM provider (Ollama for offline) is sufficient for consolidation.
+- Current volume (hundreds to low thousands of entries per bank) makes scroll-based jobs acceptable below ~100K points.
 
 ## 16. Constraints & Dependencies
 
-- **Ordering.** Phase 1 must land before Phase 2 because `recall` relies on tiers and staleness; Phase 3 relies on `query_id` persistence and `kind`; Phase 4 relies on `provenance`, `valid_*`, and retention; Phase 5 is optional.
-- **Existing issues.** Phase 1 reuses #34, #36, #35, #38 (already refined; only the formula section of #34's refinement changes). Phase 2 supersedes the CLI vocabulary of #53 and adds spaces. Phase 3 reuses #54 and #55. Phase 4 reuses #57. Phase 5 reuses #56 and #58. Whether each existing issue is reused with a "Refined Scope" comment or closed and replaced is decided during the spec for the phase that covers it; #56's formula note is corrected either way.
-- **PRD-002** is superseded by this PRD (changelog row added there). **PRD-003 (policies)** stays a parallel track; `recall` consumes policies when they exist.
+- **Ordering.** Phase 1 before Phase 2 (`recall` relies on tiers and staleness); Phase 3 relies on `query_id` persistence and `kind`; Phase 4 relies on `provenance`, `valid_*`, and retention; Phase 5 is optional.
+- **Existing issues.** Phase 1 covers #34, #36, #35, #38; Phase 2 covers #53's intent with the vocabulary of this PRD; Phase 3 covers #54 and #55 with the deletion contract of §2.6 replacing #54's provenance-protection rule; Phase 4 covers #57; Phase 5 covers #56, #37, #58. Whether each issue is reused with a "Refined Scope" comment or closed and replaced is decided during the spec for the phase that covers it.
+- **PRD-002** is superseded by this PRD. **PRD-003 (policies)** stays a parallel track; `recall` consumes policies when they exist.
 - **Cost.** No new paid infrastructure. LLM spend only in `consolidate`, reported per run.
-- **Compatibility.** Semver minor for Phases 1–3 (additive). Phase 2's dedupe key change is additive (v1 keys still match). A major bump is only needed if the `confidence` payload field is ever removed, which this PRD does not do.
-- **dev-tasks release coupling.** The skill and prompt changes ship as a dev-tasks minor release aligned with memo-cli Phase 2.
+- **Compatibility.** Semver minor for Phases 1–3 (additive). The dedupe key change is additive (v1 keys still match). No major bump is required by this PRD.
+- **dev-tasks release coupling.** Skill and prompt changes ship as dev-tasks minor releases aligned with memo-cli Phases 2 and 3.
 
 ## 17. Security & Compliance
 
-- Credentials remain env-only; new local files under `~/.memo/` contain ids, timestamps, selectors, and agent labels only. They are created with mode `0600`.
-- Agent spaces are a namespace, not a security boundary; the v1 shared-cluster policy applies. This is stated in the docs.
-- `--purge` and `memo delete` are the only irreversible operations; both require `--yes` or a TTY confirmation, write tombstones (purge) and are blocked for whole-space selectors in `--json` mode.
-- Consolidation prompts contain memory content only; no credentials, no file contents beyond what agents already wrote into `rationale`.
+- Credentials remain env-only; files under `~/.memo/` hold ids, timestamps, selectors, and bank labels only, mode `0600`.
+- Banks are a namespace, not a security boundary; the v1 shared-cluster policy applies and is stated in the docs.
+- Irreversible operations (`--purge`, `memo delete`, `--purge-expired`) require `--yes`, a TTY confirmation, or declared policy; every one writes a tombstone; bank-wide purge is blocked in `--json` mode.
+- Consolidation prompts contain memory text only.
 - Query result snapshots expire after 7 days and are pruned on the next `memo` invocation.
 
 ## 18. Open Questions
 
-1. **Agent identity model.** Resolved in v1.1: one `agent_id` per agent definition; identity-class entry types live only in the agent bank (§2.4).
-2. **Migration default.** This PRD classifies existing entries by tag and defaults the rest to `semantic` so default search stays populated. #53 proposed "everything episodic" and a first consolidation run. Confirm the tag-based rule and whether `story` should become `session_id` on migrated episodic entries.
-3. **Recency vs retention overlap.** Both are time-based. Keep both with defaults and tune on the evaluation set, or drop `w_recency` to 0.15 once retention exists? Default assumed: keep both, tune in Phase 3 exit.
-4. **Purge policy for agent short-term memory.** Resolved in v1.1: archive at 30 days, purge off unless `purge_after_days` is set.
-5. **Promotion review location.** A file under `workstream/` versus a GitHub issue per promotion batch via `github-ops`. Default assumed: file, because it works outside GitHub-backed repos.
-6. **Consolidation model and runner.** OpenAI `gpt-4.1-nano` by default with Ollama fallback; should consolidation run in CI on a schedule or only by hand until Phase 4 exit metrics are met? Default assumed: by hand with `--dry-run` first.
-7. **Negative feedback scope.** Is `--wrong` sufficient, or do agents need a `--not-useful` signal that lowers stability directly? Default assumed: `--wrong` only.
-8. **`memo ask` placement.** Resolved in v1.1: PRD-002 is superseded; `memo ask` is FR-5.3, optional.
-9. **Agent definition reference.** Should `agent_definition_ref` be a content hash computed by dev-tasks from the agent's prompt and tool list, or a free-form version string? Default assumed: free-form string; hashing is a dev-tasks concern.
+1. **Purge default for private episodic memory.** v1.1 recorded "purge off". v1.2 sets `purge_after_days: 30` for private episodic entries because short-term memory must end deleted or promoted (§2.5). Confirm the flip, or set the default back to `never` and accept that archived episodes accumulate until a human runs `memo forget --purge`.
+2. **Migration rule 2 default.** Confirm that entries without `intent`/`outcome` tags become `semantic` (FR-2.8) and that `story` becomes `session_id` on migrated episodic entries.
+3. **Recency vs retention overlap.** Both are time-based. Keep both with defaults and tune on the evaluation set, or lower `w_recency` once retention exists? Default: keep both, tune at Phase 3 exit.
+4. **Promotion review location.** A file under `workstream/` versus a GitHub issue per promotion batch. Default: file, because it works outside GitHub-backed repos.
+5. **`self` soft cap.** 50 entries per bank with a warning, no hard limit. Confirm.
