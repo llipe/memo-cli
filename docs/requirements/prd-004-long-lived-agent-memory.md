@@ -2,13 +2,14 @@
 
 ## Changelog
 
-| Version | Date       | Summary                                                                                                   | Author           |
-| ------- | ---------- | --------------------------------------------------------------------------------------------------------- | ---------------- |
-| 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap. | product-engineer |
+| Version | Date       | Summary                                                                                                                                                                                                                       | Author           |
+| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap.                                                                                                                     | product-engineer |
+| 1.1     | 2026-09-19 | Review round 1: agent memory bank gets identity-class entry types and a SELF recall section; PRD-002 folded in and superseded (`memo ask` moves to Phase 5, optional); purge default confirmed; issue reuse deferred to spec. | product-engineer |
 
 ## 1. Executive Summary
 
-memo-cli today is a single shared knowledge base of repo-scoped decisions with cosine-similarity search. dev-tasks agents write intent, outcome, and ADR entries into it, but retrieval is noisy, nothing is ever forgotten, and no signal flows back about whether a retrieved entry was useful. PRD-004 turns memo-cli into a long-lived memory layer for autonomous agents: it introduces **memory spaces** (a shared knowledge base per org/repo plus a private memory bank per named agent), **episodic and semantic kinds** with a sequential session timeline, a one-call **`memo recall`** context bundle, a **feedback loop** (`memo used`) that drives ranking, and a principled **forgetting** model (decay, supersession, explicit `memo forget`) that never silently destroys data. Delivery is phased so retrieval quality is measured first and every later phase is gated on that measurement.
+memo-cli today is a single shared knowledge base of repo-scoped decisions with cosine-similarity search. dev-tasks agents write intent, outcome, and ADR entries into it, but retrieval is noisy, nothing is ever forgotten, and no signal flows back about whether a retrieved entry was useful. PRD-004 turns memo-cli into a long-lived memory layer for autonomous agents: it introduces **memory spaces** (a shared knowledge base per org/repo plus a private memory bank per named agent), **episodic and semantic kinds** with a sequential session timeline, a one-call **`memo recall`** context bundle, a **feedback loop** (`memo used`) that drives ranking, and a principled **forgetting** model (decay, supersession, explicit `memo forget`) that never silently destroys data. Delivery is phased so retrieval quality is measured first and every later phase is gated on that measurement. PRD-002 (search ranking and retrieval) is folded into this PRD and superseded by it.
 
 ## 2. Feature Overview
 
@@ -26,7 +27,7 @@ memo-cli today is a single shared knowledge base of repo-scoped decisions with c
 
 Three gaps block the vision and are not covered by any existing artifact:
 
-1. **No notion of whose memory it is.** A planner agent ("Jarvis") has nowhere to keep its own short-term episodes and long-term lessons apart from the team's decision record. Today its per-story intent/outcome entries land in the shared KB and crowd out durable decisions.
+1. **No notion of whose memory it is.** An agent is a defined loop, tool set, prompt, and data. Such an agent has nowhere to keep its own identity, preferences, open commitments, short-term episodes, and long-term lessons apart from the team's decision record, so it cannot resume months later as the same persona. Today its per-story intent/outcome entries land in the shared KB and crowd out durable decisions.
 2. **No single recall primitive.** dev-tasks agents run four commands at session start (`list`, `tags list`, two `search`es) and synthesize by hand. There is no ranked, deduplicated, token-budgeted bundle.
 3. **No governed forgetting.** The only removal path is hard delete. There is no retention policy, no soft archive, no "what should I forget and why" report.
 
@@ -43,13 +44,15 @@ flowchart TB
     end
     subgraph AG["space = agent  (private, scoped by agent_id)"]
       AE[episodic: session timeline, observations, tool outcomes]
-      AS[semantic: consolidated lessons, preferences, heuristics]
+      AI[identity: profile, preferences, goals, relationships]
+      AS[semantic: consolidated lessons, heuristics]
     end
   end
   KE -- "memo consolidate" --> KS
   AE -- "memo consolidate --agent jarvis" --> AS
   AS -- "promote (review-gated)" --> KS
   R["memo recall"] --> KS
+  R --> AI
   R --> AS
   R --> AE
   U["memo used --query"] --> Rank[ranking: retention × use × links]
@@ -78,10 +81,27 @@ sequenceDiagram
   A->>M: memo forget --session s-42 --dry-run
 ```
 
+### 2.4 The agent memory bank
+
+An agent memory bank is the `agent` space for one `agent_id`. It holds entry types that exist only there and are never accepted in `kb`:
+
+| Entry type     | Kind     | Class     | Purpose                                                                                    | Removed by                     |
+| -------------- | -------- | --------- | ------------------------------------------------------------------------------------------ | ------------------------------ |
+| `profile`      | semantic | identity  | Who the agent is: persona, tone, standing instructions, capabilities, definition reference | supersession, explicit forget  |
+| `preference`   | semantic | identity  | How it likes to work; choices it has settled                                               | supersession, explicit forget  |
+| `goal`         | semantic | identity  | Open commitments and in-flight work with `status: open \| done \| dropped`                 | status change, explicit forget |
+| `relationship` | semantic | identity  | People, agents, and repos it works with and how                                            | supersession, explicit forget  |
+| `lesson`       | semantic | knowledge | Heuristic learned from experience; written explicitly or promoted by consolidation         | decay, supersession, forget    |
+| `observation`  | episodic | event     | What happened, in session order                                                            | expiry, decay, forget          |
+
+Identity-class entries are exempt from decay and expiry: a persona must survive months of silence. They change only by supersession (a new `profile` entry with `--supersedes <id>`) or explicit forget. Knowledge and event entries follow the retention ladder in §8.3. The existing shared types (`decision`, `integration_point`, `structure`) remain valid in an agent space for private notes.
+
+`memo recall --agent <id>` opens with a `SELF` section (current profile, preferences, open goals, relationships) so that the agent restores its persona before it restores task context.
+
 ## 3. Goals & Objectives
 
 1. **Measured retrieval quality.** Top-3 relevance on a versioned evaluation set rises from the measured baseline to ≥ 80%, and every ranking change is gated on that set.
-2. **Separate private agent memory from the shared knowledge base.** A named agent can write, recall, consolidate, and forget its own memories without polluting or being polluted by the org/repo KB.
+2. **Separate private agent memory from the shared knowledge base.** A defined agent can persist its identity, preferences, open goals, episodes, and lessons, then recall, consolidate, and forget them without polluting or being polluted by the org/repo KB, and resume as the same persona after months.
 3. **One call to restore context.** `memo recall` replaces the four-command session-start sequence with a ranked, deduplicated, token-budgeted bundle that carries a `query_id`.
 4. **Close the feedback loop.** Agents report which recalled memories they used; that signal changes ranking, retention, and consolidation.
 5. **Forget on purpose, never by accident.** Retention policies, decay to archive, supersession, and an explicit `memo forget` with dry-run and audit. Automated jobs never hard-delete.
@@ -125,6 +145,8 @@ sequenceDiagram
 13. As an operator, I want `memo migrate --to-v2 --dry-run` to show how every existing entry will be classified before anything changes so that migration is safe.
 14. As an operator, I want `memo stats` to show noisy memories (retrieved often, rarely used), stability distribution, and archive counts per space so that I can tune retention.
 15. As any agent, I want `memo search --explain` to print every ranking factor so that I can understand and tune why something ranked where it did.
+16. As a long-lived agent, I want my profile, preferences, open goals, and relationships stored as identity-class entries that never decay so that a session started months later begins with the same persona and open commitments.
+17. As a tech lead or human at the terminal, I want `memo ask "<question>"` to synthesize a cited answer from the same bundle `recall` builds so that I do not have to read raw entries (optional, Phase 5).
 
 ## 7. Functional Requirements
 
@@ -141,15 +163,17 @@ Requirements are grouped by phase. "MUST" items are required for the phase to cl
 ### 7.2 Phase 2 — Memory model: spaces, kinds, sessions, recall
 
 - FR-2.1 The payload **MUST** gain `space` (`kb` | `agent`), `agent_id` (required when `space = agent`), `kind` (`episodic` | `semantic`), `session_id`, `seq`, `contexts`, `provenance`, `valid_from`, `valid_to`, `superseded_by`, `consolidated`, `pinned`, and `schema_version: "2"`. All are additive and indexed where filtered (see §9).
-- FR-2.2 `memo write` **MUST** accept `--space`, `--agent`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--pin`. Defaults: `space = kb`; `kind = semantic` in `kb`, `episodic` in `agent`; `agent_id` from `--agent`, then `MEMO_AGENT`, then `config.agent.default_id`. A write with `space = agent` and no resolvable `agent_id` **MUST** fail with `VALIDATION_FAILED`.
+- FR-2.2 `memo write` **MUST** accept `--space`, `--agent`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--pin`. Defaults: `space = kb`; `kind = semantic` in `kb`, `episodic` in `agent`; `agent_id` from `--agent`, then `MEMO_AGENT`, then `config.agent.default_id`. A write with `space = agent` and no resolvable `agent_id` **MUST** fail with `VALIDATION_FAILED`. The agent-only entry types in §2.4 (`profile`, `preference`, `goal`, `relationship`, `lesson`, `observation`) **MUST** be rejected in `space = kb` with `VALIDATION_FAILED`; `goal` entries carry `status` (`open` default) and `--status done|dropped` closes them without deleting.
 - FR-2.3 A `semantic` entry written by `source: agent` **MUST** carry at least one `provenance` id unless `--manual` is passed; `--manual` sets `source: manual`.
 - FR-2.4 The dedupe key **MUST** become `v2|<space>|<agent_or_na>|<repo>|<commit_or_na>|<story_or_na>|<session_or_na>|<entry_type>|<source>` so that the same story in two spaces or two sessions does not collide. v1 keys remain readable.
 - FR-2.5 `memo search`, `memo list`, `memo tags list` **MUST** accept `--space`, `--agent`, `--kind`, `--session`, `--include-archived`, `--include-superseded`, and `--as-of <date>`. Default search scope is `space = kb`, `kind = all`, archived and superseded excluded. Searching `space = agent` **MUST** require a resolved `agent_id`; there is no cross-agent search.
 - FR-2.6 `memo timeline --session <id> | --agent <id> [--last <n>] [--since <date>]` **MUST** return episodic entries in sequence order (`seq`, then `timestamp_utc`), never re-ranked.
-- FR-2.7 `memo recall "<task>" [--agent <id>] [--scope repo|related] [--max-tokens <n>] [--json]` **MUST** return one bundle with labeled sections in this order: applicable policies (when PRD-003 is present), shared semantic entries for the task, the agent's semantic entries, the agent's most recent session episodes (chronological), and open contradictions or `pending_contradiction` flags. Sections are trimmed from the bottom to honor `--max-tokens` (approximated as characters ÷ 4). The bundle **MUST** carry one `query_id` covering every entry it contains and **MUST** deduplicate by id across sections.
+- FR-2.7 `memo recall "<task>" [--agent <id>] [--scope repo|related] [--max-tokens <n>] [--json]` **MUST** return one bundle with labeled sections in this order: `SELF` (when `--agent` is resolved: current profile, preferences, open goals, relationships; never trimmed), applicable policies (when PRD-003 is present), shared semantic entries for the task, the agent's semantic entries, the agent's most recent session episodes (chronological), and open contradictions or `pending_contradiction` flags. Sections are trimmed from the bottom to honor `--max-tokens` (approximated as characters ÷ 4). The bundle **MUST** carry one `query_id` covering every entry it contains and **MUST** deduplicate by id across sections.
 - FR-2.8 `memo migrate --to-v2 [--dry-run] [--rules <file>]` **MUST** classify every existing point using an ordered rule table (default: tags containing `intent` or `outcome` → `kind = episodic`, `session_id = story`; `entry_type` in `integration_point`, `structure`, `policy` or tags containing `adr` → `semantic`; everything else → `semantic` with `source` unchanged), set `space = kb`, `schema_version = "2"`, `consolidated = false`, and print the classification counts. It **MUST** be idempotent and **MUST** write nothing under `--dry-run`. Points already at v2 are skipped.
 - FR-2.9 `memo read --id` **MUST** print the full v2 payload including the provenance chain (ids and first line of each provenance entry) and validity fields.
-- FR-2.10 `dev-tasks`: the `memo-cli-usage` skill and agent prompts **MUST** be updated so that session start is `memo recall`, per-story intent/outcome entries are written to `space = agent` as episodic with `--session ISSUE-<n>`, ADR and decision entries stay in `kb` as semantic, and each agent role resolves an `agent_id` (recommended: a stable instance name from config, with the role added as a context).
+- FR-2.10 `dev-tasks`: the `memo-cli-usage` skill and agent prompts **MUST** be updated so that session start is `memo recall`, per-story intent/outcome entries are written to `space = agent` as episodic with `--session ISSUE-<n>`, ADR and decision entries stay in `kb` as semantic, and each defined agent resolves its own `agent_id` (one per agent definition, with the role added as a context).
+- FR-2.11 `memo agent init --id <id> [--description <text>] [--definition-ref <ref>]` **MUST** create the agent space's first `profile` entry and set `config.agent.default_id` when unset. `memo agent show [--id <id>]` **MUST** print the current profile, preferences, open goals, relationships, entry counts per kind, and last session id. `memo agent list` **MUST** list agent ids with counts, without content.
+- FR-2.12 `profile` entries **SHOULD** carry `agent_definition_ref` (a path, version, or hash of the loop, tools, prompt, and data that define the agent). When the ref passed to `memo recall --definition-ref` differs from the one on the current profile, `recall` **MUST** print a `DEFINITION_CHANGED` notice in the `SELF` section; it never blocks.
 
 ### 7.3 Phase 3 — Feedback and forgetting
 
@@ -174,6 +198,7 @@ Requirements are grouped by phase. "MUST" items are required for the phase to cl
 
 - FR-5.1 Links (#56): `links_out`, `links_in_count`, `links_in_contexts`; `memo link`, `memo unlink`, `memo write --link`, `memo reindex-links`; link factor in §8.2; `memo search --expand` with the fan-out rule `N = clamp(round(6 / sqrt(|links_out|)), 1, 5)`.
 - FR-5.2 Event journal (#58): append-only `~/.memo/episodes.jsonl` mirror of episodic writes, `memo verify` drift report, `memo rebuild-semantic [--dry-run]`. Optional; ships only if Phase 4 shows consolidation parameters change often enough to need replay.
+- FR-5.3 `memo ask "<question>" [--agent] [--scope] [--json]` (formerly PRD-002 #37): builds the `recall` bundle, drops `confidence_tier: low`, sends it to the `LLMAdapter` introduced in Phase 4 with the grounding prompt from #37 (answer only from context, cite ids, return the fixed no-answer sentence, ≤ 150 words), and returns `answer`, `sources`, `grounded`. Human-facing convenience; agents use `recall` directly.
 
 ## 8. Business Rules
 
@@ -185,6 +210,8 @@ Requirements are grouped by phase. "MUST" items are required for the phase to cl
 | S2   | An agent space is readable and writable only when its `agent_id` is resolved. There is no cross-agent search. Cross-agent knowledge flows only through promotion into `kb`. |
 | S3   | `kb` remains the default space for every command, so existing callers see no behavior change.                                                                               |
 | S4   | `memo inspect` reports agent spaces as counts per `agent_id` without exposing their content.                                                                                |
+| S5   | One `agent_id` per agent definition (loop, tools, prompt, data). Roles are `contexts`. Two definitions never share a bank.                                                  |
+| S6   | Agent-only entry types (§2.4) are rejected in `kb`; identity-class entries are exempt from every automated removal level.                                                   |
 
 ### 8.2 Unified ranking formula
 
@@ -227,6 +254,7 @@ Rules:
 - F2 An episodic entry cited as `provenance` by a currently valid semantic fact cannot be archived or purged while that fact is valid; `memo forget --purge` on it fails with `PROVENANCE_PROTECTED` unless `--cascade` is passed, which supersedes the dependent fact first.
 - F3 `pinned` entries are exempt from levels 2 and 3 unless `--include-pinned`.
 - F4 Every level-3 action writes a tombstone record; `memo stats` reports purge counts.
+- F5 Identity-class entries (`profile`, `preference`, `goal`, `relationship`) never reach levels 2 or 3 through `memo decay` or expiry; only supersession, a `goal` status change, or `memo forget` with an explicit `--id` or `--agent` selector removes them.
 
 ### 8.4 Default retention policy per space
 
@@ -236,6 +264,7 @@ Rules:
 | `kb` / episodic    | 1 day             | 0.05              | 90 days              | never               |
 | `agent` / semantic | 7 days            | 0.05              | none                 | never               |
 | `agent` / episodic | 1 day             | 0.05              | 30 days              | off (opt-in)        |
+| `agent` / identity | n/a (no decay)    | n/a               | none                 | never               |
 
 All values are config keys under `spaces.<space>.<kind>`.
 
@@ -263,7 +292,9 @@ erDiagram
         string domain
         string rationale "1-5000 chars, full-text indexed (new index)"
         string[] tags "2-5 kebab, indexed"
-        enum entry_type "decision | integration_point | structure | observation | policy"
+        enum entry_type "decision | integration_point | structure | policy | profile | preference | goal | relationship | lesson | observation"
+        enum status "goal only: open | done | dropped (new)"
+        string agent_definition_ref "profile only (new)"
         enum source "agent | manual | scan"
         enum confidence "payload only; output uses confidence_tier"
         datetime timestamp_utc "indexed"
@@ -356,7 +387,7 @@ Sensitivity: agent spaces may contain task narratives and file paths; they are s
 ## 10. Non-Goals (Out of Scope)
 
 - RBAC, per-user identity, or access control between agents beyond the `agent_id` filter (the shared-cluster policy of v1 stands).
-- `memo ask` (PRD-002 Phase C). `memo recall` produces the grounded bundle `ask` would consume; `ask` stays in PRD-002.
+- A standalone PRD-002 track. PRD-002 is superseded by this PRD: its Phases A and B are Phase 1 here, its evaluation set is FR-1.1, its LLM adapter ships with Phase 4, and `memo ask` is FR-5.3 (optional).
 - Org-wide policies (PRD-003). `recall` includes them when present; it does not implement them.
 - Layered credential configuration (#33).
 - Procedural memory (skills, prompts). Per #53, that belongs in versioned skill files.
@@ -417,12 +448,14 @@ Phase-level exit criteria. Story-level criteria are produced in the spec and sto
 - [ ] AC-2.5 `memo recall` returns all five sections when data exists, deduplicates ids across sections, respects `--max-tokens` by trimming from the bottom, and returns one `query_id`.
 - [ ] AC-2.6 `memo migrate --to-v2 --dry-run` writes nothing; a real run classifies intent/outcome-tagged entries as episodic and everything else as semantic; a second run reports 0 changes.
 - [ ] AC-2.7 dev-tasks `developer` prompt uses `memo recall` at session start and writes intent/outcome entries with `--space agent --session ISSUE-<n>`.
+- [ ] AC-2.8 `memo write --entry-type profile` in `kb` exits 1 with `VALIDATION_FAILED`; in `space = agent` it succeeds. `memo recall --agent jarvis` returns a `SELF` section listing the profile, preferences, open goals, and relationships and omits goals with `status = done`; `SELF` survives `--max-tokens` trimming.
+- [ ] AC-2.9 `memo agent init --id jarvis` creates exactly one `profile` entry; running it twice reports the existing profile and creates nothing.
 
 **Phase 3**
 
 - [ ] AC-3.1 `memo used` with an id not in the query's result set exits 1; with valid ids it increments `used_count` and appends one usage event per id.
 - [ ] AC-3.2 Two retrievals within `min_spacing_hours` increment `retrieval_count` twice and change `stability` once.
-- [ ] AC-3.3 `memo decay --dry-run` archives nothing; a real run archives entries below threshold, skips pinned and provenance-protected entries, and never calls delete (asserted on the mock).
+- [ ] AC-3.3 `memo decay --dry-run` archives nothing; a real run archives entries below threshold, skips pinned, identity-class, and provenance-protected entries, and never calls delete (asserted on the mock). A `profile` entry with `last_retrieved_at` 400 days ago is not archived.
 - [ ] AC-3.4 `memo forget --session s-42 --dry-run` lists the matching ids; without `--dry-run` it archives them with `archived_reason = forget`; `--purge` deletes them and writes tombstones; `--purge --space agent --json` is rejected.
 - [ ] AC-3.5 An entry with `use_ratio` 0.8 outranks an otherwise identical entry with `use_ratio` 0 under default `use_beta`.
 - [ ] AC-3.6 `memo stats` lists at least one noisy entry in a fixture where one entry has `retrieval_count` 12 and `used_count` 0.
@@ -453,10 +486,11 @@ Phase-level exit criteria. Story-level criteria are produced in the spec and sto
 | Consolidation cost                                              | n/a                 | < $0.05 per 100 episodes at default model | 4     |
 | `memo search` latency                                           | < 2.5 s             | < 2.5 s including counters                | 1–3   |
 | `memo recall` latency                                           | n/a                 | < 4 s                                     | 2     |
+| Persona resume                                                  | n/a                 | `SELF` section complete in one call       | 2     |
 
 ## 15. Assumptions
 
-- Agents are identified by a stable, human-chosen `agent_id` (e.g. `jarvis`), not by role. Roles (`planner`, `developer`) are `contexts`. One agent instance runs one session at a time.
+- An agent is a defined loop, tool set, prompt, and data; each definition owns one `agent_id` and one memory bank. Roles (`planner`, `developer`) are `contexts`. One agent runs one session at a time.
 - The dev-tasks harness can inject `MEMO_AGENT` or pass `--agent`.
 - Existing entries written by dev-tasks are distinguishable by the `intent`/`outcome` tags the skill mandates; entries that do not follow the skill are classified semantic and can be re-classified by hand.
 - Qdrant ≥ 1.7 supports full-text payload indexes and batch payload updates (true since 1.1).
@@ -466,8 +500,8 @@ Phase-level exit criteria. Story-level criteria are produced in the spec and sto
 ## 16. Constraints & Dependencies
 
 - **Ordering.** Phase 1 must land before Phase 2 because `recall` relies on tiers and staleness; Phase 3 relies on `query_id` persistence and `kind`; Phase 4 relies on `provenance`, `valid_*`, and retention; Phase 5 is optional.
-- **Existing issues.** Phase 1 reuses #34, #36, #35, #38 (already refined; only the formula section of #34's refinement changes). Phase 2 supersedes the CLI vocabulary of #53 and adds spaces. Phase 3 reuses #54 and #55. Phase 4 reuses #57. Phase 5 reuses #56 and #58. Each reused issue receives a "Refined Scope" comment pointing to this PRD; #56's formula note is corrected.
-- **PRD-002 Phase C (`memo ask`)** and **PRD-003 (policies)** are parallel tracks; `recall` consumes policies when they exist.
+- **Existing issues.** Phase 1 reuses #34, #36, #35, #38 (already refined; only the formula section of #34's refinement changes). Phase 2 supersedes the CLI vocabulary of #53 and adds spaces. Phase 3 reuses #54 and #55. Phase 4 reuses #57. Phase 5 reuses #56 and #58. Whether each existing issue is reused with a "Refined Scope" comment or closed and replaced is decided during the spec for the phase that covers it; #56's formula note is corrected either way.
+- **PRD-002** is superseded by this PRD (changelog row added there). **PRD-003 (policies)** stays a parallel track; `recall` consumes policies when they exist.
 - **Cost.** No new paid infrastructure. LLM spend only in `consolidate`, reported per run.
 - **Compatibility.** Semver minor for Phases 1–3 (additive). Phase 2's dedupe key change is additive (v1 keys still match). A major bump is only needed if the `confidence` payload field is ever removed, which this PRD does not do.
 - **dev-tasks release coupling.** The skill and prompt changes ship as a dev-tasks minor release aligned with memo-cli Phase 2.
@@ -482,11 +516,12 @@ Phase-level exit criteria. Story-level criteria are produced in the spec and sto
 
 ## 18. Open Questions
 
-1. **Agent identity model.** Confirm `agent_id` is a named instance (`jarvis`) with roles as contexts, not one id per role. Default assumed: named instance.
+1. **Agent identity model.** Resolved in v1.1: one `agent_id` per agent definition; identity-class entry types live only in the agent bank (§2.4).
 2. **Migration default.** This PRD classifies existing entries by tag and defaults the rest to `semantic` so default search stays populated. #53 proposed "everything episodic" and a first consolidation run. Confirm the tag-based rule and whether `story` should become `session_id` on migrated episodic entries.
 3. **Recency vs retention overlap.** Both are time-based. Keep both with defaults and tune on the evaluation set, or drop `w_recency` to 0.15 once retention exists? Default assumed: keep both, tune in Phase 3 exit.
-4. **Purge policy for agent short-term memory.** Default is archive at 30 days, purge off. Should purge default to 90 days for agent episodic entries?
+4. **Purge policy for agent short-term memory.** Resolved in v1.1: archive at 30 days, purge off unless `purge_after_days` is set.
 5. **Promotion review location.** A file under `workstream/` versus a GitHub issue per promotion batch via `github-ops`. Default assumed: file, because it works outside GitHub-backed repos.
 6. **Consolidation model and runner.** OpenAI `gpt-4.1-nano` by default with Ollama fallback; should consolidation run in CI on a schedule or only by hand until Phase 4 exit metrics are met? Default assumed: by hand with `--dry-run` first.
 7. **Negative feedback scope.** Is `--wrong` sufficient, or do agents need a `--not-useful` signal that lowers stability directly? Default assumed: `--wrong` only.
-8. **Should `memo ask` move into Phase 5** of this PRD now that `recall` exists, retiring PRD-002 Phase C? Default assumed: no.
+8. **`memo ask` placement.** Resolved in v1.1: PRD-002 is superseded; `memo ask` is FR-5.3, optional.
+9. **Agent definition reference.** Should `agent_definition_ref` be a content hash computed by dev-tasks from the agent's prompt and tool list, or a free-form version string? Default assumed: free-form string; hashing is a dev-tasks concern.

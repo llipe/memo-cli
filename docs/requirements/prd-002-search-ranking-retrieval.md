@@ -1,10 +1,13 @@
 # PRD-002 — Search Ranking & Retrieval Improvements
 
+> **Status: superseded by [PRD-004](./prd-004-long-lived-agent-memory.md) (2026-09-19).** Kept for the refinement history of issues #34–#38.
+
 ## Changelog
 
-| Version | Date       | Summary                                               | Author           |
-| ------- | ---------- | ----------------------------------------------------- | ---------------- |
-| 0.1     | 2026-04-15 | Initial draft covering issues #34, #36, #35, #38, #37 | product-engineer |
+| Version | Date       | Summary                                                                                                                                                                                                                 | Author           |
+| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 0.1     | 2026-04-15 | Initial draft covering issues #34, #36, #35, #38, #37                                                                                                                                                                   | product-engineer |
+| 0.2     | 2026-09-19 | Superseded by PRD-004. Phases A and B become PRD-004 Phase 1; the evaluation set is PRD-004 FR-1.1; the LLM adapter ships with PRD-004 Phase 4; `memo ask` (#37) is PRD-004 FR-5.3 (optional). No further changes here. | product-engineer |
 
 ## 1. Executive Summary
 
