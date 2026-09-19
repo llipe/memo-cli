@@ -4,7 +4,7 @@
 
 | Version | Date       | Summary                                                                                              | Author           |
 | ------- | ---------- | ---------------------------------------------------------------------------------------------------- | ---------------- |
-| 1.0     | 2026-09-19 | Initial Phase 1 stories (S1-01 … S1-08) with coverage validation against PRD-004 v1.3 Phase 1 scope. | product-engineer |
+| 1.0     | 2026-09-19 | Initial Phase 1 stories (S1-01 … S1-08) with coverage validation against PRD-004 v1.4 Phase 1 scope. | product-engineer |
 
 ## Scope
 
@@ -13,7 +13,7 @@ Phase 1 of PRD-004: make retrieval measurable and trustworthy before any memory-
 Phase 1 changes **no payload data**. It adds two Qdrant payload indexes, an optional `ranking` config block, and additive JSON output keys. No migration artifact is required (documented opt-out in every story).
 
 - PRD: [`docs/requirements/prd-004-long-lived-agent-memory.md`](../docs/requirements/prd-004-long-lived-agent-memory.md) v1.4
-- Spec: [`specification-prd-004-long-lived-agent-memory.md`](./specification-prd-004-long-lived-agent-memory.md) v1.0, §5.3, §6.1, §8.2, §14
+- Spec: [`specification-prd-004-long-lived-agent-memory.md`](./specification-prd-004-long-lived-agent-memory.md) v1.1, §5.3, §6.1, §8.2, §14
 - Prior refinement (still binding): [`issue-34-composite-ranking-score-refinement.md`](./issue-34-composite-ranking-score-refinement.md)
 
 ## Existing GitHub Issues

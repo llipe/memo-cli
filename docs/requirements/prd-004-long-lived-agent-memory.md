@@ -6,9 +6,9 @@
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap.                                                                                                                                          | product-engineer |
 | 1.1     | 2026-09-19 | Review round 1: agent identity types, SELF recall section, PRD-002 folded in and superseded, purge default confirmed, issue reuse deferred to spec.                                                                                                | product-engineer |
-| 1.4     | 2026-09-19 | Phase 1 story generation: the staleness annotation is named `stale_by` so it never collides with the Phase 2 stored `superseded_by` payload field.                                                                                                 | product-engineer |
-| 1.3     | 2026-09-19 | Spec alignment: lexical matching is a boost in the unified formula (not RRF); retention-based archive applies to `semantic` only; `stability_since` anchors the retention clock; initial stabilities 90/30/3 days; per-kind dedupe keys.           | product-engineer |
 | 1.2     | 2026-09-19 | Review round 2: replace spaces/agent ids with memory banks keyed by a unique id; collapse purpose-typed entries into three kinds (`self`, `episodic`, `semantic`); rewrite §2.4–§2.6 as the binding memory and deletion contract; name who purges. | product-engineer |
+| 1.3     | 2026-09-19 | Spec alignment: lexical matching is a boost in the unified formula (not RRF); retention-based archive applies to `semantic` only; `stability_since` anchors the retention clock; initial stabilities 90/30/3 days; per-kind dedupe keys.           | product-engineer |
+| 1.4     | 2026-09-19 | Phase 1 story generation: the staleness annotation is named `stale_by` so it never collides with the Phase 2 stored `superseded_by` payload field.                                                                                                 | product-engineer |
 
 ## 1. Executive Summary
 

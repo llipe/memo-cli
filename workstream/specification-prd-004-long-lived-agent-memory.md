@@ -13,7 +13,7 @@ PRD-004 is implemented as an additive v2 of the existing single-collection desig
 
 ## 2. Reference Documents
 
-- PRD: [`docs/requirements/prd-004-long-lived-agent-memory.md`](../docs/requirements/prd-004-long-lived-agent-memory.md) v1.3. §2.4–§2.6 (banks, kinds, deletion contract) and §8.2 (ranking) are normative.
+- PRD: [`docs/requirements/prd-004-long-lived-agent-memory.md`](../docs/requirements/prd-004-long-lived-agent-memory.md) v1.4. §2.4–§2.6 (banks, kinds, deletion contract) and §8.2 (ranking) are normative.
 - Superseded PRD: `docs/requirements/prd-002-search-ranking-retrieval.md` (history only).
 - Ranking refinement: `workstream/issue-34-composite-ranking-score-refinement.md` (decisions D1–D9, defects DEF-1/DEF-2 still apply).
 - Technical guidelines: `docs/technical-guidelines.md` §3 (patterns, no global state), §4 (CLI/output/exit codes/error catalog), §7 (data), §8 (integration, retry), §11 (testing), §12 (quality).
