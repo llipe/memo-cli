@@ -6,6 +6,7 @@
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | 1.0     | 2026-09-19 | Initial draft. Consolidates PRD-002 ranking work and issues #53–#58 into one phased memory-model roadmap.                                                                                                                                          | product-engineer |
 | 1.1     | 2026-09-19 | Review round 1: agent identity types, SELF recall section, PRD-002 folded in and superseded, purge default confirmed, issue reuse deferred to spec.                                                                                                | product-engineer |
+| 1.4     | 2026-09-19 | Phase 1 story generation: the staleness annotation is named `stale_by` so it never collides with the Phase 2 stored `superseded_by` payload field.                                                                                                 | product-engineer |
 | 1.3     | 2026-09-19 | Spec alignment: lexical matching is a boost in the unified formula (not RRF); retention-based archive applies to `semantic` only; `stability_since` anchors the retention clock; initial stabilities 90/30/3 days; per-kind dedupe keys.           | product-engineer |
 | 1.2     | 2026-09-19 | Review round 2: replace spaces/agent ids with memory banks keyed by a unique id; collapse purpose-typed entries into three kinds (`self`, `episodic`, `semantic`); rewrite §2.4–§2.6 as the binding memory and deletion contract; name who purges. | product-engineer |
 
@@ -280,7 +281,7 @@ final_score = min(1,
               * (1 + ALPHA * log(1 + links_in_count) * diversity)   # #56, neutral 1; ALPHA 0.15
             )
 confidence_tier = tier(final_score)                                               # #35
-stale           = staleness(entry, same-scope newer entries)                       # #38, annotation only
+stale           = staleness(entry, same-scope newer entries)                       # #38, annotation only (stale_by names the superseder)
 ```
 
 - R1 `similarity` clamped to `[0, 1]`; `final_score` always in `[0, 1]`.
@@ -474,7 +475,7 @@ Phase-level exit criteria. Story-level criteria are produced in each phase's spe
 - [ ] AC-1.1 Evaluation set exists with ≥ 20 labeled queries; baseline top-3 hit rate is recorded in this changelog.
 - [ ] AC-1.2 Under default config, a fresh mid-similarity entry outranks a stale high-similarity one (#34 AC2 scenario).
 - [ ] AC-1.3 A query containing an exact file name returns the entry listing that file in the top 3; with `--lexical off` it may not.
-- [ ] AC-1.4 JSON output carries `query_id`, `final_score`, `similarity`, `recency_score`, `source_score`, `tag_boost`, `confidence_tier`, and `stale`/`superseded_by` when applicable; existing envelope keys are unchanged.
+- [ ] AC-1.4 JSON output carries `query_id`, `final_score`, `similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, `confidence_tier`, and `stale`/`stale_by` when applicable; existing envelope keys are unchanged.
 - [ ] AC-1.5 Top-3 hit rate is ≥ 80% or ≥ baseline + 15 points, whichever is lower, and never below baseline.
 
 **Phase 2**

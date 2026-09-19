@@ -4,6 +4,7 @@
 
 | Version | Date       | Summary                                                                                                                   | Author           |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1.1     | 2026-09-19 | Phase 1 stories: staleness annotation renamed `stale_by`; eval collection isolated via `MEMO_COLLECTION`.                 | product-engineer |
 | 1.0     | 2026-09-19 | Initial specification for PRD-004 v1.3. Covers all five phases; Phases 1–3 at contract depth, Phases 4–5 at design depth. | product-engineer |
 
 ## 1. Executive Summary
@@ -168,7 +169,7 @@ Reads use `EntryPayloadSchema.partial().passthrough()` so v1 points and future f
 | `archived`, `superseded`, `consolidated`, `pinned`     | bool     |                                                                               | 2     |
 | `archived_at`, `expires_at`, `valid_to`                | datetime |                                                                               | 2–3   |
 
-`ensureCollection()` is split: `ensureCollection()` creates the collection when absent; `ensureIndexes()` reads `getCollection().payload_schema` and creates any index in `PAYLOAD_INDEXES` that is missing. Both are idempotent and run on every command that touches Qdrant (one extra `getCollection` call, already made today).
+The collection name resolves from `MEMO_COLLECTION` (default `decisions`) so the relevance harness can seed an isolated collection. `ensureCollection()` is split: `ensureCollection()` creates the collection when absent; `ensureIndexes()` reads `getCollection().payload_schema` and creates any index in `PAYLOAD_INDEXES` that is missing. Both are idempotent and run on every command that touches Qdrant (one extra `getCollection` call, already made today).
 
 ### 5.4 Config schema v2 (`src/types/config.ts`)
 
@@ -211,11 +212,11 @@ The CLI is the API. Every command supports `--json`; exit codes follow the catal
 
 **Phase 1**
 
-| Command                     | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `memo search <query>`       | Over-fetch `max(limit, min(limit*3, 50))` dense; if `ranking.lexical` and identifier tokens exist, one lexical scroll (§8.2) with vectors; union; rank via `rankResults`; slice. Adds `--explain`, `--lexical <on\|off>`. JSON adds `query_id`, per-result `final_score`, `similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, `confidence_tier`, `stale?`, `superseded_by?`, and with `--explain` a `factors` object. Human output shows `final_score` % in the existing position and a `[tier]` prefix. |
-| `memo setup validate`       | Validates `ranking` block.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `scripts/eval-relevance.ts` | `pnpm run eval:relevance [--record]` (§14).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Command                     | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `memo search <query>`       | Over-fetch `max(limit, min(limit*3, 50))` dense; if `ranking.lexical` and identifier tokens exist, one lexical scroll (§8.2) with vectors; union; rank via `rankResults`; slice. Adds `--explain`, `--lexical <on\|off>`. JSON adds `query_id`, per-result `final_score`, `similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, `confidence_tier`, `stale?`, `stale_by?`, and with `--explain` a `factors` object. Human output shows `final_score` % in the existing position and a `[tier]` prefix. |
+| `memo setup validate`       | Validates `ranking` block.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `scripts/eval-relevance.ts` | `pnpm run eval:relevance [--record]` (§14).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Phase 2**
 
@@ -417,7 +418,7 @@ boosted = min(1, base + tag_boost + lexical_boost)
 final   = min(1, boosted * (0.5 + 0.5*retention) * (1 + use_beta*use_ratio) * (1 + link_alpha*log(1+links_in)*diversity))
 ```
 
-Staleness (`detectStaleness`, #38): one scroll of same-bank, same-repo, non-archived candidates per invocation, cached; flag `stale` + `superseded_by` when age > threshold and a newer entry has Jaccard tag overlap ≥ threshold. Annotation only.
+Staleness (`detectStaleness`, #38): one scroll of same-bank, same-repo, non-archived candidates per invocation, cached; flag `stale` + `stale_by` (the superseder's id; deliberately distinct from the Phase 2 stored `superseded_by`) when age > threshold and a newer entry has Jaccard tag overlap ≥ threshold. Annotation only.
 
 ### 8.3 Write path (`src/commands/write.ts`)
 
