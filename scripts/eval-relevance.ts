@@ -29,6 +29,23 @@
  * exit 2 with a `QDRANT_UNREACHABLE`-coded message; this is a deliberate exception to the
  * "run mode always exits 0" rule, which is scoped to *scoring outcomes*, not infrastructure
  * failures.
+ *
+ * Invocation note (`package.json`'s `eval:relevance` script):
+ *   This script runs under `node --loader ts-node/esm`, which type-checks by default. That
+ *   default-checking path does NOT apply `tsconfig.json`'s `esModuleInterop: true` the same
+ *   way `tsc`/the compiled `dist/` bin entry does, so importing `openai`'s CJS default export
+ *   (`src/adapters/openai-embeddings.ts`) raises spurious `TS2709`/`TS2351`/`TS18046`
+ *   diagnostics and ts-node/esm treats them as fatal, aborting before any code runs — this is
+ *   independent of credentials or network reachability. The runtime interop is fine (Node's
+ *   own CJS/ESM interop resolves the `openai` default export correctly); only ts-node/esm's
+ *   type-checking phase mis-evaluates it. `pnpm run typecheck` (`tsc --noEmit` against
+ *   `tsconfig.json`) already covers `src/**` with the correct interop and passes, so nothing
+ *   here is a real type error in the source. The `eval:relevance` script therefore sets
+ *   `TS_NODE_TRANSPILE_ONLY=true` (see `package.json`) to skip ts-node/esm's own type-check
+ *   pass for this invocation only, deferring entirely to `pnpm run typecheck` for actual type
+ *   safety on `src/**`. `scripts/**` was already outside `tsconfig.json`'s `include` and
+ *   outside type-aware ESLint before this story, so this changes no existing type-checking
+ *   guarantee — it only makes the previously-broken CLI invocation path actually run.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';

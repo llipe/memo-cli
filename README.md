@@ -727,6 +727,15 @@ offline (no network, no `QDRANT_URL`/`EMBEDDINGS_API_KEY`) and asserts the
 recomputed hit rate is at least `baseline.json.overall_top3`, guarding every
 later ranking change against a regression.
 
+The `eval:relevance` script sets `TS_NODE_TRANSPILE_ONLY=true` for its
+`node --loader ts-node/esm` invocation: ts-node/esm's own type-check pass
+does not apply `esModuleInterop` for `openai`'s CJS default export the same
+way `tsc`/the compiled `dist/` bin entry does, which otherwise aborts the
+script with spurious `TS2709`/`TS2351` diagnostics before any code runs,
+independent of credentials or network reachability. `pnpm run typecheck`
+still covers `src/**` with correct interop; this only skips ts-node's
+redundant re-check for this one script invocation.
+
 Typical workflow when re-recording the baseline against local Docker Qdrant:
 
 ```bash
