@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-09-19T00:00:00.000Z",
+  "overall_top3": 0.8571,
+  "by_category": {
+    "concept": 0.875,
+    "identifier": 0.875,
+    "cross-repo": 0.8333,
+    "recency": 0.8333
+  },
+  "ranking_config": {
+    "note": "Pre-S1-02 identity ranking: results ordered by similarity descending, no composite score yet.",
+    "w_similarity": 1,
+    "w_recency": 0,
+    "w_source": 0,
+    "recency_half_life_days": null
+  }
+}

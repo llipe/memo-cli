@@ -31,6 +31,7 @@ describe('QdrantRepository', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv, QDRANT_URL: 'http://localhost:6333' };
+    delete process.env['MEMO_COLLECTION'];
     jest.clearAllMocks();
   });
 
@@ -42,6 +43,77 @@ describe('QdrantRepository', () => {
     it('throws MISSING_CREDENTIAL when QDRANT_URL is not set', () => {
       delete process.env['QDRANT_URL'];
       expect(() => new QdrantRepository()).toThrow(MemoError);
+    });
+  });
+
+  describe('MEMO_COLLECTION resolution', () => {
+    it('resolves to the default "decisions" collection when MEMO_COLLECTION is unset', async () => {
+      delete process.env['MEMO_COLLECTION'];
+      mockGetCollection.mockRejectedValueOnce(new Error('Not found'));
+      mockCreateCollection.mockResolvedValueOnce({});
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('decisions');
+
+      await repo.ensureCollection();
+      expect(mockCreateCollection).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ vectors: expect.objectContaining({ size: 1536 }) }),
+      );
+    });
+
+    it('resolves to the MEMO_COLLECTION value when set', async () => {
+      process.env['MEMO_COLLECTION'] = 'memo_eval';
+      mockGetCollection.mockRejectedValueOnce(new Error('Not found'));
+      mockCreateCollection.mockResolvedValueOnce({});
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('memo_eval');
+
+      await repo.ensureCollection();
+      expect(mockCreateCollection).toHaveBeenCalledWith(
+        'memo_eval',
+        expect.objectContaining({ vectors: expect.objectContaining({ size: 1536 }) }),
+      );
+    });
+
+    it('treats an empty-string MEMO_COLLECTION as unset and falls back to "decisions"', () => {
+      process.env['MEMO_COLLECTION'] = '';
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('decisions');
+    });
+
+    it('treats a whitespace-only MEMO_COLLECTION as unset and falls back to "decisions"', () => {
+      process.env['MEMO_COLLECTION'] = '   ';
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('decisions');
+    });
+
+    it('is read once at construction and does not change if the env var mutates afterward', () => {
+      process.env['MEMO_COLLECTION'] = 'memo_eval';
+      const repo = new QdrantRepository('http://localhost:6333');
+      process.env['MEMO_COLLECTION'] = 'something-else';
+      expect(repo.collectionName).toBe('memo_eval');
+    });
+
+    it('scopes upsert/search/scroll calls to the resolved collection name', async () => {
+      process.env['MEMO_COLLECTION'] = 'memo_eval';
+      mockUpsert.mockResolvedValueOnce({});
+      mockQuery.mockResolvedValueOnce({ points: [] });
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const vector = Array(1536).fill(0.1) as number[];
+
+      await repo.upsert('id-1', vector, {});
+      await repo.search(vector);
+      await repo.scroll();
+
+      expect(mockUpsert).toHaveBeenCalledWith('memo_eval', expect.anything());
+      expect(mockQuery).toHaveBeenCalledWith('memo_eval', expect.anything());
+      expect(mockScroll).toHaveBeenCalledWith('memo_eval', expect.anything());
     });
   });
 

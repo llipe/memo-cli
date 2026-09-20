@@ -38,6 +38,7 @@
     "test": "node ./scripts/run-jest.mjs",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "eval:relevance": "node --loader ts-node/esm scripts/eval-relevance.ts",
     "prepare": "husky",
     "prepublishOnly": "pnpm run build"
   },

@@ -436,6 +436,7 @@ memo-cli/
 │   │   ├── search-filters.ts     ← Qdrant pre-filter builder (search)
 │   │   ├── list-filters.ts       ← Qdrant pre-filter builder (list, date range)
 │   │   ├── retry.ts              ← Exponential backoff retry wrapper
+│   │   ├── eval.ts               ← Pure top-3 hit-rate computation (eval harness)
 │   │   └── debug.ts              ← Conditional debug logging (MEMO_DEBUG)
 │   ├── adapters/
 │   │   └── openai-embeddings.ts  ← OpenAI text-embedding-3-small
@@ -445,7 +446,8 @@ memo-cli/
 │       └── cli.ts                ← Shared CLI flag interfaces (placeholder)
 ├── scripts/
 │   ├── run-jest.mjs              ← Jest argument forwarder
-│   └── validate-bootstrap.ts     ← Bootstrap JSON schema validator
+│   ├── validate-bootstrap.ts     ← Bootstrap JSON schema validator
+│   └── eval-relevance.ts         ← Relevance evaluation harness (seed/run/record)
 ├── tests/
 │   ├── __mocks__/                ← ESM-only package stubs (chalk, ora)
 │   ├── unit/
@@ -453,9 +455,11 @@ memo-cli/
 │   │   ├── adapters/
 │   │   ├── commands/
 │   │   └── scripts/
-│   └── integration/
-│       ├── commands/
-│       └── lib/
+│   ├── integration/
+│   │   ├── commands/
+│   │   └── lib/
+│   ├── relevance/                ← Offline replay guard (replay.test.ts)
+│   └── fixtures/relevance/       ← entries/queries/candidates/baseline.json
 ├── docs/                         ← Product and technical documentation
 ├── workstream/                   ← Planning artifacts (PRD, spec, stories, tasks)
 ├── dist/                         ← Compiled output (gitignored)
