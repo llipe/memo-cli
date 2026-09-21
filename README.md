@@ -873,7 +873,7 @@ memo inspect   # confirm "decisions" point counts are unaffected
 
 ### CI/CD
 
-> **Current status:** there is no `.github/workflows/` pipeline in this repository yet. Typecheck, lint, test, build, audit, and npm publish are all run **manually** by the releaser. The steps below reflect the actual manual process, not an automated one.
+Continuous integration and automated publishing are enabled via GitHub Actions. See [`.github/workflows/`](.github/workflows/) for the full configuration.
 
 ## Release Process
 
