@@ -169,19 +169,25 @@ File: `memo.config.json` (per-repository, created by `memo setup init`)
 
 Validated via Zod (`MemoConfigSchema`):
 
-| Field                            | Type     | Required | Default | Constraints                      |
-| -------------------------------- | -------- | -------- | ------- | -------------------------------- |
-| `schema_version`                 | string   | Yes      | —       | Literal `"1"`                    |
-| `repo`                           | string   | Yes      | —       | kebab-case                       |
-| `org`                            | string   | Yes      | —       | kebab-case                       |
-| `domain`                         | string   | Yes      | —       | kebab-case                       |
-| `relates_to`                     | string[] | No       | `[]`    | No duplicates, no self-reference |
-| `defaults.source`                | enum     | No       | —       | `agent` \| `scan` \| `manual`    |
-| `defaults.search_scope`          | enum     | No       | —       | `repo` \| `related`              |
-| `ranking.w_similarity`           | number   | No       | `0.6`   | `[0, 1]`; weight-sum rule below  |
-| `ranking.w_recency`              | number   | No       | `0.3`   | `[0, 1]`; weight-sum rule below  |
-| `ranking.w_source`               | number   | No       | `0.1`   | `[0, 1]`; weight-sum rule below  |
-| `ranking.recency_half_life_days` | number   | No       | `365`   | Positive, finite                 |
+| Field                                     | Type     | Required | Default                                    | Constraints                                                                |
+| ----------------------------------------- | -------- | -------- | ------------------------------------------ | -------------------------------------------------------------------------- |
+| `schema_version`                          | string   | Yes      | —                                          | Literal `"1"`                                                              |
+| `repo`                                    | string   | Yes      | —                                          | kebab-case                                                                 |
+| `org`                                     | string   | Yes      | —                                          | kebab-case                                                                 |
+| `domain`                                  | string   | Yes      | —                                          | kebab-case                                                                 |
+| `relates_to`                              | string[] | No       | `[]`                                       | No duplicates, no self-reference                                           |
+| `defaults.source`                         | enum     | No       | —                                          | `agent` \| `scan` \| `manual`                                              |
+| `defaults.search_scope`                   | enum     | No       | —                                          | `repo` \| `related`                                                        |
+| `ranking.w_similarity`                    | number   | No       | `0.6`                                      | `[0, 1]`; weight-sum rule below                                            |
+| `ranking.w_recency`                       | number   | No       | `0.3`                                      | `[0, 1]`; weight-sum rule below                                            |
+| `ranking.w_source`                        | number   | No       | `0.1`                                      | `[0, 1]`; weight-sum rule below                                            |
+| `ranking.recency_half_life_days`          | number   | No       | `365`                                      | Positive, finite                                                           |
+| `ranking.tag_boost_factor`                | number   | No       | `0.05`                                     | Non-negative, finite; `0` disables tag boosting (issue #36)                |
+| `ranking.confidence_thresholds`           | object   | No       | `{ exact: 0.88, high: 0.75, medium: 0.6 }` | Each in `[0, 1]`, strictly descending `exact > high > medium` (issue #35)  |
+| `ranking.staleness_threshold_days`        | number   | No       | `120`                                      | Non-negative, finite (issue #38)                                           |
+| `ranking.staleness_tag_overlap_threshold` | number   | No       | `0.5`                                      | `[0, 1]` (issue #38)                                                       |
+| `ranking.lexical`                         | boolean  | No       | `true`                                     | `false` (or `--lexical off`) disables the extra lexical scroll (issue #62) |
+| `ranking.lexical_boost_factor`            | number   | No       | `0.15`                                     | Non-negative, finite; `0` disables lexical boosting (issue #62)            |
 
 The schema uses `.passthrough()` to preserve unknown keys for forward compatibility.
 

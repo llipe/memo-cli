@@ -84,7 +84,7 @@ CLI Entry (src/index.ts)
         └── commands/read.ts       → ReadCommand (single-entry lookup by ID)
 
 lib/
-  ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll, deleteById, deleteByFilter)
+  ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll, deleteById, deleteByFilter, ensureIndexes)
   ├── facets.ts            → Scroll-based aggregation (aggregateField, aggregateMultipleFields)
   ├── embeddings.ts        → EmbeddingsAdapter interface + factory
   ├── config.ts            → Config loader (memo.config.json + env)
@@ -95,6 +95,10 @@ lib/
   ├── search-filters.ts    → Qdrant pre-filter builder for search
   ├── list-filters.ts      → Qdrant pre-filter builder for list (with date range)
   ├── retry.ts             → Generic exponential backoff retry wrapper
+  ├── eval.ts              → Pure top-3 hit-rate computation (eval harness, issue #61)
+  ├── ranking.ts           → Composite ranking score, confidence tiers, tag boost (issues #34, #35, #36)
+  ├── staleness.ts         → Pure staleness detection for `memo search` (issue #38)
+  ├── lexical.ts           → Pure lexical identifier matching for `memo search` (issue #62)
   └── debug.ts             → Conditional debug logging to stderr
 
 adapters/
@@ -427,6 +431,7 @@ memo-cli/
 │   │   └── read.ts               ← memo read (single entry by ID)
 │   ├── lib/
 │   │   ├── qdrant.ts             ← QdrantRepository
+│   │   ├── facets.ts             ← Scroll-based aggregation (aggregateField, aggregateMultipleFields)
 │   │   ├── embeddings.ts         ← EmbeddingsAdapter interface + factory
 │   │   ├── config.ts             ← Config loader and resolver
 │   │   ├── registry.ts           ← Related-repo resolution
@@ -437,6 +442,9 @@ memo-cli/
 │   │   ├── list-filters.ts       ← Qdrant pre-filter builder (list, date range)
 │   │   ├── retry.ts              ← Exponential backoff retry wrapper
 │   │   ├── eval.ts               ← Pure top-3 hit-rate computation (eval harness)
+│   │   ├── ranking.ts            ← Composite ranking score, confidence tiers, tag boost
+│   │   ├── staleness.ts          ← Pure staleness detection (issue #38)
+│   │   ├── lexical.ts            ← Pure lexical identifier matching (issue #62)
 │   │   └── debug.ts              ← Conditional debug logging (MEMO_DEBUG)
 │   ├── adapters/
 │   │   └── openai-embeddings.ts  ← OpenAI text-embedding-3-small
