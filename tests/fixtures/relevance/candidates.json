@@ -5,7 +5,7 @@
     "candidates": [
       {
         "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
-        "score": 0.55796015,
+        "score": 0.5579684,
         "payload": {
           "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
           "repo": "memo-cli",
@@ -16,12 +16,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+          "timestamp_utc": "2025-10-25T20:52:15.511Z"
         }
       },
       {
         "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
-        "score": 0.4723657,
+        "score": 0.47231856,
         "payload": {
           "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
           "repo": "billing-service",
@@ -32,12 +32,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
         "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
-        "score": 0.46016455,
+        "score": 0.46015796,
         "payload": {
           "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
           "repo": "memo-cli",
@@ -48,12 +48,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.4531818,
+        "score": 0.45300642,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -63,12 +63,12 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
         "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
-        "score": 0.45270628,
+        "score": 0.45275408,
         "payload": {
           "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
           "repo": "memo-cli",
@@ -79,12 +79,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
         "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
-        "score": 0.42461652,
+        "score": 0.4246412,
         "payload": {
           "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
           "repo": "memo-cli",
@@ -95,12 +95,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
-        "score": 0.3637101,
+        "score": 0.36366767,
         "payload": {
           "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
           "repo": "memo-cli",
@@ -110,12 +110,12 @@
           "tags": ["write", "ux", "tty"],
           "entry_type": "structure",
           "source": "manual",
-          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+          "timestamp_utc": "2026-05-13T20:52:15.511Z"
         }
       },
       {
         "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
-        "score": 0.3583976,
+        "score": 0.3583331,
         "payload": {
           "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
           "repo": "billing-service",
@@ -126,12 +126,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
         "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.35052025,
+        "score": 0.34907627,
         "payload": {
           "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
           "repo": "memo-cli",
@@ -142,12 +142,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.3394071,
+        "score": 0.3394018,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -158,7 +158,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       }
     ]
@@ -169,7 +169,7 @@
     "candidates": [
       {
         "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
-        "score": 0.6649152,
+        "score": 0.6648724,
         "payload": {
           "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
           "repo": "memo-cli",
@@ -179,12 +179,12 @@
           "tags": ["dedupe", "write", "ux"],
           "entry_type": "integration_point",
           "source": "agent",
-          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+          "timestamp_utc": "2026-03-14T20:52:15.511Z"
         }
       },
       {
         "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
-        "score": 0.41602844,
+        "score": 0.41601747,
         "payload": {
           "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
           "repo": "memo-cli",
@@ -194,12 +194,12 @@
           "tags": ["dedupe", "hashing"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
         "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
-        "score": 0.38372532,
+        "score": 0.38366365,
         "payload": {
           "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
           "repo": "memo-cli",
@@ -209,12 +209,12 @@
           "tags": ["dedupe", "versioning"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+          "timestamp_utc": "2025-12-04T20:52:15.511Z"
         }
       },
       {
         "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
-        "score": 0.32402122,
+        "score": 0.32404643,
         "payload": {
           "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
           "repo": "memo-cli",
@@ -224,12 +224,12 @@
           "tags": ["eval", "isolation", "safety"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+          "timestamp_utc": "2026-09-19T20:52:15.511Z"
         }
       },
       {
         "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
-        "score": 0.31136638,
+        "score": 0.31134742,
         "payload": {
           "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
           "repo": "billing-service",
@@ -239,12 +239,12 @@
           "tags": ["billing", "refunds", "approval"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
         "id": "743d37d8-b21a-48a0-937b-780b01485712",
-        "score": 0.3078488,
+        "score": 0.30784348,
         "payload": {
           "id": "743d37d8-b21a-48a0-937b-780b01485712",
           "repo": "billing-service",
@@ -254,12 +254,12 @@
           "tags": ["billing", "subscriptions", "grace-period"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+          "timestamp_utc": "2026-02-12T20:52:15.511Z"
         }
       },
       {
         "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
-        "score": 0.307307,
+        "score": 0.30732644,
         "payload": {
           "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
           "repo": "memo-cli",
@@ -269,12 +269,12 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
         "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
-        "score": 0.30556384,
+        "score": 0.30554765,
         "payload": {
           "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
           "repo": "memo-cli",
@@ -284,12 +284,12 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
         "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
-        "score": 0.2976916,
+        "score": 0.29766598,
         "payload": {
           "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
           "repo": "memo-cli",
@@ -299,12 +299,12 @@
           "tags": ["write", "ux", "tty"],
           "entry_type": "structure",
           "source": "manual",
-          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+          "timestamp_utc": "2026-05-13T20:52:15.511Z"
         }
       },
       {
         "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
-        "score": 0.29343164,
+        "score": 0.2934126,
         "payload": {
           "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
           "repo": "billing-service",
@@ -315,7 +315,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       }
     ]
@@ -326,7 +326,7 @@
     "candidates": [
       {
         "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
-        "score": 0.54674137,
+        "score": 0.5467109,
         "payload": {
           "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
           "repo": "memo-cli",
@@ -336,12 +336,12 @@
           "tags": ["confidence", "source"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-02-22T20:43:38.969Z"
+          "timestamp_utc": "2026-02-22T20:52:15.511Z"
         }
       },
       {
         "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
-        "score": 0.3650305,
+        "score": 0.36504838,
         "payload": {
           "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
           "repo": "memo-cli",
@@ -351,12 +351,12 @@
           "tags": ["dedupe", "versioning"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+          "timestamp_utc": "2025-12-04T20:52:15.511Z"
         }
       },
       {
         "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
-        "score": 0.35559916,
+        "score": 0.35580593,
         "payload": {
           "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
           "repo": "memo-cli",
@@ -366,12 +366,12 @@
           "tags": ["eval", "isolation", "safety"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+          "timestamp_utc": "2026-09-19T20:52:15.511Z"
         }
       },
       {
         "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
-        "score": 0.3359483,
+        "score": 0.3359499,
         "payload": {
           "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
           "repo": "memo-cli",
@@ -381,12 +381,12 @@
           "tags": ["dedupe", "write", "ux"],
           "entry_type": "integration_point",
           "source": "agent",
-          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+          "timestamp_utc": "2026-03-14T20:52:15.511Z"
         }
       },
       {
         "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
-        "score": 0.31553638,
+        "score": 0.31548983,
         "payload": {
           "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
           "repo": "memo-cli",
@@ -397,12 +397,12 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
         "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
-        "score": 0.30341232,
+        "score": 0.30341417,
         "payload": {
           "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
           "repo": "memo-cli",
@@ -413,12 +413,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+          "timestamp_utc": "2026-09-15T20:52:15.511Z"
         }
       },
       {
         "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
-        "score": 0.29963642,
+        "score": 0.2995967,
         "payload": {
           "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
           "repo": "memo-cli",
@@ -428,12 +428,12 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
         "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
-        "score": 0.29779392,
+        "score": 0.2977342,
         "payload": {
           "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
           "repo": "memo-cli",
@@ -443,12 +443,12 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.28517896,
+        "score": 0.28522238,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -459,12 +459,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
-        "score": 0.2813164,
+        "score": 0.28128853,
         "payload": {
           "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
           "repo": "memo-cli",
@@ -474,7 +474,7 @@
           "tags": ["dedupe", "hashing"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       }
     ]
@@ -485,7 +485,7 @@
     "candidates": [
       {
         "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
-        "score": 0.48254,
+        "score": 0.48255992,
         "payload": {
           "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
           "repo": "memo-cli",
@@ -496,7 +496,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["src/index.ts"],
-          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+          "timestamp_utc": "2025-09-25T20:52:15.511Z"
         }
       },
       {
@@ -512,12 +512,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.4182731,
+        "score": 0.41819757,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -527,7 +527,7 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
@@ -542,7 +542,7 @@
           "tags": ["write", "ux", "tty"],
           "entry_type": "structure",
           "source": "manual",
-          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+          "timestamp_utc": "2026-05-13T20:52:15.511Z"
         }
       },
       {
@@ -558,7 +558,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
@@ -574,7 +574,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
@@ -590,7 +590,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
@@ -605,7 +605,7 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
@@ -620,7 +620,7 @@
           "tags": ["confidence", "source"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-02-22T20:43:38.969Z"
+          "timestamp_utc": "2026-02-22T20:52:15.511Z"
         }
       },
       {
@@ -635,7 +635,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       }
     ]
@@ -646,7 +646,7 @@
     "candidates": [
       {
         "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
-        "score": 0.6994409,
+        "score": 0.69949305,
         "payload": {
           "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
           "repo": "memo-cli",
@@ -656,12 +656,12 @@
           "tags": ["search", "scope"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+          "timestamp_utc": "2026-03-24T20:52:15.511Z"
         }
       },
       {
         "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
-        "score": 0.44752717,
+        "score": 0.44753897,
         "payload": {
           "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
           "repo": "memo-cli",
@@ -671,12 +671,12 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.41078863,
+        "score": 0.4107768,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -687,12 +687,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
-        "score": 0.3916896,
+        "score": 0.39171305,
         "payload": {
           "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
           "repo": "memo-cli",
@@ -703,12 +703,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
         "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
-        "score": 0.35522574,
+        "score": 0.35495907,
         "payload": {
           "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
           "repo": "memo-cli",
@@ -719,12 +719,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/facets.ts"],
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
         "id": "08ee6a49-c120-4464-b426-b24a4968193d",
-        "score": 0.32087004,
+        "score": 0.32088155,
         "payload": {
           "id": "08ee6a49-c120-4464-b426-b24a4968193d",
           "repo": "memo-cli",
@@ -734,12 +734,12 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
         "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
-        "score": 0.30398726,
+        "score": 0.3039517,
         "payload": {
           "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
           "repo": "memo-cli",
@@ -749,12 +749,12 @@
           "tags": ["dedupe", "hashing"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
         "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
-        "score": 0.3025641,
+        "score": 0.30258185,
         "payload": {
           "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
           "repo": "memo-cli",
@@ -764,12 +764,12 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
         "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
-        "score": 0.2972708,
+        "score": 0.29727337,
         "payload": {
           "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
           "repo": "memo-cli",
@@ -779,12 +779,12 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
         "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.29416394,
+        "score": 0.29433846,
         "payload": {
           "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
           "repo": "memo-cli",
@@ -795,7 +795,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       }
     ]
@@ -806,7 +806,7 @@
     "candidates": [
       {
         "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
-        "score": 0.65238994,
+        "score": 0.6524048,
         "payload": {
           "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
           "repo": "memo-cli",
@@ -816,12 +816,12 @@
           "tags": ["tags", "discovery"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+          "timestamp_utc": "2026-06-02T20:52:15.511Z"
         }
       },
       {
         "id": "08ee6a49-c120-4464-b426-b24a4968193d",
-        "score": 0.39803362,
+        "score": 0.39809006,
         "payload": {
           "id": "08ee6a49-c120-4464-b426-b24a4968193d",
           "repo": "memo-cli",
@@ -831,12 +831,12 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
         "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
-        "score": 0.3221113,
+        "score": 0.3221398,
         "payload": {
           "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
           "repo": "memo-cli",
@@ -846,12 +846,12 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
         "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
-        "score": 0.29765594,
+        "score": 0.29762036,
         "payload": {
           "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
           "repo": "memo-cli",
@@ -862,12 +862,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
         "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
-        "score": 0.28545558,
+        "score": 0.28533262,
         "payload": {
           "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
           "repo": "memo-cli",
@@ -878,12 +878,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/facets.ts"],
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
         "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
-        "score": 0.28160363,
+        "score": 0.28160703,
         "payload": {
           "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
           "repo": "memo-cli",
@@ -893,12 +893,12 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.27541542,
+        "score": 0.27541277,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -909,12 +909,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "69892c81-ec02-46e5-8cb6-36f8360c2ec9",
-        "score": 0.27345407,
+        "score": 0.2734491,
         "payload": {
           "id": "69892c81-ec02-46e5-8cb6-36f8360c2ec9",
           "repo": "memo-cli",
@@ -924,12 +924,12 @@
           "tags": ["qdrant", "vectors", "constraints"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-10-05T20:43:38.969Z"
+          "timestamp_utc": "2025-10-05T20:52:15.511Z"
         }
       },
       {
         "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.2732907,
+        "score": 0.27312285,
         "payload": {
           "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
           "repo": "memo-cli",
@@ -940,12 +940,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       },
       {
         "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
-        "score": 0.25752133,
+        "score": 0.25756925,
         "payload": {
           "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
           "repo": "memo-cli",
@@ -955,7 +955,7 @@
           "tags": ["dedupe", "hashing"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       }
     ]
@@ -966,7 +966,7 @@
     "candidates": [
       {
         "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
-        "score": 0.6875534,
+        "score": 0.68752384,
         "payload": {
           "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
           "repo": "billing-service",
@@ -976,12 +976,12 @@
           "tags": ["billing", "refunds", "approval"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
         "id": "743d37d8-b21a-48a0-937b-780b01485712",
-        "score": 0.42465222,
+        "score": 0.42466754,
         "payload": {
           "id": "743d37d8-b21a-48a0-937b-780b01485712",
           "repo": "billing-service",
@@ -991,12 +991,12 @@
           "tags": ["billing", "subscriptions", "grace-period"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+          "timestamp_utc": "2026-02-12T20:52:15.511Z"
         }
       },
       {
         "id": "074dfaac-fda5-4de0-bdde-1d4fce33efc9",
-        "score": 0.41288984,
+        "score": 0.41291517,
         "payload": {
           "id": "074dfaac-fda5-4de0-bdde-1d4fce33efc9",
           "repo": "billing-service",
@@ -1006,12 +1006,12 @@
           "tags": ["billing", "tax", "vendor"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-01-03T20:43:38.969Z"
+          "timestamp_utc": "2026-01-03T20:52:15.511Z"
         }
       },
       {
         "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
-        "score": 0.4064618,
+        "score": 0.4064893,
         "payload": {
           "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
           "repo": "billing-service",
@@ -1022,12 +1022,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
         "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
-        "score": 0.39513484,
+        "score": 0.39508277,
         "payload": {
           "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
           "repo": "billing-service",
@@ -1038,12 +1038,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
         "id": "ac842b1a-5870-4369-a034-0c154286c98f",
-        "score": 0.3919108,
+        "score": 0.39193082,
         "payload": {
           "id": "ac842b1a-5870-4369-a034-0c154286c98f",
           "repo": "billing-service",
@@ -1053,12 +1053,12 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
         "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
-        "score": 0.39096612,
+        "score": 0.39097652,
         "payload": {
           "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
           "repo": "billing-service",
@@ -1069,12 +1069,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       },
       {
         "id": "423469b9-356e-45f3-a6e4-804b92720938",
-        "score": 0.37939185,
+        "score": 0.37937048,
         "payload": {
           "id": "423469b9-356e-45f3-a6e4-804b92720938",
           "repo": "billing-service",
@@ -1084,12 +1084,12 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
         "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
-        "score": 0.3762031,
+        "score": 0.37620127,
         "payload": {
           "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
           "repo": "billing-service",
@@ -1099,12 +1099,12 @@
           "tags": ["billing", "circuit-breaker", "outcome"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+          "timestamp_utc": "2026-08-21T20:52:15.511Z"
         }
       },
       {
         "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
-        "score": 0.36799017,
+        "score": 0.3680389,
         "payload": {
           "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
           "repo": "billing-service",
@@ -1114,7 +1114,7 @@
           "tags": ["billing", "proration", "plans"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-06-22T20:43:38.969Z"
+          "timestamp_utc": "2026-06-22T20:52:15.511Z"
         }
       }
     ]
@@ -1135,7 +1135,7 @@
           "tags": ["billing", "proration", "plans"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-06-22T20:43:38.969Z"
+          "timestamp_utc": "2026-06-22T20:52:15.511Z"
         }
       },
       {
@@ -1150,7 +1150,7 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
@@ -1165,7 +1165,7 @@
           "tags": ["billing", "refunds", "approval"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
@@ -1180,7 +1180,7 @@
           "tags": ["billing", "subscriptions", "grace-period"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+          "timestamp_utc": "2026-02-12T20:52:15.511Z"
         }
       },
       {
@@ -1195,7 +1195,7 @@
           "tags": ["billing", "currency", "rounding"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
@@ -1210,7 +1210,7 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -1225,12 +1225,12 @@
           "tags": ["billing", "tax", "vendor"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-01-03T20:43:38.969Z"
+          "timestamp_utc": "2026-01-03T20:52:15.511Z"
         }
       },
       {
         "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
-        "score": 0.29314992,
+        "score": 0.29311424,
         "payload": {
           "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
           "repo": "memo-cli",
@@ -1241,7 +1241,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+          "timestamp_utc": "2025-10-25T20:52:15.511Z"
         }
       },
       {
@@ -1256,7 +1256,7 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
@@ -1272,7 +1272,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       }
     ]
@@ -1283,7 +1283,7 @@
     "candidates": [
       {
         "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
-        "score": 0.38512993,
+        "score": 0.3851099,
         "payload": {
           "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
           "repo": "memo-cli",
@@ -1294,12 +1294,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+          "timestamp_utc": "2025-10-25T20:52:15.511Z"
         }
       },
       {
         "id": "28595d5f-22ab-4986-8e24-758864af95dd",
-        "score": 0.36420697,
+        "score": 0.3642584,
         "payload": {
           "id": "28595d5f-22ab-4986-8e24-758864af95dd",
           "repo": "memo-cli",
@@ -1309,12 +1309,12 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
         "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
-        "score": 0.3572136,
+        "score": 0.3571773,
         "payload": {
           "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
           "repo": "memo-cli",
@@ -1325,12 +1325,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+          "timestamp_utc": "2026-09-15T20:52:15.511Z"
         }
       },
       {
         "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
-        "score": 0.3381074,
+        "score": 0.33805817,
         "payload": {
           "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
           "repo": "billing-service",
@@ -1341,12 +1341,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
         "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
-        "score": 0.3091801,
+        "score": 0.30910757,
         "payload": {
           "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
           "repo": "memo-cli",
@@ -1357,12 +1357,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
         "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
-        "score": 0.27445093,
+        "score": 0.27440888,
         "payload": {
           "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
           "repo": "billing-service",
@@ -1373,12 +1373,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       },
       {
         "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
-        "score": 0.2730173,
+        "score": 0.27302432,
         "payload": {
           "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
           "repo": "memo-cli",
@@ -1388,12 +1388,12 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
         "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
-        "score": 0.26496643,
+        "score": 0.26491654,
         "payload": {
           "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
           "repo": "memo-cli",
@@ -1403,12 +1403,12 @@
           "tags": ["write", "ux", "tty"],
           "entry_type": "structure",
           "source": "manual",
-          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+          "timestamp_utc": "2026-05-13T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.25594598,
+        "score": 0.2559379,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -1419,12 +1419,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
-        "score": 0.246662,
+        "score": 0.24642481,
         "payload": {
           "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
           "repo": "memo-cli",
@@ -1434,7 +1434,7 @@
           "tags": ["eval", "isolation", "safety"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+          "timestamp_utc": "2026-09-19T20:52:15.511Z"
         }
       }
     ]
@@ -1445,7 +1445,7 @@
     "candidates": [
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.62487423,
+        "score": 0.62487745,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -1456,12 +1456,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
-        "score": 0.43527412,
+        "score": 0.4352321,
         "payload": {
           "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
           "repo": "memo-cli",
@@ -1472,7 +1472,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+          "timestamp_utc": "2025-10-25T20:52:15.511Z"
         }
       },
       {
@@ -1487,7 +1487,7 @@
           "tags": ["dedupe", "versioning"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+          "timestamp_utc": "2025-12-04T20:52:15.511Z"
         }
       },
       {
@@ -1503,7 +1503,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
@@ -1518,7 +1518,7 @@
           "tags": ["qdrant", "vectors", "constraints"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-10-05T20:43:38.969Z"
+          "timestamp_utc": "2025-10-05T20:52:15.511Z"
         }
       },
       {
@@ -1534,7 +1534,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
@@ -1550,7 +1550,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
@@ -1566,7 +1566,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+          "timestamp_utc": "2026-09-15T20:52:15.511Z"
         }
       },
       {
@@ -1581,7 +1581,7 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
@@ -1596,7 +1596,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       }
     ]
@@ -1607,7 +1607,7 @@
     "candidates": [
       {
         "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
-        "score": 0.601524,
+        "score": 0.60148716,
         "payload": {
           "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
           "repo": "memo-cli",
@@ -1618,12 +1618,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/facets.ts"],
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
         "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.2913161,
+        "score": 0.29077083,
         "payload": {
           "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
           "repo": "memo-cli",
@@ -1634,7 +1634,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       },
       {
@@ -1649,7 +1649,7 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
@@ -1665,7 +1665,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
@@ -1680,7 +1680,7 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
@@ -1695,7 +1695,7 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
@@ -1710,7 +1710,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
@@ -1725,7 +1725,7 @@
           "tags": ["tags", "discovery"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+          "timestamp_utc": "2026-06-02T20:52:15.511Z"
         }
       },
       {
@@ -1740,12 +1740,12 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.2500364,
+        "score": 0.25002173,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -1756,7 +1756,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       }
     ]
@@ -1778,7 +1778,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
@@ -1793,7 +1793,7 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
@@ -1808,7 +1808,7 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
@@ -1823,12 +1823,12 @@
           "tags": ["search", "scope"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+          "timestamp_utc": "2026-03-24T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.33679858,
+        "score": 0.3368633,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -1839,7 +1839,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
@@ -1854,7 +1854,7 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
@@ -1869,12 +1869,12 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
         "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
-        "score": 0.3057098,
+        "score": 0.30575618,
         "payload": {
           "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
           "repo": "memo-cli",
@@ -1885,7 +1885,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/commands/delete.ts"],
-          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+          "timestamp_utc": "2026-07-22T20:52:15.511Z"
         }
       },
       {
@@ -1901,7 +1901,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
@@ -1916,7 +1916,7 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       }
     ]
@@ -1927,7 +1927,7 @@
     "candidates": [
       {
         "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
-        "score": 0.5469137,
+        "score": 0.54693514,
         "payload": {
           "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
           "repo": "memo-cli",
@@ -1938,7 +1938,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/commands/delete.ts"],
-          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+          "timestamp_utc": "2026-07-22T20:52:15.511Z"
         }
       },
       {
@@ -1954,7 +1954,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
@@ -1969,7 +1969,7 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
@@ -1984,7 +1984,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
@@ -1999,12 +1999,12 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.24972984,
+        "score": 0.24975072,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -2015,7 +2015,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
@@ -2030,12 +2030,12 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
         "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
-        "score": 0.23337491,
+        "score": 0.23338965,
         "payload": {
           "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
           "repo": "memo-cli",
@@ -2046,7 +2046,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["src/index.ts"],
-          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+          "timestamp_utc": "2025-09-25T20:52:15.511Z"
         }
       },
       {
@@ -2062,7 +2062,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
@@ -2077,7 +2077,7 @@
           "tags": ["write", "ux", "tty"],
           "entry_type": "structure",
           "source": "manual",
-          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+          "timestamp_utc": "2026-05-13T20:52:15.511Z"
         }
       }
     ]
@@ -2088,7 +2088,7 @@
     "candidates": [
       {
         "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.42827228,
+        "score": 0.4289837,
         "payload": {
           "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
           "repo": "memo-cli",
@@ -2099,12 +2099,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       },
       {
         "id": "28595d5f-22ab-4986-8e24-758864af95dd",
-        "score": 0.34149137,
+        "score": 0.34144056,
         "payload": {
           "id": "28595d5f-22ab-4986-8e24-758864af95dd",
           "repo": "memo-cli",
@@ -2114,12 +2114,12 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
         "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
-        "score": 0.32919478,
+        "score": 0.32914448,
         "payload": {
           "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
           "repo": "memo-cli",
@@ -2130,12 +2130,12 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["src/index.ts"],
-          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+          "timestamp_utc": "2025-09-25T20:52:15.511Z"
         }
       },
       {
         "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
-        "score": 0.3119344,
+        "score": 0.3119814,
         "payload": {
           "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
           "repo": "memo-cli",
@@ -2145,12 +2145,12 @@
           "tags": ["search", "scope"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+          "timestamp_utc": "2026-03-24T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.29566342,
+        "score": 0.29572397,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -2161,12 +2161,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
-        "score": 0.29349,
+        "score": 0.29345804,
         "payload": {
           "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
           "repo": "memo-cli",
@@ -2177,12 +2177,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
-        "score": 0.28545782,
+        "score": 0.28546262,
         "payload": {
           "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
           "repo": "memo-cli",
@@ -2192,12 +2192,12 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
         "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
-        "score": 0.28416687,
+        "score": 0.28412658,
         "payload": {
           "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
           "repo": "memo-cli",
@@ -2207,12 +2207,12 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
         "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
-        "score": 0.28099006,
+        "score": 0.280967,
         "payload": {
           "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
           "repo": "memo-cli",
@@ -2223,12 +2223,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
         "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
-        "score": 0.26952267,
+        "score": 0.26954657,
         "payload": {
           "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
           "repo": "memo-cli",
@@ -2238,7 +2238,7 @@
           "tags": ["tags", "discovery"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+          "timestamp_utc": "2026-06-02T20:52:15.511Z"
         }
       }
     ]
@@ -2260,7 +2260,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
@@ -2276,7 +2276,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
@@ -2292,7 +2292,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
@@ -2307,7 +2307,7 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
@@ -2322,7 +2322,7 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
@@ -2337,12 +2337,12 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.28732094,
+        "score": 0.28734186,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -2353,7 +2353,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       },
       {
@@ -2368,12 +2368,12 @@
           "tags": ["write", "ux", "tty"],
           "entry_type": "structure",
           "source": "manual",
-          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+          "timestamp_utc": "2026-05-13T20:52:15.511Z"
         }
       },
       {
         "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
-        "score": 0.26252258,
+        "score": 0.2625134,
         "payload": {
           "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
           "repo": "memo-cli",
@@ -2383,7 +2383,7 @@
           "tags": ["eval", "isolation", "safety"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+          "timestamp_utc": "2026-09-19T20:52:15.511Z"
         }
       },
       {
@@ -2398,7 +2398,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       }
     ]
@@ -2409,7 +2409,7 @@
     "candidates": [
       {
         "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-        "score": 0.7104131,
+        "score": 0.71044517,
         "payload": {
           "id": "d95a338a-988c-4326-bfae-801eb2f59156",
           "repo": "billing-service",
@@ -2420,7 +2420,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/billing/webhooks.ts"],
-          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+          "timestamp_utc": "2025-08-16T20:52:15.511Z"
         }
       },
       {
@@ -2436,7 +2436,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
@@ -2452,7 +2452,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
@@ -2467,7 +2467,7 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
@@ -2483,7 +2483,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       },
       {
@@ -2499,7 +2499,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
@@ -2515,7 +2515,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+          "timestamp_utc": "2026-09-15T20:52:15.511Z"
         }
       },
       {
@@ -2530,12 +2530,12 @@
           "tags": ["billing", "circuit-breaker", "outcome"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+          "timestamp_utc": "2026-08-21T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.33516675,
+        "score": 0.33516705,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -2546,7 +2546,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       },
       {
@@ -2561,7 +2561,7 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       }
     ]
@@ -2572,7 +2572,7 @@
     "candidates": [
       {
         "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
-        "score": 0.62786406,
+        "score": 0.6279675,
         "payload": {
           "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
           "repo": "billing-service",
@@ -2583,12 +2583,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
         "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
-        "score": 0.55165917,
+        "score": 0.5515983,
         "payload": {
           "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
           "repo": "billing-service",
@@ -2599,12 +2599,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.43963817,
+        "score": 0.43962005,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -2614,12 +2614,12 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
         "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
-        "score": 0.4326253,
+        "score": 0.43267488,
         "payload": {
           "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
           "repo": "memo-cli",
@@ -2630,12 +2630,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
         "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
-        "score": 0.39511478,
+        "score": 0.39505702,
         "payload": {
           "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
           "repo": "billing-service",
@@ -2646,12 +2646,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
         "id": "423469b9-356e-45f3-a6e4-804b92720938",
-        "score": 0.3731978,
+        "score": 0.37320387,
         "payload": {
           "id": "423469b9-356e-45f3-a6e4-804b92720938",
           "repo": "billing-service",
@@ -2661,12 +2661,12 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
         "id": "ac842b1a-5870-4369-a034-0c154286c98f",
-        "score": 0.36266857,
+        "score": 0.3627193,
         "payload": {
           "id": "ac842b1a-5870-4369-a034-0c154286c98f",
           "repo": "billing-service",
@@ -2676,12 +2676,12 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
         "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
-        "score": 0.35087276,
+        "score": 0.35086244,
         "payload": {
           "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
           "repo": "memo-cli",
@@ -2692,12 +2692,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-        "score": 0.34741062,
+        "score": 0.3474037,
         "payload": {
           "id": "d95a338a-988c-4326-bfae-801eb2f59156",
           "repo": "billing-service",
@@ -2708,12 +2708,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/billing/webhooks.ts"],
-          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+          "timestamp_utc": "2025-08-16T20:52:15.511Z"
         }
       },
       {
         "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
-        "score": 0.34569365,
+        "score": 0.345674,
         "payload": {
           "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
           "repo": "billing-service",
@@ -2723,7 +2723,7 @@
           "tags": ["billing", "refunds", "approval"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       }
     ]
@@ -2745,7 +2745,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
@@ -2761,7 +2761,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
@@ -2777,7 +2777,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       },
       {
@@ -2793,12 +2793,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
         "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-        "score": 0.3926066,
+        "score": 0.39257666,
         "payload": {
           "id": "d95a338a-988c-4326-bfae-801eb2f59156",
           "repo": "billing-service",
@@ -2809,7 +2809,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/billing/webhooks.ts"],
-          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+          "timestamp_utc": "2025-08-16T20:52:15.511Z"
         }
       },
       {
@@ -2824,12 +2824,12 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.37069345,
+        "score": 0.37070632,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -2840,7 +2840,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       },
       {
@@ -2855,7 +2855,7 @@
           "tags": ["billing", "circuit-breaker", "outcome"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+          "timestamp_utc": "2026-08-21T20:52:15.511Z"
         }
       },
       {
@@ -2871,12 +2871,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.35437346,
+        "score": 0.3543374,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -2886,7 +2886,7 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       }
     ]
@@ -2908,7 +2908,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
@@ -2924,12 +2924,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.45746619,
+        "score": 0.45741528,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -2939,7 +2939,7 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
@@ -2954,7 +2954,7 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -2970,12 +2970,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.36783916,
+        "score": 0.36781394,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -2986,7 +2986,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       },
       {
@@ -3002,7 +3002,23 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
+        }
+      },
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.33707616,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:52:15.511Z"
         }
       },
       {
@@ -3018,23 +3034,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
-        }
-      },
-      {
-        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-        "score": 0.33706018,
-        "payload": {
-          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-          "repo": "billing-service",
-          "org": "llipe",
-          "domain": "billing",
-          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
-          "tags": ["billing", "webhooks", "idempotency"],
-          "entry_type": "integration_point",
-          "source": "agent",
-          "files_modified": ["src/billing/webhooks.ts"],
-          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
@@ -3049,7 +3049,7 @@
           "tags": ["billing", "circuit-breaker", "outcome"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+          "timestamp_utc": "2026-08-21T20:52:15.511Z"
         }
       }
     ]
@@ -3060,7 +3060,7 @@
     "candidates": [
       {
         "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
-        "score": 0.5480211,
+        "score": 0.5480013,
         "payload": {
           "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
           "repo": "memo-cli",
@@ -3070,7 +3070,7 @@
           "tags": ["dedupe", "hashing"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -3085,7 +3085,7 @@
           "tags": ["dedupe", "write", "ux"],
           "entry_type": "integration_point",
           "source": "agent",
-          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+          "timestamp_utc": "2026-03-14T20:52:15.511Z"
         }
       },
       {
@@ -3100,12 +3100,12 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.45005384,
+        "score": 0.4500488,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -3116,7 +3116,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
@@ -3131,7 +3131,7 @@
           "tags": ["dedupe", "versioning"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+          "timestamp_utc": "2025-12-04T20:52:15.511Z"
         }
       },
       {
@@ -3146,7 +3146,7 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
@@ -3162,12 +3162,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
         "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
-        "score": 0.35953742,
+        "score": 0.3593545,
         "payload": {
           "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
           "repo": "memo-cli",
@@ -3178,7 +3178,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/facets.ts"],
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
@@ -3194,12 +3194,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
         "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-        "score": 0.33876672,
+        "score": 0.33876374,
         "payload": {
           "id": "d95a338a-988c-4326-bfae-801eb2f59156",
           "repo": "billing-service",
@@ -3210,7 +3210,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/billing/webhooks.ts"],
-          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+          "timestamp_utc": "2025-08-16T20:52:15.511Z"
         }
       }
     ]
@@ -3232,7 +3232,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
@@ -3248,7 +3248,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
@@ -3263,7 +3263,7 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -3279,12 +3279,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.4314364,
+        "score": 0.43139616,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -3294,12 +3294,12 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
         "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
-        "score": 0.422368,
+        "score": 0.42238268,
         "payload": {
           "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
           "repo": "memo-cli",
@@ -3310,12 +3310,12 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["src/index.ts"],
-          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+          "timestamp_utc": "2025-09-25T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.41172534,
+        "score": 0.41168743,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -3326,12 +3326,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       },
       {
         "id": "38498ba0-f079-4547-aaa9-6967404f1d9a",
-        "score": 0.4092647,
+        "score": 0.40929505,
         "payload": {
           "id": "38498ba0-f079-4547-aaa9-6967404f1d9a",
           "repo": "billing-service",
@@ -3342,12 +3342,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/pdf.ts"],
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
         "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
-        "score": 0.37108698,
+        "score": 0.3708972,
         "payload": {
           "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
           "repo": "memo-cli",
@@ -3358,7 +3358,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/facets.ts"],
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
@@ -3373,7 +3373,7 @@
           "tags": ["output", "chalk", "cli"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-30T20:43:38.969Z"
+          "timestamp_utc": "2025-09-30T20:52:15.511Z"
         }
       }
     ]
@@ -3395,7 +3395,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
@@ -3410,7 +3410,7 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -3426,12 +3426,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
         "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
-        "score": 0.44381917,
+        "score": 0.4437458,
         "payload": {
           "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
           "repo": "memo-cli",
@@ -3441,7 +3441,7 @@
           "tags": ["debug", "logging"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+          "timestamp_utc": "2026-03-04T20:52:15.511Z"
         }
       },
       {
@@ -3456,7 +3456,7 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
@@ -3471,7 +3471,7 @@
           "tags": ["billing", "circuit-breaker", "outcome"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+          "timestamp_utc": "2026-08-21T20:52:15.511Z"
         }
       },
       {
@@ -3486,7 +3486,7 @@
           "tags": ["billing", "subscriptions", "grace-period"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+          "timestamp_utc": "2026-02-12T20:52:15.511Z"
         }
       },
       {
@@ -3501,12 +3501,12 @@
           "tags": ["billing", "refunds", "approval"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.37883502,
+        "score": 0.37881458,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -3517,7 +3517,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       },
       {
@@ -3533,7 +3533,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       }
     ]
@@ -3554,7 +3554,7 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
@@ -3569,12 +3569,12 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
         "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
-        "score": 0.48962086,
+        "score": 0.4896937,
         "payload": {
           "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
           "repo": "memo-cli",
@@ -3584,7 +3584,7 @@
           "tags": ["eval", "isolation", "safety"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+          "timestamp_utc": "2026-09-19T20:52:15.511Z"
         }
       },
       {
@@ -3600,7 +3600,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
@@ -3615,12 +3615,12 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.28959155,
+        "score": 0.2896197,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -3631,7 +3631,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
@@ -3647,7 +3647,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
@@ -3662,7 +3662,7 @@
           "tags": ["confidence", "source"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-02-22T20:43:38.969Z"
+          "timestamp_utc": "2026-02-22T20:52:15.511Z"
         }
       },
       {
@@ -3678,7 +3678,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
@@ -3693,7 +3693,7 @@
           "tags": ["dedupe", "write", "ux"],
           "entry_type": "integration_point",
           "source": "agent",
-          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+          "timestamp_utc": "2026-03-14T20:52:15.511Z"
         }
       }
     ]
@@ -3704,7 +3704,7 @@
     "candidates": [
       {
         "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
-        "score": 0.6242502,
+        "score": 0.62432444,
         "payload": {
           "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
           "repo": "memo-cli",
@@ -3714,7 +3714,7 @@
           "tags": ["eval", "isolation", "safety"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+          "timestamp_utc": "2026-09-19T20:52:15.511Z"
         }
       },
       {
@@ -3729,7 +3729,7 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       },
       {
@@ -3745,7 +3745,7 @@
           "entry_type": "structure",
           "source": "scan",
           "files_modified": ["scripts/validate-bootstrap.ts"],
-          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+          "timestamp_utc": "2025-09-20T20:52:15.511Z"
         }
       },
       {
@@ -3760,7 +3760,7 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
@@ -3776,7 +3776,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+          "timestamp_utc": "2025-10-15T20:52:15.511Z"
         }
       },
       {
@@ -3791,7 +3791,7 @@
           "tags": ["tooling", "eslint", "typescript"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+          "timestamp_utc": "2025-12-24T20:52:15.511Z"
         }
       },
       {
@@ -3806,7 +3806,7 @@
           "tags": ["tooling", "husky", "lint"],
           "entry_type": "structure",
           "source": "scan",
-          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+          "timestamp_utc": "2025-09-27T20:52:15.511Z"
         }
       },
       {
@@ -3822,7 +3822,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/lib/config.ts"],
-          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+          "timestamp_utc": "2026-01-13T20:52:15.511Z"
         }
       },
       {
@@ -3837,7 +3837,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
@@ -3852,7 +3852,7 @@
           "tags": ["billing", "subscriptions", "grace-period"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+          "timestamp_utc": "2026-02-12T20:52:15.511Z"
         }
       }
     ]
@@ -3873,7 +3873,7 @@
           "tags": ["billing", "circuit-breaker", "outcome"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+          "timestamp_utc": "2026-08-21T20:52:15.511Z"
         }
       },
       {
@@ -3888,7 +3888,7 @@
           "tags": ["billing", "dunning", "outcome"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+          "timestamp_utc": "2026-06-12T20:52:15.511Z"
         }
       },
       {
@@ -3904,7 +3904,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/retry.ts"],
-          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+          "timestamp_utc": "2026-08-06T20:52:15.511Z"
         }
       },
       {
@@ -3920,12 +3920,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/billing/gateway.ts"],
-          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+          "timestamp_utc": "2026-08-11T20:52:15.511Z"
         }
       },
       {
         "id": "d95a338a-988c-4326-bfae-801eb2f59156",
-        "score": 0.3986841,
+        "score": 0.39864242,
         "payload": {
           "id": "d95a338a-988c-4326-bfae-801eb2f59156",
           "repo": "billing-service",
@@ -3936,7 +3936,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/billing/webhooks.ts"],
-          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+          "timestamp_utc": "2025-08-16T20:52:15.511Z"
         }
       },
       {
@@ -3951,7 +3951,7 @@
           "tags": ["billing", "audit", "structure"],
           "entry_type": "structure",
           "source": "agent",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -3966,12 +3966,12 @@
           "tags": ["billing", "proration", "plans"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-06-22T20:43:38.969Z"
+          "timestamp_utc": "2026-06-22T20:52:15.511Z"
         }
       },
       {
         "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
-        "score": 0.36927614,
+        "score": 0.36925912,
         "payload": {
           "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
           "repo": "memo-cli",
@@ -3982,7 +3982,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+          "timestamp_utc": "2025-10-25T20:52:15.511Z"
         }
       },
       {
@@ -3998,12 +3998,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
         "id": "81f55258-79bb-46a2-9134-6100e8783d27",
-        "score": 0.35699508,
+        "score": 0.35702735,
         "payload": {
           "id": "81f55258-79bb-46a2-9134-6100e8783d27",
           "repo": "billing-service",
@@ -4014,7 +4014,7 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/billing/migrations/001_init.ts"],
-          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+          "timestamp_utc": "2025-09-05T20:52:15.511Z"
         }
       }
     ]
@@ -4036,12 +4036,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "relates_to": ["memo-cli"],
-          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+          "timestamp_utc": "2026-08-31T20:52:15.511Z"
         }
       },
       {
         "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
-        "score": 0.37628666,
+        "score": 0.37625906,
         "payload": {
           "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
           "repo": "memo-cli",
@@ -4051,7 +4051,7 @@
           "tags": ["dedupe", "hashing"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+          "timestamp_utc": "2025-11-24T20:52:15.511Z"
         }
       },
       {
@@ -4067,7 +4067,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/commands/setup.ts"],
-          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+          "timestamp_utc": "2025-11-14T20:52:15.511Z"
         }
       },
       {
@@ -4082,12 +4082,12 @@
           "tags": ["search", "scope"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+          "timestamp_utc": "2026-03-24T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.31643394,
+        "score": 0.31645477,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -4098,7 +4098,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
@@ -4113,7 +4113,7 @@
           "tags": ["dedupe", "write", "ux"],
           "entry_type": "integration_point",
           "source": "agent",
-          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+          "timestamp_utc": "2026-03-14T20:52:15.511Z"
         }
       },
       {
@@ -4128,7 +4128,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
@@ -4143,7 +4143,7 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
@@ -4159,7 +4159,7 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/lib/retry.ts"],
-          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+          "timestamp_utc": "2026-09-15T20:52:15.511Z"
         }
       },
       {
@@ -4174,7 +4174,7 @@
           "tags": ["dedupe", "versioning"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+          "timestamp_utc": "2025-12-04T20:52:15.511Z"
         }
       }
     ]
@@ -4185,7 +4185,7 @@
     "candidates": [
       {
         "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
-        "score": 0.5420339,
+        "score": 0.5420673,
         "payload": {
           "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
           "repo": "memo-cli",
@@ -4196,12 +4196,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/commands/delete.ts"],
-          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+          "timestamp_utc": "2026-07-22T20:52:15.511Z"
         }
       },
       {
         "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
-        "score": 0.4188841,
+        "score": 0.41886038,
         "payload": {
           "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
           "repo": "memo-cli",
@@ -4211,12 +4211,12 @@
           "tags": ["dedupe", "write", "ux"],
           "entry_type": "integration_point",
           "source": "agent",
-          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+          "timestamp_utc": "2026-03-14T20:52:15.511Z"
         }
       },
       {
         "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
-        "score": 0.40013444,
+        "score": 0.40014973,
         "payload": {
           "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
           "repo": "memo-cli",
@@ -4226,12 +4226,12 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
         "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
-        "score": 0.3695333,
+        "score": 0.36952272,
         "payload": {
           "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
           "repo": "memo-cli",
@@ -4242,12 +4242,12 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
         "id": "743d37d8-b21a-48a0-937b-780b01485712",
-        "score": 0.2901043,
+        "score": 0.29006338,
         "payload": {
           "id": "743d37d8-b21a-48a0-937b-780b01485712",
           "repo": "billing-service",
@@ -4257,12 +4257,12 @@
           "tags": ["billing", "subscriptions", "grace-period"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+          "timestamp_utc": "2026-02-12T20:52:15.511Z"
         }
       },
       {
         "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
-        "score": 0.2898544,
+        "score": 0.28979656,
         "payload": {
           "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
           "repo": "memo-cli",
@@ -4272,12 +4272,12 @@
           "tags": ["dedupe", "versioning"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+          "timestamp_utc": "2025-12-04T20:52:15.511Z"
         }
       },
       {
         "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.27169544,
+        "score": 0.27081645,
         "payload": {
           "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
           "repo": "memo-cli",
@@ -4288,12 +4288,12 @@
           "entry_type": "structure",
           "source": "agent",
           "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.2605211,
+        "score": 0.26051176,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -4304,12 +4304,12 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
         "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
-        "score": 0.25937456,
+        "score": 0.2593235,
         "payload": {
           "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
           "repo": "memo-cli",
@@ -4319,12 +4319,12 @@
           "tags": ["tags", "discovery"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+          "timestamp_utc": "2026-06-02T20:52:15.511Z"
         }
       },
       {
         "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
-        "score": 0.25664005,
+        "score": 0.25662994,
         "payload": {
           "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
           "repo": "memo-cli",
@@ -4334,7 +4334,7 @@
           "tags": ["eval", "relevance", "intent"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+          "timestamp_utc": "2026-09-18T20:52:15.511Z"
         }
       }
     ]
@@ -4355,7 +4355,7 @@
           "tags": ["tags", "discovery"],
           "entry_type": "integration_point",
           "source": "scan",
-          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+          "timestamp_utc": "2026-06-02T20:52:15.511Z"
         }
       },
       {
@@ -4370,7 +4370,7 @@
           "tags": ["validation", "kebab-case"],
           "entry_type": "decision",
           "source": "scan",
-          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+          "timestamp_utc": "2025-10-10T20:52:15.511Z"
         }
       },
       {
@@ -4385,12 +4385,12 @@
           "tags": ["list", "filters"],
           "entry_type": "decision",
           "source": "manual",
-          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+          "timestamp_utc": "2026-05-03T20:52:15.511Z"
         }
       },
       {
         "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
-        "score": 0.33006096,
+        "score": 0.33011475,
         "payload": {
           "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
           "repo": "memo-cli",
@@ -4401,7 +4401,7 @@
           "entry_type": "integration_point",
           "source": "manual",
           "files_modified": ["src/lib/qdrant.ts"],
-          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+          "timestamp_utc": "2025-10-20T20:52:15.511Z"
         }
       },
       {
@@ -4416,12 +4416,12 @@
           "tags": ["eval", "relevance", "outcome"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+          "timestamp_utc": "2026-09-20T20:52:15.511Z"
         }
       },
       {
         "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
-        "score": 0.3068198,
+        "score": 0.30684668,
         "payload": {
           "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
           "repo": "memo-cli",
@@ -4432,12 +4432,12 @@
           "entry_type": "decision",
           "source": "agent",
           "files_modified": ["src/commands/delete.ts"],
-          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+          "timestamp_utc": "2026-07-22T20:52:15.511Z"
         }
       },
       {
         "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
-        "score": 0.30130166,
+        "score": 0.30127823,
         "payload": {
           "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
           "repo": "memo-cli",
@@ -4448,7 +4448,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/facets.ts"],
-          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+          "timestamp_utc": "2026-04-23T20:52:15.511Z"
         }
       },
       {
@@ -4464,23 +4464,7 @@
           "entry_type": "integration_point",
           "source": "agent",
           "files_modified": ["src/lib/search-filters.ts"],
-          "timestamp_utc": "2026-04-03T20:43:38.969Z"
-        }
-      },
-      {
-        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-        "score": 0.289332,
-        "payload": {
-          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
-          "repo": "memo-cli",
-          "org": "llipe",
-          "domain": "read",
-          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
-          "tags": ["read", "lookup"],
-          "entry_type": "structure",
-          "source": "agent",
-          "files_modified": ["src/commands/read.ts"],
-          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+          "timestamp_utc": "2026-04-03T20:52:15.511Z"
         }
       },
       {
@@ -4495,7 +4479,23 @@
           "tags": ["search", "scope"],
           "entry_type": "decision",
           "source": "agent",
-          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+          "timestamp_utc": "2026-03-24T20:52:15.511Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.28884548,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:52:15.511Z"
         }
       }
     ]

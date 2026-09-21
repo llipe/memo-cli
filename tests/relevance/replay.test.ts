@@ -10,20 +10,21 @@
  * embeddings adapter, so there is nothing here that could reach the network
  * even if those variables were present.
  *
- * KNOWN FAILING STATE (AC21, as of S1-02 / issue #34, intentionally NOT
- * papered over): `baseline.json` is fixed at S1-01's recorded 92.9% floor —
- * the pre-ranking identity/similarity ordering
- * (`user-stories-prd-004-phase-1.md:96`) — and AC21 requires composite
- * ranking to replay at >= that floor. At the shipped default weights
- * (0.6/0.3/0.1, half-life 90) it does not: the composite score currently
- * replays at ~85.7% overall (concept ~75%, identifier ~87.5%, cross-repo
- * ~83.3%, recency 100%). This is the expected consequence of the
- * refinement's own R1 risk ("recency weighting can bury a genuinely correct
- * older decision"), not an implementation defect, and default-weight tuning
- * is reserved for task 8.0's exit gate, not an earlier story. The two tests
- * below are therefore EXPECTED TO FAIL until that gate resolves it — do not
- * weaken, skip, or raise the floor to make them pass; see PR #67 and issue
- * #34 for the routed decision to `product-engineer`.
+ * AC21 history (S1-02, issue #34): landing composite ranking at the
+ * originally-proposed `recency_half_life_days: 90` regressed the recorded
+ * S1-01 floor (92.9%, pre-ranking identity/similarity ordering, per
+ * `user-stories-prd-004-phase-1.md:96`) down to 85.7% — a genuine AC21
+ * failure that was deliberately left failing, not papered over, while
+ * routed for a real decision. It was resolved by applying the task 8.0
+ * tuning-sweep methodology to this story: a one-factor sweep over
+ * `recency_half_life_days` (weights held at their spec values, 0.6/0.3/0.1)
+ * found a wide, robust plateau from ~260 to 700+ days all measuring 96.4%;
+ * `365` was chosen as the simplest value inside it (see
+ * `DEFAULT_RECENCY_HALF_LIFE_DAYS` in `src/lib/ranking.ts`). `baseline.json`
+ * and `candidates.json` were then re-recorded for real against live Qdrant
+ * Cloud at that new default, so this is the legitimate 96.4% floor for
+ * every later story (#36 onward), not a downgraded one. Full sweep grid and
+ * before/after numbers are in PR #67.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

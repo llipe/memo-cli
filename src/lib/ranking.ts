@@ -28,7 +28,17 @@ export const DEFAULT_RANKING_WEIGHTS: RankingWeights = {
   w_source: 0.1,
 };
 
-export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 90;
+/**
+ * Tuned per the task 8.0 exit-gate methodology (`workstream/tasks-prd-004-phase-1-plan.md`
+ * §8.3-8.4), applied to this story after AC21's relevance replay failed at
+ * the spec-documented `90` (85.7% vs the 92.9% S1-01 floor). A one-factor
+ * sweep over `recency_half_life_days` at the unchanged spec weights
+ * (0.6/0.3/0.1) found a wide, robust plateau (every value from ~260 to 700+
+ * days measured 96.4% against the fixture set) — `365` is the simplest,
+ * most legible value inside that plateau, well clear of its edges. Weights
+ * were intentionally left untouched; see PR #67 for the full sweep results.
+ */
+export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
 
 const KNOWN_SOURCE_SCORES: Record<string, number> = {
   agent: 1.0,

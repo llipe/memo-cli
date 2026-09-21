@@ -242,7 +242,7 @@ describe('MemoConfigSchema', () => {
           w_similarity: 0.6,
           w_recency: 0.3,
           w_source: 0.1,
-          recency_half_life_days: 90,
+          recency_half_life_days: 365,
         });
       }
     });

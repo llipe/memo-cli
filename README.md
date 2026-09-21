@@ -180,17 +180,17 @@ memo setup validate    # check config validity (exit 0 = valid)
     "w_similarity": 0.6,
     "w_recency": 0.3,
     "w_source": 0.1,
-    "recency_half_life_days": 90
+    "recency_half_life_days": 365
   }
 }
 ```
 
-| Field                    | Default | Meaning                                                                                   |
-| ------------------------ | ------- | ----------------------------------------------------------------------------------------- |
-| `w_similarity`           | `0.6`   | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                   |
-| `w_recency`              | `0.3`   | Weight on exponential recency decay based on `timestamp_utc`                              |
-| `w_source`               | `0.1`   | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5) |
-| `recency_half_life_days` | `90`    | Days for the recency score to decay to `0.5`; must be a positive number                   |
+| Field                    | Default | Meaning                                                                                                                                                                                                                                                                           |
+| ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `w_similarity`           | `0.6`   | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                           |
+| `w_recency`              | `0.3`   | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                      |
+| `w_source`               | `0.1`   | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                         |
+| `recency_half_life_days` | `365`   | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection) |
 
 **Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` is fine, since the untouched weights still sum to `1.0`.
 
@@ -762,6 +762,17 @@ the refusal.
 offline (no network, no `QDRANT_URL`/`EMBEDDINGS_API_KEY`) and asserts the
 recomputed hit rate is at least `baseline.json.overall_top3`, guarding every
 later ranking change against a regression.
+
+**Story S1-02 (issue #34) case study:** landing composite ranking at the
+originally-proposed defaults (`recency_half_life_days: 90`) dropped the
+overall hit rate from the recorded 92.9% floor to 85.7% — a real regression,
+not a fluke (`concept` and `identifier` queries were hit hardest, consistent
+with recency weighting burying a genuinely correct older decision). Rather
+than accept the regression or move the floor, a one-factor sweep over
+`recency_half_life_days` (keeping the weights at their spec values) found a
+wide, robust plateau from ~260 to 700+ days all measuring 96.4%; `365` was
+chosen as the simplest, most legible value well inside that plateau. See PR
+#67 for the full sweep grid and numbers.
 
 The `eval:relevance` script sets `TS_NODE_TRANSPILE_ONLY=true` for its
 `node --loader ts-node/esm` invocation: ts-node/esm's own type-check pass

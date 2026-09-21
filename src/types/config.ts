@@ -16,7 +16,11 @@ export const DEFAULT_RANKING_WEIGHTS = {
   w_recency: 0.3,
   w_source: 0.1,
 } as const;
-export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 90;
+// Tuned from the spec-documented 90 to 365 via the task 8.0 sweep
+// methodology, applied to this story after AC21's relevance replay failed
+// at 90 days; see src/lib/ranking.ts's DEFAULT_RECENCY_HALF_LIFE_DAYS and
+// PR #67 for the full rationale and sweep results.
+export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
 const WEIGHT_SUM_TOLERANCE = 0.001;
 
 const RankingConfigSchema = z
