@@ -2,7 +2,10 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    # release/release/** is excluded: publish.yml already runs its own
+    # build+test as part of the publish job, and every commit pushed there
+    # was already validated by this same workflow when it landed on main.
+    branches-ignore: ['release', 'release/**']
   pull_request:
     branches: [main]
 
