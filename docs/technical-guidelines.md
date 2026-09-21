@@ -353,6 +353,12 @@ If rationale exceeds 512 tokens (~2000 characters), embed a compressed summary (
 - Use `@qdrant/js-client-rest` via the `QdrantRepository` wrapper (`lib/qdrant.ts`).
 - All collection operations (upsert, search, scroll, deleteById, deleteByFilter) are encapsulated in `QdrantRepository`.
 - Commands never import the Qdrant client directly.
+- PRD-004 Phase 2 (issue #81, spec §18.4) adds six adapter methods, all following the same `withRetry` + `MemoError('QDRANT_OPERATION_FAILED', ...)` mapping as the methods above:
+  - `scrollOrdered(filter, { orderBy, limit, withVector? })` — single ordered page; sends `order_by`, never `offset` (Qdrant rejects the two together — decision A11).
+  - `scrollAll(filter, { batch?, withVector? }, onPage)` — unordered full-collection scan; sends no `order_by`, pages via `offset: next_page_offset` until `null`; streams pages through `onPage` rather than accumulating a return value.
+  - `count(filter?)` — exact point count (`exact: true`).
+  - `setPayload(id, payload)` / `batchSetPayload(ops)` — payload overwrite, single point or many (chunked at 256 operations per `batchUpdate` call).
+  - `fetchStalenessCorpus({ bank, repos }, limit?)` — bank-scoped staleness corpus; supersedes `fetchByRepo` (retained until its last caller, `search.ts`, moves off it — tracked to the Phase 2 exit gate, S2-11).
 
 ### Search and List Semantics
 
