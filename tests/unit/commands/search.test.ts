@@ -10,6 +10,7 @@ const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   search: jest.fn().mockResolvedValue([]),
   fetchByRepo: jest.fn().mockResolvedValue([]),
+  scroll: jest.fn().mockResolvedValue([]),
 };
 
 const mockEmbeddings = {
@@ -38,6 +39,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockQdrant.search.mockResolvedValue([]);
   mockQdrant.fetchByRepo.mockResolvedValue([]);
+  mockQdrant.scroll.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -518,6 +520,147 @@ describe('handleSearch', () => {
       await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
       const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
       expect(parsed.results[0]).not.toHaveProperty('stale');
+    });
+  });
+
+  describe('lexical identifier matching (#62)', () => {
+    it('issues exactly one extra scroll when the query has identifier tokens (AC4)', async () => {
+      await handleSearch(
+        { query: 'why does search-filters.ts build should clauses', limit: '5' },
+        deps,
+      );
+      expect(mockQdrant.scroll).toHaveBeenCalledTimes(1);
+    });
+
+    it('issues no extra scroll when the query has no identifier tokens (AC8)', async () => {
+      await handleSearch({ query: 'why does search stop working sometimes', limit: '5' }, deps);
+      expect(mockQdrant.scroll).not.toHaveBeenCalled();
+    });
+
+    it('issues no extra scroll when --lexical off, even with identifier tokens (AC7)', async () => {
+      await handleSearch(
+        { query: 'why does search-filters.ts build should clauses', limit: '5', lexical: 'off' },
+        deps,
+      );
+      expect(mockQdrant.scroll).not.toHaveBeenCalled();
+    });
+
+    it('scrolls with a min_should:1 clause per identifier over rationale and files_modified, same pre-filters, limit 50, withVector true (AC4)', async () => {
+      await handleSearch(
+        { query: 'why does search-filters.ts build should clauses', limit: '5', repo: 'memo-cli' },
+        deps,
+      );
+
+      expect(mockQdrant.scroll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          must: expect.arrayContaining([
+            expect.objectContaining({
+              must: expect.arrayContaining([{ key: 'repo', match: { value: 'memo-cli' } }]),
+            }),
+            expect.objectContaining({
+              min_should: expect.objectContaining({
+                min_count: 1,
+                conditions: expect.arrayContaining([
+                  { key: 'rationale', match: { text: 'search-filters.ts' } },
+                  { key: 'files_modified', match: { text: 'search-filters.ts' } },
+                ]),
+              }),
+            }),
+          ]),
+        }),
+        50,
+        { withVector: true },
+      );
+    });
+
+    it('unions and dedupes a lexical-only candidate with a locally computed cosine similarity, without recomputing a dense candidate score (AC5)', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'dense-hit',
+          score: 0.9,
+          payload: { repo: 'memo-cli', rationale: 'unrelated dense hit', source: 'agent' },
+        },
+      ]);
+      mockQdrant.scroll.mockResolvedValue([
+        {
+          id: 'dense-hit',
+          payload: { repo: 'memo-cli', rationale: 'search-filters.ts duplicate of dense hit' },
+          vector: new Array(1536).fill(1),
+        },
+        {
+          id: 'lexical-only',
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'documents search-filters.ts',
+            source: 'agent',
+          },
+          vector: new Array(1536).fill(0.25),
+        },
+      ]);
+
+      await handleSearch(
+        { query: 'why does search-filters.ts build should clauses', limit: '5', json: true },
+        deps,
+      );
+
+      const parsed = JSON.parse(stdoutData) as { results: { id: string; similarity: number }[] };
+      expect(parsed.results).toHaveLength(2);
+      const denseHit = parsed.results.find((r) => r.id === 'dense-hit');
+      // Dense score (0.9) is kept, never overwritten by the local cosine computation.
+      expect(denseHit?.similarity).toBe(0.9);
+      const lexicalOnly = parsed.results.find((r) => r.id === 'lexical-only');
+      expect(lexicalOnly).toBeDefined();
+      // The mock embeddings adapter returns an all-0.25 vector, so cosine(query, [0.25...]) === 1.
+      expect(lexicalOnly?.similarity).toBeCloseTo(1, 6);
+    });
+
+    it('degrades gracefully to dense-only results when the lexical scroll fails, logged under MEMO_DEBUG, exit code unchanged', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'dense-hit',
+          score: 0.9,
+          payload: { repo: 'memo-cli', rationale: 'dense only', source: 'agent' },
+        },
+      ]);
+      mockQdrant.scroll.mockRejectedValue(new MemoError('QDRANT_OPERATION_FAILED', 'boom'));
+
+      await expect(
+        handleSearch(
+          { query: 'why does search-filters.ts build should clauses', limit: '5', json: true },
+          deps,
+        ),
+      ).resolves.toBeUndefined();
+
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results).toHaveLength(1);
+      expect(parsed.results[0]?.id).toBe('dense-hit');
+    });
+
+    it('ranks a lexical-identifier match ahead of an equal-similarity non-matching candidate (AC6)', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'no-match',
+          score: 0.7,
+          payload: { repo: 'memo-cli', rationale: 'unrelated rationale text', source: 'agent' },
+        },
+        {
+          id: 'match',
+          score: 0.7,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'documents search-filters.ts directly',
+            source: 'agent',
+          },
+        },
+      ]);
+
+      await handleSearch(
+        { query: 'why does search-filters.ts build should clauses', limit: '5', json: true },
+        deps,
+      );
+
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results[0]?.id).toBe('match');
     });
   });
 });

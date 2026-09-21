@@ -91,6 +91,22 @@ Validated at write time via Zod (`EntryPayloadSchema`):
 | `timestamp_utc`     | datetime   | Chronological ordering and date-range queries |
 | `commit`            | keyword    | Lookup by commit SHA                          |
 | `dedupe_key_sha256` | keyword    | Duplicate detection lookup                    |
+| `rationale`         | text       | Lexical identifier matching (issue #62)       |
+| `files_modified`    | text       | Lexical identifier matching (issue #62)       |
+
+The two `text` indexes use `tokenizer: word`, `lowercase: true`, `min_token_len: 2`,
+`max_token_len: 20` — mirrored client-side by `src/lib/lexical.ts`'s `tokenizeWord` so a
+locally computed match agrees with what the index would report. Verified live against Qdrant
+1.18.2 that a `text` index on an array field (`files_modified`) tokenizes each element
+independently (a query token present in only one array element still matches, one present in
+neither does not) — no rationale-only fallback is needed.
+
+`QdrantRepository.ensureIndexes()` reconciles this table against the collection's current
+`payload_schema` on every `memo search`/`memo write` invocation and creates only what is
+missing — idempotent, additive-only (it never rewrites a stored point), and safe to run
+against a collection created by an earlier memo-cli version: the new indexes backfill onto
+every existing point automatically. `ensureCollection()` calls `ensureIndexes()` internally
+after creating the collection (if needed), so no separate migration step is required.
 
 ---
 

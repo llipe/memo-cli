@@ -188,21 +188,25 @@ memo setup validate    # check config validity (exit 0 = valid)
       "medium": 0.6
     },
     "staleness_threshold_days": 120,
-    "staleness_tag_overlap_threshold": 0.5
+    "staleness_tag_overlap_threshold": 0.5,
+    "lexical": true,
+    "lexical_boost_factor": 0.15
   }
 }
 ```
 
-| Field                             | Default                                    | Meaning                                                                                                                                                                                                                                                                           |
-| --------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `w_similarity`                    | `0.6`                                      | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                           |
-| `w_recency`                       | `0.3`                                      | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                      |
-| `w_source`                        | `0.1`                                      | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                         |
-| `recency_half_life_days`          | `365`                                      | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection) |
-| `tag_boost_factor`                | `0.05`                                     | Additive boost for tag overlap between the query and a result's `tags` (issue #36): `tag_boost = matched_tags / total_query_terms * tag_boost_factor`, added to the base score before the `1.0` cap. `0` disables tag boosting entirely; must be a non-negative finite number     |
-| `confidence_thresholds`           | `{ exact: 0.88, high: 0.75, medium: 0.6 }` | Band boundaries (issue #35) for the `confidence_tier` attached to every `memo search` result: `exact` at/above the `exact` threshold, `high` in `[high, exact)`, `medium` in `[medium, high)`, `low` below `medium`. Each threshold is a number in `[0, 1]`.                      |
-| `staleness_threshold_days`        | `120`                                      | Age (in days) beyond which a result becomes eligible to be flagged stale (issue #38); must be a non-negative finite number                                                                                                                                                        |
-| `staleness_tag_overlap_threshold` | `0.5`                                      | Minimum Jaccard tag overlap with a newer same-repo entry required to flag a result stale (issue #38); a number in `[0, 1]`                                                                                                                                                        |
+| Field                             | Default                                    | Meaning                                                                                                                                                                                                                                                                                       |
+| --------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `w_similarity`                    | `0.6`                                      | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                                       |
+| `w_recency`                       | `0.3`                                      | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                                  |
+| `w_source`                        | `0.1`                                      | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                                     |
+| `recency_half_life_days`          | `365`                                      | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection)             |
+| `tag_boost_factor`                | `0.05`                                     | Additive boost for tag overlap between the query and a result's `tags` (issue #36): `tag_boost = matched_tags / total_query_terms * tag_boost_factor`, added to the base score before the `1.0` cap. `0` disables tag boosting entirely; must be a non-negative finite number                 |
+| `confidence_thresholds`           | `{ exact: 0.88, high: 0.75, medium: 0.6 }` | Band boundaries (issue #35) for the `confidence_tier` attached to every `memo search` result: `exact` at/above the `exact` threshold, `high` in `[high, exact)`, `medium` in `[medium, high)`, `low` below `medium`. Each threshold is a number in `[0, 1]`.                                  |
+| `staleness_threshold_days`        | `120`                                      | Age (in days) beyond which a result becomes eligible to be flagged stale (issue #38); must be a non-negative finite number                                                                                                                                                                    |
+| `staleness_tag_overlap_threshold` | `0.5`                                      | Minimum Jaccard tag overlap with a newer same-repo entry required to flag a result stale (issue #38); a number in `[0, 1]`                                                                                                                                                                    |
+| `lexical`                         | `true`                                     | Enables lexical identifier matching (issue #62); `false` (or `--lexical off`) skips the extra scroll entirely                                                                                                                                                                                 |
+| `lexical_boost_factor`            | `0.15`                                     | Additive boost for lexical identifier matches (issue #62): `lexical_boost = identifiers_matched / total_identifiers * lexical_boost_factor`, added to the base score alongside `tag_boost` before the `1.0` cap. `0` disables lexical boosting entirely; must be a non-negative finite number |
 
 **Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` (or `tag_boost_factor`) is fine, since the untouched weights still sum to `1.0`.
 
@@ -213,6 +217,10 @@ memo setup validate    # check config validity (exit 0 = valid)
 `final_score`, `recency_score`, `source_score`, and `tag_boost` are always present alongside the original `similarity` on every `--json` result (backward compatible — `similarity` keeps its original raw meaning). Human-mode output is unaffected by tag boosting — it only shifts `final_score` ordering and percentage.
 
 **Staleness detection (#38):** every `memo search` result older than `staleness_threshold_days` (default `120`) is checked, once per invocation, against a same-repo corpus fetched via one `scroll` call (bounded at 1,000 entries, cached for the command's duration — never a per-result network call). If a _strictly newer_ entry in that corpus has Jaccard tag overlap `>= staleness_tag_overlap_threshold` (default `0.5`) with the result, the result carries `stale: true` and `stale_by: <newest qualifying entry's id>` on `--json` output, and an inline `⚠ STALE — superseded by <id>` warning under the result in human output. Same-timestamp entries never supersede each other, an entry is never marked stale by itself, and an entry with no tags is never a superseder. Staleness is advisory-only: it is derived per-query, never stored, and never changes `final_score` or ordering — a stale result keeps its position. When a result is not stale, the `stale` and `stale_by` keys are omitted entirely (not `false`/`null`). Note the field name is `stale_by`, not `superseded_by` — Phase 2 introduces a distinct, _stored_ `superseded_by` payload field with different (authoritative, not inferred) semantics; a result may legitimately carry both.
+
+**Lexical identifier matching (#62):** `memo search` widens (never narrows) its candidate set when the query contains identifier-shaped tokens — a token containing `.`, `/`, `-`, or `_`, matching `#\d+` or `[A-Z]+-\d+`, starting with `--`, or written in CamelCase (e.g. `search-filters.ts`, `#123`, `PROJ-45`, `--lexical`, `QdrantRepository`). When at least one such token is present and `ranking.lexical` is `true` (the default), exactly one extra Qdrant `scroll` runs against `rationale`/`files_modified` text indexes (`should` per identifier, `min_should: 1`, same pre-filters as the dense query, `limit 50`), in addition to the normal dense vector search — never instead of it. Candidates found only via this scroll get a locally computed cosine similarity against the query embedding; candidates already found by the dense search keep their Qdrant score. Every candidate (dense or lexical) then receives `lexical_boost = identifiers_matched / total_identifiers * lexical_boost_factor`, added to the base score alongside `tag_boost` before the `1.0` cap — matching is all-or-nothing per identifier (every one of `search-filters.ts`'s word-tokens must appear in a candidate's `rationale`/`files_modified` for that identifier to count). Use `--lexical off` (or `ranking.lexical: false`) to disable this entirely; a query with no identifier tokens never issues the extra scroll regardless of the setting. If the lexical scroll itself fails, `memo search` degrades to dense-only results (logged under `MEMO_DEBUG`, exit code unchanged) rather than failing the command. `lexical_boost` is internal to Phase 1 ranking — it becomes visible in `--json` output via `--explain` (issue #63).
+
+The two supporting Qdrant `text` indexes (`rationale`, `files_modified` — see [Data Model](docs/data-model.md)) are created automatically and idempotently by `ensureIndexes()` on every `memo search`/`memo write` invocation, including against a collection created by an earlier memo-cli version; no manual migration step is required.
 
 ---
 
@@ -312,14 +320,15 @@ memo search "event publishing" \
 
 #### All search flags
 
-| Flag           | Default | Description                                                       |
-| -------------- | ------- | ----------------------------------------------------------------- |
-| `--scope`      | `repo`  | `repo` (this repo only) or `related` (include `relates_to` repos) |
-| `--tags`       | —       | Comma-separated tags to require (AND semantics)                   |
-| `--entry-type` | —       | Filter: `decision` \| `integration_point` \| `structure`          |
-| `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                             |
-| `--limit`      | `5`     | Maximum results to return                                         |
-| `--json`       | `false` | Output as JSON                                                    |
+| Flag           | Default | Description                                                            |
+| -------------- | ------- | ---------------------------------------------------------------------- |
+| `--scope`      | `repo`  | `repo` (this repo only) or `related` (include `relates_to` repos)      |
+| `--tags`       | —       | Comma-separated tags to require (AND semantics)                        |
+| `--entry-type` | —       | Filter: `decision` \| `integration_point` \| `structure`               |
+| `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                                  |
+| `--limit`      | `5`     | Maximum results to return                                              |
+| `--lexical`    | `on`    | `on` \| `off` — enable/disable lexical identifier matching (issue #62) |
+| `--json`       | `false` | Output as JSON                                                         |
 
 #### Reading search results
 

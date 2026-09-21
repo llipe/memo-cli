@@ -47,6 +47,12 @@ export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
 export const DEFAULT_TAG_BOOST_FACTOR = 0.05;
 
 /**
+ * Default `lexical_boost_factor` per AC6 (#62): `0.15`. `0` disables lexical
+ * boosting entirely, mirroring `DEFAULT_TAG_BOOST_FACTOR`'s `0` opt-out.
+ */
+export const DEFAULT_LEXICAL_BOOST_FACTOR = 0.15;
+
+/**
  * Confidence tier band thresholds (issue #35's AC1/AC2). `low` has no
  * explicit lower bound - it is whatever falls below `medium`.
  */

@@ -12,6 +12,14 @@
  *               the existing point rather than being skipped or erroring (F-1 resolution).
  *   --record    Run every query (as in the default mode) and additionally write
  *               `candidates.json` and `baseline.json`.
+ *   --no-lexical
+ *               Disables #62 lexical identifier matching for this run (the plain `run`
+ *               mode defaults to lexical ON, matching `memo search`'s own default). Used
+ *               to produce the lexical-on-vs-off per-category comparison for #62's PR body
+ *               (task 6.26). Has no effect together with `--record`: recorded
+ *               `candidates.json`/`baseline.json` are always captured dense-only, so the
+ *               S1-02 regression floor this file protects never shifts based on a later
+ *               story's optional retrieval widening.
  *
  * `--seed` and `--record` may be combined with each other or with the default run.
  *
@@ -56,13 +64,19 @@ import { buildEmbedText } from '../src/lib/dedupe.js';
 import { createEmbeddingsAdapter } from '../src/lib/embeddings.js';
 import type { EmbeddingsAdapter } from '../src/lib/embeddings.js';
 import { MemoError } from '../src/lib/errors.js';
+import { computeLexicalBoost, cosine, extractIdentifierTokens } from '../src/lib/lexical.js';
 import { QdrantRepository } from '../src/lib/qdrant.js';
+import type { QdrantFilter } from '../src/lib/qdrant.js';
 import {
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
   DEFAULT_RECENCY_HALF_LIFE_DAYS,
   DEFAULT_TAG_BOOST_FACTOR,
+  DEFAULT_LEXICAL_BOOST_FACTOR,
 } from '../src/lib/ranking.js';
+
+/** Mirrors `src/commands/search.ts`'s lexical scroll bound (#62 AC4). */
+const LEXICAL_SCROLL_LIMIT = 50;
 
 // Resolved relative to the process cwd (repo root), consistent with
 // src/lib/config.ts's CONFIG_FILENAME resolution. This script is always
@@ -239,24 +253,79 @@ interface QueryCandidate {
   payload?: Record<string, unknown>;
 }
 
+interface QueryRunResult {
+  candidates: QueryCandidate[];
+  /** Identifier tokens extracted from the query text; [] when lexical is disabled for this run. */
+  identifiers: string[];
+}
+
+function buildLexicalEvalFilter(identifiers: readonly string[]): QdrantFilter {
+  const clauses: Record<string, unknown>[] = [];
+  for (const identifier of identifiers) {
+    clauses.push({ key: 'rationale', match: { text: identifier } });
+    clauses.push({ key: 'files_modified', match: { text: identifier } });
+  }
+  return {
+    must: [{ min_should: { conditions: clauses, min_count: 1 } }],
+  } as unknown as QdrantFilter;
+}
+
+/**
+ * Mirrors `src/commands/search.ts`'s dense-plus-lexical candidate retrieval
+ * (#62 AC4/AC5/resilience) so `pnpm run eval:relevance` (task 6.26)
+ * meaningfully reports the lexical-on-vs-off per-category difference the PR
+ * body documents. `lexicalEnabled` is a run-level toggle (`--no-lexical`),
+ * not per-query.
+ */
 async function runQuery(
   qdrant: QdrantRepository,
   embeddings: EmbeddingsAdapter,
   query: EvalQuery,
-): Promise<QueryCandidate[]> {
+  lexicalEnabled: boolean,
+): Promise<QueryRunResult> {
   const vector = await embeddings.embed(query.query);
   const results = await guardUnreachable(() => qdrant.search(vector, undefined, 10));
-  return results.map((r) => ({ id: r.id, score: r.score, payload: r.payload }));
+  const dense: QueryCandidate[] = results.map((r) => ({
+    id: r.id,
+    score: r.score,
+    payload: r.payload,
+  }));
+
+  const identifiers = lexicalEnabled ? extractIdentifierTokens(query.query) : [];
+  if (identifiers.length === 0) {
+    return { candidates: dense, identifiers };
+  }
+
+  try {
+    const scrollResults = await guardUnreachable(() =>
+      qdrant.scroll(buildLexicalEvalFilter(identifiers), LEXICAL_SCROLL_LIMIT, {
+        withVector: true,
+      }),
+    );
+    const byId = new Map<string, QueryCandidate>();
+    for (const candidate of dense) byId.set(String(candidate.id), candidate);
+    for (const scrollResult of scrollResults) {
+      const key = String(scrollResult.id);
+      if (byId.has(key)) continue;
+      const similarity = scrollResult.vector ? cosine(vector, scrollResult.vector) : 0;
+      byId.set(key, { id: scrollResult.id, score: similarity, payload: scrollResult.payload });
+    }
+    return { candidates: [...byId.values()], identifiers };
+  } catch {
+    // #62 resilience requirement: a failed lexical scroll degrades to dense-only.
+    return { candidates: dense, identifiers };
+  }
 }
 
 async function runAllQueries(
   qdrant: QdrantRepository,
   embeddings: EmbeddingsAdapter,
   queries: EvalQuery[],
-): Promise<Map<string, QueryCandidate[]>> {
-  const byQueryId = new Map<string, QueryCandidate[]>();
+  lexicalEnabled: boolean,
+): Promise<Map<string, QueryRunResult>> {
+  const byQueryId = new Map<string, QueryRunResult>();
   for (const query of queries) {
-    byQueryId.set(query.id, await runQuery(qdrant, embeddings, query));
+    byQueryId.set(query.id, await runQuery(qdrant, embeddings, query, lexicalEnabled));
   }
   return byQueryId;
 }
@@ -273,10 +342,14 @@ async function runAllQueries(
  */
 function toQueryResults(
   queries: EvalQuery[],
-  candidatesByQueryId: Map<string, QueryCandidate[]>,
+  resultsByQueryId: Map<string, QueryRunResult>,
+  lexicalBoostFactor: number = DEFAULT_LEXICAL_BOOST_FACTOR,
 ): QueryResult[] {
   return queries.map((query) => {
-    const candidates = candidatesByQueryId.get(query.id) ?? [];
+    const { candidates, identifiers } = resultsByQueryId.get(query.id) ?? {
+      candidates: [],
+      identifiers: [],
+    };
     const ranked = rankResults(
       candidates.map((c) => ({
         id: c.id,
@@ -285,6 +358,20 @@ function toQueryResults(
           typeof c.payload?.['timestamp_utc'] === 'string' ? c.payload['timestamp_utc'] : undefined,
         source: c.payload?.['source'],
         tags: Array.isArray(c.payload?.['tags']) ? c.payload['tags'] : undefined,
+        // #62 AC6: lexical_boost is computed from each candidate's own
+        // payload, regardless of whether it was sourced via the dense
+        // search or the lexical scroll.
+        lexicalBoost:
+          identifiers.length > 0
+            ? computeLexicalBoost(
+                identifiers,
+                typeof c.payload?.['rationale'] === 'string' ? c.payload['rationale'] : undefined,
+                Array.isArray(c.payload?.['files_modified'])
+                  ? c.payload['files_modified']
+                  : undefined,
+                lexicalBoostFactor,
+              )
+            : 0,
       })),
       DEFAULT_RANKING_WEIGHTS,
       DEFAULT_RECENCY_HALF_LIFE_DAYS,
@@ -347,6 +434,12 @@ export async function runEval(args: string[], deps: EvalDeps = {}): Promise<Eval
 
   const seedMode = args.includes('--seed');
   const recordMode = args.includes('--record');
+  // #62 task 6.26: `--no-lexical` toggles the plain `run` report between
+  // lexical-on (default, matching `memo search`'s own default) and
+  // lexical-off, to produce the per-category on-vs-off comparison for the
+  // PR body. `--record` always captures dense-only regardless of this flag
+  // (see the module docstring) so the S1-02 regression floor never shifts.
+  const lexicalEnabledForRun = !args.includes('--no-lexical');
 
   if (seedMode && !isMemoCollectionSet(env)) {
     throw new MemoError(
@@ -372,14 +465,22 @@ export async function runEval(args: string[], deps: EvalDeps = {}): Promise<Eval
   }
 
   await guardUnreachable(() => qdrant.ensureCollection());
-  const candidatesByQueryId = await runAllQueries(qdrant, embeddings, queries);
-  const report = computeTop3HitRate(toQueryResults(queries, candidatesByQueryId));
+  // `--record` always runs dense-only (lexicalEnabled: false) so
+  // candidates.json/baseline.json never encode this story's optional
+  // retrieval widening; the plain `run` report honors `--no-lexical`.
+  const resultsByQueryId = await runAllQueries(
+    qdrant,
+    embeddings,
+    queries,
+    recordMode ? false : lexicalEnabledForRun,
+  );
+  const report = computeTop3HitRate(toQueryResults(queries, resultsByQueryId));
 
   if (recordMode) {
     const candidatesArtifact = queries.map((query) => ({
       query_id: query.id,
       category: query.category,
-      candidates: candidatesByQueryId.get(query.id) ?? [],
+      candidates: resultsByQueryId.get(query.id)?.candidates ?? [],
     }));
     await writeFileFn(CANDIDATES_PATH, JSON.stringify(candidatesArtifact, null, 2) + '\n', 'utf-8');
 
