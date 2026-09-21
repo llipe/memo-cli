@@ -232,24 +232,24 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
 - [ ] 7.0 Implement Story S1-07: `query_id` and `--explain` — [#63](https://github.com/llipe/memo-cli/issues/63)
 
   > Note: `query_id` is deliberately inert in Phase 1. It establishes the contract so Phase 3 adds behavior without another output change.
-  - [ ] 7.1 Generate a `query_id` per invocation with `randomUUID` in `src/commands/search.ts`
-  - [ ] 7.2 Add `query_id` to the JSON envelope without moving existing keys
-  - [ ] 7.3 Add the `--explain` flag to `memo search`
-  - [ ] 7.4 Project the factor bag into each result as `factors` when `--explain` is set
-  - [ ] 7.5 Ensure neutral factors are explicit: `retention` 1.0, `use_ratio` 0, `link_factor` 1.0
-  - [ ] 7.6 Render the aligned factor table in `src/lib/output.ts` and the `query_id` footer line under `--explain`
-  - [ ] 7.7 Extend `tests/unit/commands/search.test.ts`: `query_id` present, unique across two invocations, envelope key order preserved, no write or file calls, factor completeness, no extra client calls under `--explain`
-  - [ ] 7.8 Extend `tests/unit/lib/output.test.ts` for factor-table formatting with long and short values
-  - [ ] 7.9 Edge cases: zero results with `--explain` (empty state unchanged, `query_id` still present in JSON); `--explain` with `--lexical off` shows `lexical_boost: 0.0` rather than omitting it
-  - [ ] 7.10 Verify AC1–AC4: id presence, uniqueness, nothing persisted, envelope stability
-  - [ ] 7.11 Verify AC5–AC8: factor object completeness, human table, no extra calls, neutral values explicit
-  - [ ] 7.12 Manual: `memo search "caching" --explain` and `--explain --json | jq '.results[0].factors'`
-  - [ ] 7.13 Document `--explain` and the `query_id` contract in `README.md`
-  - [ ] 7.14 Map every AC to its test in the PR body
-  - [ ] 7.15 Migration: record the not-required opt-out in the PR body
-  - [ ] 7.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 7.17 Run `verifier` audit; route drift findings to `product-engineer`
-  - [ ] 7.18 Open PR against `main`, link `Closes #63`, obtain user approval, merge
+  - [x] 7.1 Generate a `query_id` per invocation with `randomUUID` in `src/commands/search.ts`
+  - [x] 7.2 Add `query_id` to the JSON envelope without moving existing keys
+  - [x] 7.3 Add the `--explain` flag to `memo search`
+  - [x] 7.4 Project the factor bag into each result as `factors` when `--explain` is set
+  - [x] 7.5 Ensure neutral factors are explicit: `retention` 1.0, `use_ratio` 0, `link_factor` 1.0
+  - [x] 7.6 Render the aligned factor table in `src/lib/output.ts` and the `query_id` footer line under `--explain`
+  - [x] 7.7 Extend `tests/unit/commands/search.test.ts`: `query_id` present, unique across two invocations, envelope key order preserved, no write or file calls, factor completeness, no extra client calls under `--explain`
+  - [x] 7.8 Extend `tests/unit/lib/output.test.ts` for factor-table formatting with long and short values
+  - [x] 7.9 Edge cases: zero results with `--explain` (empty state unchanged, `query_id` still present in JSON); `--explain` with `--lexical off` shows `lexical_boost: 0.0` rather than omitting it
+  - [x] 7.10 Verify AC1–AC4: id presence, uniqueness, nothing persisted, envelope stability
+  - [x] 7.11 Verify AC5–AC8: factor object completeness, human table, no extra calls, neutral values explicit
+  - [x] 7.12 Manual: `memo search "caching" --explain` and `--explain --json | jq '.results[0].factors'` — documented in README; not executable in this sandbox (no live Qdrant instance)
+  - [x] 7.13 Document `--explain` and the `query_id` contract in `README.md`
+  - [x] 7.14 Map every AC to its test in the PR body
+  - [x] 7.15 Migration: record the not-required opt-out in the PR body
+  - [x] 7.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [ ] 7.17 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 7.18 Open PR against `main`, link `Closes #63`, obtain user approval, merge — will be opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 8.0 Implement Story S1-08: Phase 1 exit gate — [#64](https://github.com/llipe/memo-cli/issues/64)
 
