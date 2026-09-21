@@ -6,7 +6,7 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T03:28:07Z
+- Last updated: 2026-09-21T03:55:08Z
 
 ## Story Status
 
@@ -17,15 +17,15 @@
 | 3        | S1-03    | #36     | ✅ Merged   | #68 | story/s1-03-tag-overlap-boosting     |
 | 4        | S1-04    | #35     | ✅ Merged   | #69 | issue/35-dynamic-confidence-tiers    |
 | 5        | S1-05    | #38     | ✅ Merged   | #70 | issue/38-staleness-detection         |
-| 6        | S1-06    | #62     | ⏳ Pending  | —   | —                                   |
+| 6        | S1-06    | #62     | ✅ Merged   | #71 | issue/62-lexical-identifier-matching |
 | 7        | S1-07    | #63     | ⏳ Pending  | —   | —                                   |
 | 8        | S1-08    | #64     | ⏳ Pending  | —   | —                                   |
 
 ## Current Position
 
-- Next story: S1-06 (#62)
-- Last merged PR: #70
-- Integration branch HEAD: 1785172
+- Next story: S1-07 (#63)
+- Last merged PR: #71
+- Integration branch HEAD: 488f5e5
 
 ## Decisions Log
 
@@ -59,4 +59,8 @@
 - S1-05: `stale_by` (not `superseded_by`) correctly used per binding decision D-1. All functional ACs verified by verifier: purity, single `scroll` call per invocation, keys genuinely omitted when not stale, staleness computed after ranking (no effect on final_score/ordering), Jaccard boundaries tested.
 - S1-05: qa-engineer coverage_gate FAIL — same pre-existing global threshold debt as S1-04, not caused by this story; no structural gaps in the diff itself.
 - S1-05: verifier flagged AC8 (latency target) as Major/non-blocking drift — developer's synthetic microbenchmark only covered pure-compute cost, not the new `fetchByRepo` network round-trip. Planner closed this gap directly: ran real `memo search` against the live Qdrant Cloud corpus (171 entries, largest single repo 92 — short of AC8's literal 1,000-entry scale) — warm latency 1.7-1.75s, well under 2.5s target. Did not seed 1,000 synthetic entries (would pollute production `decisions` data or cost real OpenAI embedding calls for a non-blocking check); tracked as a follow-up for S1-08's larger eval-seeding step.
-- Note for S1-06: no test plan expected to exist yet — proceed directly to delegation. This is the largest task in the phase (lexical identifier matching); budget for a longer-running delegation.
+- S1-06 (largest story in the phase): architecture confirmed correct by verifier — additive boost over a unioned candidate set (Decision A4, not RRF), lexical_boost composes with tag_boost in the shared 1.0-cap clamp. `ensureIndexes` verified idempotent against the real pre-existing `decisions` collection (171 points, zero data mutation) both by the developer's live check and independently by qa-engineer/verifier reading the diff.
+- S1-06: developer's closeout narrative claimed "no eval query where dense-only fails an identifier query" — verifier caught this was WRONG per the developer's own evidence: q-identifier-01 genuinely benefits from lexical boost (second expected id drops out of top-3 without it). AC9 was actually satisfied; only the narrative was inaccurate. Lesson: closeout self-reports need independent verification even when they sound like honest limitations, not just when they look like optimistic claims.
+- S1-06: qa-engineer coverage_gate PASS — all three specifically-flagged risks (failure injection for graceful degradation, ensureIndexes idempotency, union/dedupe on overlapping ids) confirmed genuinely tested. Two minor non-blocking gaps: untested `--lexical <invalid>` validation branch; a test title over-claiming what it asserts (doesn't check debugLog call).
+- S1-06: verifier Audit Mode — High fidelity, highest drift Minor. fidelity-report-S1-06.md again left uncommitted on the story branch; committed as a follow-up doc commit (488f5e5) after merge — same recurring pattern as S1-02/S1-03.
+- Note for S1-07: no test plan expected to exist yet — proceed directly to delegation. This story adds query_id/--explain and surfaces the internal factor bag (including lexical_boost, not yet exposed per S1-06's known limitation).
