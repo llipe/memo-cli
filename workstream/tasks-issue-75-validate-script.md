@@ -9,7 +9,7 @@
 ## Tasks
 
 - [ ] 1.0 Implement Issue #75 - https://github.com/llipe/memo-cli/issues/75: add `validate` script consolidating quality gates
-  - [ ] 1.1 Add `validate` script to `package.json` running `typecheck`, `lint`, `format:check`, `test`, `audit` in sequence, failing fast on the first failure
+  - [x] 1.1 Add `validate` script to `package.json` running `typecheck`, `lint`, `format:check`, `test`, `audit` in sequence, failing fast on the first failure
   - [ ] 1.2 Verify Acceptance Criterion: `pnpm run validate` exists
   - [ ] 1.3 Verify Acceptance Criterion: running it executes typecheck → lint → format:check → test → audit in order
   - [ ] 1.4 Verify Acceptance Criterion: command fails loudly (non-zero exit) if any step fails
