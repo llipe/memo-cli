@@ -865,14 +865,14 @@ chore: upgrade pnpm to 9.x
 
 ### Release Process
 
-```bash
-# 1. Ensure main is green
-# 2. Bump version
-pnpm version patch   # or minor / major
-
-# 3. Push tag — triggers publish workflow
-git push && git push --tags
-```
+Stable releases are automated by `scripts/release.sh` (`pnpm run release`): it
+verifies `main` is clean and in sync with `origin/main`, runs the full quality
+gate (`pnpm run validate`), bumps the version, creates a matching annotated
+release tag, and pushes to `main` and `release`. Pushing `release` triggers
+`.github/workflows/publish.yml`, which publishes to npm via GitHub OIDC
+provenance — no manual `npm publish` step for stable releases. Pre-releases
+remain a separate, fully manual flow (`npm version prerelease`). See README.md's
+Release Process section for the full walkthrough.
 
 ### Proposed Auto-Write Implementation (Post-MVP)
 

@@ -40,6 +40,7 @@
     "test:coverage": "jest --coverage",
     "eval:relevance": "TS_NODE_TRANSPILE_ONLY=true node --loader ts-node/esm scripts/eval-relevance.ts",
     "validate": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run test && pnpm audit",
+    "release": "bash scripts/release.sh",
     "prepare": "husky",
     "prepublishOnly": "pnpm run build"
   },
