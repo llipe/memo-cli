@@ -10,19 +10,19 @@
 
 ## Story Status
 
-| Sequence | Story ID | Issue # | Status     | PR                                                | Branch                          |
-| -------- | -------- | ------- | ---------- | -------------------------------------------------- | -------------------------------- |
-| 1        | S2-01    | #53     | ✅ Merged  | [#92](https://github.com/llipe/memo-cli/pull/92)  | `story/s2-01-config-v2-schema-v2` (deleted) |
-| 2        | S2-02    | #81     | ⏳ Pending | —   | —      |
-| 3        | S2-03    | #82     | ⏳ Pending | —   | —      |
-| 4        | S2-04    | #83     | ⏳ Pending | —   | —      |
-| 5        | S2-05    | #84     | ⏳ Pending | —   | —      |
-| 6        | S2-06    | #85     | ⏳ Pending | —   | —      |
-| 7        | S2-07    | #86     | ⏳ Pending | —   | —      |
-| 8        | S2-08    | #87     | ⏳ Pending | —   | —      |
-| 9        | S2-09    | #88     | ⏳ Pending | —   | —      |
-| 10       | S2-10    | #89     | ⏳ Pending | —   | —      |
-| 11       | S2-11    | #90     | ⏳ Pending | —   | —      |
+| Sequence | Story ID | Issue # | Status     | PR                                               | Branch                                      |
+| -------- | -------- | ------- | ---------- | ------------------------------------------------ | ------------------------------------------- |
+| 1        | S2-01    | #53     | ✅ Merged  | [#92](https://github.com/llipe/memo-cli/pull/92) | `story/s2-01-config-v2-schema-v2` (deleted) |
+| 2        | S2-02    | #81     | ⏳ Pending | —                                                | —                                           |
+| 3        | S2-03    | #82     | ⏳ Pending | —                                                | —                                           |
+| 4        | S2-04    | #83     | ⏳ Pending | —                                                | —                                           |
+| 5        | S2-05    | #84     | ⏳ Pending | —                                                | —                                           |
+| 6        | S2-06    | #85     | ⏳ Pending | —                                                | —                                           |
+| 7        | S2-07    | #86     | ⏳ Pending | —                                                | —                                           |
+| 8        | S2-08    | #87     | ⏳ Pending | —                                                | —                                           |
+| 9        | S2-09    | #88     | ⏳ Pending | —                                                | —                                           |
+| 10       | S2-10    | #89     | ⏳ Pending | —                                                | —                                           |
+| 11       | S2-11    | #90     | ⏳ Pending | —                                                | —                                           |
 
 ## Current Position
 
