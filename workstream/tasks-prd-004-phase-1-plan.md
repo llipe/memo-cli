@@ -192,9 +192,10 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
   - [ ] 5.22 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
   - [ ] 5.23 Open PR against `main`, link `Closes #38`, obtain user approval, merge — will be opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
-- [x] 6.0 Implement Story S1-06: Lexical identifier matching — [#62](https://github.com/llipe/memo-cli/issues/62)
+- [x] 6.0 Implement Story S1-06: Lexical identifier matching — [#62](https://github.com/llipe/memo-cli/issues/62) — PR [#71](https://github.com/llipe/memo-cli/pull/71) (draft, against integration branch)
 
   > Note: largest task in the phase and the one most likely to move the hit rate. Decision A4 applies: this is an additive boost over a unioned candidate set, not reciprocal rank fusion.
+  > Update (2026-09-21): implemented and live-verified against Qdrant Cloud 1.18.2 + OpenAI. `eval:relevance` on/off comparison came back byte-identical (96.4% both ways — this small fixture set's dense embeddings already rank every `identifier` query correctly without lexical help); a manual multi-candidate comparison confirms the mechanism itself changes ranking and confidence tier. `ensureIndexes()` verified idempotent and backfilling against the real pre-existing `decisions` collection. Only 6.31 (verifier audit, routed to the caller) and 6.32 (merge) remain open.
   - [x] 6.1 Verify on the target Qdrant version that a `text` index on the array field `files_modified` tokenizes each element; if not, index `rationale` only and record the limitation in the PR and `docs/data-model.md`
   - [x] 6.2 Split `ensureCollection` into collection creation and `ensureIndexes`
   - [x] 6.3 Implement `ensureIndexes` to read `getCollection().payload_schema` and create only missing indexes from `PAYLOAD_INDEXES`; idempotent
