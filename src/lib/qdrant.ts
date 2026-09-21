@@ -34,7 +34,29 @@ export interface SearchResult {
 export interface ScrollResult {
   id: string | number;
   payload?: Record<string, unknown>;
+  /** Present only when the scroll was called with `{ withVector: true }` (#62 AC4). */
+  vector?: number[];
 }
+
+export interface ScrollOptions {
+  /** Includes the stored vector on every returned point (#62 AC4/AC5). Default `false`. */
+  withVector?: boolean;
+}
+
+/**
+ * `rationale` and `files_modified` text indexes per #62 AC2, sub-task 6.1:
+ * verified live against Qdrant 1.18.2 that a `text` index on an array field
+ * tokenizes each element independently (a query matching a token present in
+ * only one array element still matches; a token present in neither element
+ * does not) - so both fields are indexed, no rationale-only fallback needed.
+ */
+const TEXT_INDEX_SCHEMA = {
+  type: 'text',
+  tokenizer: 'word',
+  lowercase: true,
+  min_token_len: 2,
+  max_token_len: 20,
+} as const;
 
 const PAYLOAD_INDEXES = [
   { field: 'repo', schema: 'keyword' },
@@ -45,6 +67,8 @@ const PAYLOAD_INDEXES = [
   { field: 'timestamp_utc', schema: 'datetime' },
   { field: 'commit', schema: 'keyword' },
   { field: 'dedupe_key_sha256', schema: 'keyword' },
+  { field: 'rationale', schema: TEXT_INDEX_SCHEMA },
+  { field: 'files_modified', schema: TEXT_INDEX_SCHEMA },
 ] as const;
 
 export class QdrantRepository {
@@ -65,33 +89,68 @@ export class QdrantRepository {
     return this.resolvedCollectionName;
   }
 
+  /**
+   * Creates `field_name`/`field_schema` payload indexes for every entry in
+   * `PAYLOAD_INDEXES` not already present in `existingFields` (#62 AC1,
+   * sub-tasks 6.2-6.3). Additive only - never touches an existing index or
+   * any stored point.
+   */
+  private async createMissingIndexes(existingFields: ReadonlySet<string>): Promise<void> {
+    const missing = PAYLOAD_INDEXES.filter(({ field }) => !existingFields.has(field));
+    for (const { field, schema } of missing) {
+      await this.client.createPayloadIndex(this.collectionName, {
+        field_name: field,
+        field_schema: schema,
+      });
+    }
+    if (missing.length > 0) {
+      debugLog(
+        `ensureIndexes: created ${String(missing.length)} missing index(es) on ${this.collectionName}: ${missing.map((m) => m.field).join(', ')}`,
+      );
+    } else {
+      debugLog(`ensureIndexes: no missing indexes on ${this.collectionName}`);
+    }
+  }
+
+  /**
+   * Reconciles `PAYLOAD_INDEXES` against the collection's current
+   * `payload_schema` and creates only what is missing (#62 AC1). Idempotent
+   * and safe to call on every `memo search`/`memo write` invocation and on a
+   * pre-existing collection created by an earlier memo-cli version (AC11).
+   */
+  async ensureIndexes(): Promise<void> {
+    try {
+      const info = await this.client.getCollection(this.collectionName);
+      const payloadSchema = (info as { payload_schema?: Record<string, unknown> }).payload_schema;
+      const existingFields = new Set(Object.keys(payloadSchema ?? {}));
+      await this.createMissingIndexes(existingFields);
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'COLLECTION_BOOTSTRAP_FAILED',
+        `Failed to ensure indexes: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   async ensureCollection(): Promise<void> {
     try {
-      let exists = false;
+      let info: { payload_schema?: Record<string, unknown> } | null = null;
       try {
-        await this.client.getCollection(this.collectionName);
-        exists = true;
+        info = await this.client.getCollection(this.collectionName);
       } catch {
-        exists = false;
+        info = null;
       }
 
-      if (!exists) {
+      if (!info) {
         await this.client.createCollection(this.collectionName, {
           vectors: { size: VECTOR_SIZE, distance: 'Cosine' },
         });
-
-        for (const { field, schema } of PAYLOAD_INDEXES) {
-          await this.client.createPayloadIndex(this.collectionName, {
-            field_name: field,
-            field_schema: schema,
-          });
-        }
-
-        debugLog(
-          `ensureCollection: created collection ${this.collectionName} with ${String(PAYLOAD_INDEXES.length)} indexes`,
-        );
+        debugLog(`ensureCollection: created collection ${this.collectionName}`);
+        await this.createMissingIndexes(new Set());
       } else {
         debugLog(`ensureCollection: collection ${this.collectionName} already exists`);
+        await this.createMissingIndexes(new Set(Object.keys(info.payload_schema ?? {})));
       }
     } catch (err) {
       if (err instanceof MemoError) throw err;
@@ -151,21 +210,33 @@ export class QdrantRepository {
     }
   }
 
-  async scroll(filter?: QdrantFilter, limit = 100): Promise<ScrollResult[]> {
+  async scroll(
+    filter?: QdrantFilter,
+    limit = 100,
+    options: ScrollOptions = {},
+  ): Promise<ScrollResult[]> {
     try {
       const result = await withRetry(() =>
         this.client.scroll(this.collectionName, {
           filter,
           limit,
           with_payload: true,
+          with_vector: options.withVector ?? false,
           order_by: { key: 'timestamp_utc', direction: 'desc' },
         }),
       );
       return (
-        result as { points: { id: string | number; payload?: Record<string, unknown> | null }[] }
+        result as {
+          points: {
+            id: string | number;
+            payload?: Record<string, unknown> | null;
+            vector?: number[] | null;
+          }[];
+        }
       ).points.map((p) => ({
         id: p.id,
         payload: p.payload ?? undefined,
+        ...(options.withVector && Array.isArray(p.vector) ? { vector: p.vector } : {}),
       }));
     } catch (err) {
       if (err instanceof MemoError) throw err;

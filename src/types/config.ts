@@ -35,6 +35,10 @@ export const DEFAULT_CONFIDENCE_THRESHOLDS = {
 // DEFAULT_STALENESS_THRESHOLD_DAYS and DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD.
 export const DEFAULT_STALENESS_THRESHOLD_DAYS = 120;
 export const DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD = 0.5;
+// Lexical matching defaults per issue #62's AC6/AC7 - see
+// src/lib/ranking.ts's DEFAULT_LEXICAL_BOOST_FACTOR.
+export const DEFAULT_LEXICAL_ENABLED = true;
+export const DEFAULT_LEXICAL_BOOST_FACTOR = 0.15;
 const WEIGHT_SUM_TOLERANCE = 0.001;
 
 // #35 AC2: `exact > high > medium` must hold strictly - equal values are
@@ -80,6 +84,12 @@ const RankingConfigSchema = z
       .min(0)
       .max(1)
       .default(DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD),
+    // #62 AC7: `false` (and `--lexical off`) skips the extra lexical scroll
+    // entirely.
+    lexical: z.boolean().default(DEFAULT_LEXICAL_ENABLED),
+    // #62 AC6: additive lexical-match boost factor. `0` is a valid,
+    // intentional "disable" value, so this is `min(0)`, not `positive()`.
+    lexical_boost_factor: z.number().finite().min(0).default(DEFAULT_LEXICAL_BOOST_FACTOR),
   })
   .passthrough()
   .superRefine((data, ctx) => {

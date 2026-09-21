@@ -203,6 +203,103 @@ describe('QdrantRepository', () => {
       );
       expect(results).toHaveLength(1);
     });
+
+    it('defaults with_vector to false and omits vector from results (#62 AC4/AC5, existing call sites unaffected)', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: '1', payload: { text: 'hello' } }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const results = await repo.scroll({ must: [] }, 50);
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ with_vector: false }),
+      );
+      expect(results[0]).not.toHaveProperty('vector');
+    });
+
+    it('passes with_vector: true and attaches the vector when { withVector: true } (#62 AC4/AC5)', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: '1', payload: { text: 'hello' }, vector: [0.1, 0.2] }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const results = await repo.scroll({ must: [] }, 50, { withVector: true });
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ with_vector: true }),
+      );
+      expect(results[0]?.vector).toEqual([0.1, 0.2]);
+    });
+  });
+
+  describe('ensureIndexes()', () => {
+    it('reads payload_schema and creates only missing indexes, including the #62 text indexes', async () => {
+      mockGetCollection.mockResolvedValueOnce({
+        payload_schema: {
+          repo: {},
+          org: {},
+          entry_type: {},
+          source: {},
+          tags: {},
+          timestamp_utc: {},
+          commit: {},
+          dedupe_key_sha256: {},
+        },
+      });
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.ensureIndexes();
+
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(2);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          field_name: 'rationale',
+          field_schema: expect.objectContaining({ type: 'text', tokenizer: 'word' }),
+        }),
+      );
+      expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          field_name: 'files_modified',
+          field_schema: expect.objectContaining({ type: 'text', tokenizer: 'word' }),
+        }),
+      );
+    });
+
+    it('is idempotent: a second call creates nothing once every index exists', async () => {
+      const fullSchema = {
+        repo: {},
+        org: {},
+        entry_type: {},
+        source: {},
+        tags: {},
+        timestamp_utc: {},
+        commit: {},
+        dedupe_key_sha256: {},
+        rationale: {},
+        files_modified: {},
+      };
+      mockGetCollection.mockResolvedValueOnce({ payload_schema: fullSchema });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.ensureIndexes();
+
+      expect(mockCreatePayloadIndex).not.toHaveBeenCalled();
+    });
+
+    it('throws COLLECTION_BOOTSTRAP_FAILED when the collection cannot be read', async () => {
+      mockGetCollection.mockRejectedValue(new Error('Connection refused'));
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await expect(repo.ensureIndexes()).rejects.toMatchObject({
+        code: 'COLLECTION_BOOTSTRAP_FAILED',
+      });
+    });
   });
 
   describe('fetchByRepo()', () => {

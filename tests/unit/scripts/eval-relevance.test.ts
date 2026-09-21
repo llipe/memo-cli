@@ -182,6 +182,8 @@ function makeFakeEmbeddings(): EmbeddingsAdapter {
 
 interface FakeRepoOptions {
   searchResult?: SearchResult[];
+  scrollResult?: ScrollResult[];
+  failScroll?: boolean;
   failEnsureCollection?: boolean;
   failUpsert?: boolean;
 }
@@ -190,9 +192,17 @@ function makeFakeRepo(opts: FakeRepoOptions = {}): {
   repo: QdrantRepository;
   upsertCalls: { id: string; payload: Record<string, unknown> }[];
   ensureCollectionCalls: number;
+  scrollMock: jest.Mock;
 } {
   const upsertCalls: { id: string; payload: Record<string, unknown> }[] = [];
   let ensureCollectionCalls = 0;
+
+  const scrollMock = jest.fn(async (): Promise<ScrollResult[]> => {
+    if (opts.failScroll) {
+      throw new MemoError('QDRANT_OPERATION_FAILED', 'connection refused');
+    }
+    return opts.scrollResult ?? [];
+  });
 
   const repo = {
     collectionName: 'memo_eval',
@@ -209,10 +219,15 @@ function makeFakeRepo(opts: FakeRepoOptions = {}): {
       upsertCalls.push({ id, payload });
     }),
     search: jest.fn(async (): Promise<SearchResult[]> => opts.searchResult ?? []),
-    scroll: jest.fn(async (): Promise<ScrollResult[]> => []),
+    scroll: scrollMock,
   };
 
-  return { repo: repo as unknown as QdrantRepository, upsertCalls, ensureCollectionCalls };
+  return {
+    repo: repo as unknown as QdrantRepository,
+    upsertCalls,
+    ensureCollectionCalls,
+    scrollMock,
+  };
 }
 
 const ENTRY_A = EvalEntrySeedSchema.parse({
@@ -310,6 +325,101 @@ describe('runEval', () => {
 
     expect(upsertCalls).toHaveLength(1);
     expect(summary.mode).toBe('record');
+  });
+
+  describe('#62 lexical toggle', () => {
+    const IDENTIFIER_QUERY = EvalQuerySchema.parse({
+      id: 'q-identifier',
+      query: 'why does search-filters.ts build should clauses',
+      expected_ids: [ENTRY_A.id],
+      category: 'identifier',
+    });
+
+    it('issues a lexical scroll for an identifier query in default run mode (lexical on)', async () => {
+      const { repo, scrollMock } = makeFakeRepo({ searchResult: [] });
+      const embeddings = makeFakeEmbeddings();
+
+      await runEval([], {
+        env: {},
+        loadFixturesFn: async () => ({ entries: [ENTRY_A], queries: [IDENTIFIER_QUERY] }),
+        createRepo: () => repo,
+        createEmbeddings: () => embeddings,
+      });
+
+      expect(scrollMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('issues no lexical scroll when --no-lexical is passed', async () => {
+      const { repo, scrollMock } = makeFakeRepo({ searchResult: [] });
+      const embeddings = makeFakeEmbeddings();
+
+      await runEval(['--no-lexical'], {
+        env: {},
+        loadFixturesFn: async () => ({ entries: [ENTRY_A], queries: [IDENTIFIER_QUERY] }),
+        createRepo: () => repo,
+        createEmbeddings: () => embeddings,
+      });
+
+      expect(scrollMock).not.toHaveBeenCalled();
+    });
+
+    it('issues no lexical scroll during --record, even for an identifier query (candidates.json stays dense-only)', async () => {
+      const { repo, scrollMock } = makeFakeRepo({
+        searchResult: [{ id: ENTRY_A.id, score: 0.9, payload: {} }],
+      });
+      const embeddings = makeFakeEmbeddings();
+      const writeFileFn = jest.fn().mockResolvedValue(undefined);
+
+      await runEval(['--record'], {
+        env: {},
+        loadFixturesFn: async () => ({ entries: [ENTRY_A], queries: [IDENTIFIER_QUERY] }),
+        createRepo: () => repo,
+        createEmbeddings: () => embeddings,
+        writeFileFn,
+      });
+
+      expect(scrollMock).not.toHaveBeenCalled();
+    });
+
+    it('unions a lexical-only candidate into the top-3 hit rate when lexical is on', async () => {
+      const { repo } = makeFakeRepo({
+        searchResult: [],
+        scrollResult: [
+          {
+            id: ENTRY_A.id,
+            payload: { rationale: 'documents search-filters.ts directly' },
+            vector: [0.1, 0.2, 0.3],
+          },
+        ],
+      });
+      const embeddings = makeFakeEmbeddings();
+
+      const summary = await runEval([], {
+        env: {},
+        loadFixturesFn: async () => ({ entries: [ENTRY_A], queries: [IDENTIFIER_QUERY] }),
+        createRepo: () => repo,
+        createEmbeddings: () => embeddings,
+      });
+
+      expect(summary.report?.overall_top3).toBe(1);
+    });
+
+    it('degrades to dense-only when the lexical scroll fails', async () => {
+      const { repo } = makeFakeRepo({
+        searchResult: [{ id: ENTRY_A.id, score: 0.9, payload: {} }],
+        failScroll: true,
+      });
+      const embeddings = makeFakeEmbeddings();
+
+      const summary = await runEval([], {
+        env: {},
+        loadFixturesFn: async () => ({ entries: [ENTRY_A], queries: [IDENTIFIER_QUERY] }),
+        createRepo: () => repo,
+        createEmbeddings: () => embeddings,
+      });
+
+      expect(summary.report?.overall_top3).toBe(1);
+    });
   });
 
   it('surfaces a Qdrant connectivity failure during ensureCollection as exit-2 QDRANT_UNREACHABLE', async () => {

@@ -247,6 +247,8 @@ describe('MemoConfigSchema', () => {
           confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
           staleness_threshold_days: 120,
           staleness_tag_overlap_threshold: 0.5,
+          lexical: true,
+          lexical_boost_factor: 0.15,
         });
       }
     });
@@ -292,6 +294,8 @@ describe('MemoConfigSchema', () => {
           confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
           staleness_threshold_days: 120,
           staleness_tag_overlap_threshold: 0.5,
+          lexical: true,
+          lexical_boost_factor: 0.15,
         });
       }
     });
@@ -325,6 +329,8 @@ describe('MemoConfigSchema', () => {
           confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
           staleness_threshold_days: 120,
           staleness_tag_overlap_threshold: 0.5,
+          lexical: true,
+          lexical_boost_factor: 0.15,
         });
       }
     });
@@ -713,6 +719,98 @@ describe('MemoConfigSchema', () => {
         const result = MemoConfigSchema.safeParse({
           ...VALID_BASE,
           ranking: { staleness_tag_overlap_threshold: '0.5' },
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // lexical / lexical_boost_factor (issue #62)
+    // -------------------------------------------------------------------------
+
+    describe('lexical', () => {
+      it('resolves lexical to true by default when omitted (#62 AC7)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical']).toBe(true);
+        }
+      });
+
+      it('resolves lexical_boost_factor to its 0.15 default when omitted (#62 AC6)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical_boost_factor']).toBe(
+            0.15,
+          );
+        }
+      });
+
+      it('accepts lexical: false to disable the lexical scroll entirely (#62 AC7)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical: false },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical']).toBe(false);
+        }
+      });
+
+      it('rejects a non-boolean lexical value without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical: 'off' },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('accepts lexical_boost_factor: 0 to disable boosting entirely', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: 0 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical_boost_factor']).toBe(0);
+        }
+      });
+
+      it('accepts a custom lexical_boost_factor without disturbing the weight-sum check', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: 0.25 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical_boost_factor']).toBe(
+            0.25,
+          );
+          expect(result.data.ranking.w_similarity).toBe(0.6);
+        }
+      });
+
+      it('rejects a negative lexical_boost_factor', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: -0.1 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-finite lexical_boost_factor', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: Infinity },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a string in place of a numeric lexical_boost_factor, without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: '0.15' },
         });
         expect(result.success).toBe(false);
       });

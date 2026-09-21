@@ -192,41 +192,41 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
   - [ ] 5.22 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
   - [ ] 5.23 Open PR against `main`, link `Closes #38`, obtain user approval, merge — will be opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
-- [ ] 6.0 Implement Story S1-06: Lexical identifier matching — [#62](https://github.com/llipe/memo-cli/issues/62)
+- [x] 6.0 Implement Story S1-06: Lexical identifier matching — [#62](https://github.com/llipe/memo-cli/issues/62)
 
   > Note: largest task in the phase and the one most likely to move the hit rate. Decision A4 applies: this is an additive boost over a unioned candidate set, not reciprocal rank fusion.
-  - [ ] 6.1 Verify on the target Qdrant version that a `text` index on the array field `files_modified` tokenizes each element; if not, index `rationale` only and record the limitation in the PR and `docs/data-model.md`
-  - [ ] 6.2 Split `ensureCollection` into collection creation and `ensureIndexes`
-  - [ ] 6.3 Implement `ensureIndexes` to read `getCollection().payload_schema` and create only missing indexes from `PAYLOAD_INDEXES`; idempotent
-  - [ ] 6.4 Extend `PAYLOAD_INDEXES` with text indexes on `rationale` and `files_modified` (`word` tokenizer, lowercase, min 2, max 20)
-  - [ ] 6.5 Add a `withVector` option to `QdrantRepository.scroll` without changing existing call-site behavior
-  - [ ] 6.6 Implement `extractIdentifierTokens(query)` in `src/lib/lexical.ts`
-  - [ ] 6.7 Implement word-tokenizer parity (lowercase, split on non-alphanumerics, drop tokens shorter than 2)
-  - [ ] 6.8 Implement `cosine(a, b)` with defensive normalization
-  - [ ] 6.9 Implement `computeLexicalBoost(identifiers, rationale, files, factor)` with all-or-nothing per-identifier matching
-  - [ ] 6.10 Add `lexical` (bool, default true) and `lexical_boost_factor` (default 0.15) to `RankingConfig`
-  - [ ] 6.11 Add `--lexical <on|off>` to `memo search`
-  - [ ] 6.12 Build the lexical scroll in `src/commands/search.ts`: one call, `should` per identifier over both fields, `min_should: 1`, same pre-filters, `limit 50`, `with_vector: true`
-  - [ ] 6.13 Compute local cosine for lexical-only candidates; keep Qdrant scores for dense candidates; union and dedupe by id
-  - [ ] 6.14 Add `lexical_boost` into the composite alongside `tag_boost` before the 1.0 cap
-  - [ ] 6.15 Wrap the lexical scroll so failure degrades to dense-only results, logged under `MEMO_DEBUG`, exit code unchanged
-  - [ ] 6.16 Write `tests/unit/lib/lexical.test.ts`: identifier extraction for file paths, dotted names, kebab, snake, `#123`, `PROJ-45`, `--flag`, CamelCase, prose-only, empty, punctuation-heavy; tokenizer parity; boost for full, partial, none, multiple, factor 0; cosine for identical, orthogonal, opposite, zero-length
-  - [ ] 6.17 Extend `tests/unit/commands/search.test.ts`: scroll call count 1 with identifiers, 0 without; union dedupe; `--lexical off`; graceful degradation on scroll failure
-  - [ ] 6.18 Extend `tests/unit/lib/qdrant.test.ts` and `tests/integration/lib/qdrant.test.ts`: `ensureIndexes` creates only missing indexes and is idempotent
-  - [ ] 6.19 Edge cases: identifier in 100+ entries (limit 50 respected); all-identifier query; identifier below `min_token_len`; empty `files_modified`; missing collection
-  - [ ] 6.20 Verify AC1–AC2: index reconciliation and text index options
-  - [ ] 6.21 Verify AC3, AC5–AC6: extraction, cosine assignment, union dedupe, boost formula
-  - [ ] 6.22 Verify AC4, AC7–AC8: exactly one extra scroll when applicable, none when disabled or when no identifiers exist
-  - [ ] 6.23 Verify AC9: an `identifier` eval query returns its expected entry in the top 3 with lexical on
-  - [ ] 6.24 Verify AC10: overall replay ≥ baseline and ≥ task 5.0's number; `memo search` under 2.5 s with both extra scrolls active
-  - [ ] 6.25 Verify AC11: run `ensureIndexes` against a collection created by v1.1.x and confirm existing points match
-  - [ ] 6.26 Run `pnpm run eval:relevance` with lexical on and off; record per-category numbers in the PR body
-  - [ ] 6.27 Document `--lexical`, both config keys, and the index table in `README.md`, `docs/data-model.md`, `docs/system-overview.md`
-  - [ ] 6.28 Map every AC to its test in the PR body
-  - [ ] 6.29 Migration: record the artifact-not-required rationale, the automatic apply path, the verification step (`getCollection` shows both text indexes), and that rollback leaves two harmless unused indexes
-  - [ ] 6.30 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 6.31 Run `verifier` audit; route drift findings to `product-engineer`
-  - [ ] 6.32 Open PR against `main`, link `Closes #62`, obtain user approval, merge
+  - [x] 6.1 Verify on the target Qdrant version that a `text` index on the array field `files_modified` tokenizes each element; if not, index `rationale` only and record the limitation in the PR and `docs/data-model.md`
+  - [x] 6.2 Split `ensureCollection` into collection creation and `ensureIndexes`
+  - [x] 6.3 Implement `ensureIndexes` to read `getCollection().payload_schema` and create only missing indexes from `PAYLOAD_INDEXES`; idempotent
+  - [x] 6.4 Extend `PAYLOAD_INDEXES` with text indexes on `rationale` and `files_modified` (`word` tokenizer, lowercase, min 2, max 20)
+  - [x] 6.5 Add a `withVector` option to `QdrantRepository.scroll` without changing existing call-site behavior
+  - [x] 6.6 Implement `extractIdentifierTokens(query)` in `src/lib/lexical.ts`
+  - [x] 6.7 Implement word-tokenizer parity (lowercase, split on non-alphanumerics, drop tokens shorter than 2)
+  - [x] 6.8 Implement `cosine(a, b)` with defensive normalization
+  - [x] 6.9 Implement `computeLexicalBoost(identifiers, rationale, files, factor)` with all-or-nothing per-identifier matching
+  - [x] 6.10 Add `lexical` (bool, default true) and `lexical_boost_factor` (default 0.15) to `RankingConfig`
+  - [x] 6.11 Add `--lexical <on|off>` to `memo search`
+  - [x] 6.12 Build the lexical scroll in `src/commands/search.ts`: one call, `should` per identifier over both fields, `min_should: 1`, same pre-filters, `limit 50`, `with_vector: true`
+  - [x] 6.13 Compute local cosine for lexical-only candidates; keep Qdrant scores for dense candidates; union and dedupe by id
+  - [x] 6.14 Add `lexical_boost` into the composite alongside `tag_boost` before the 1.0 cap
+  - [x] 6.15 Wrap the lexical scroll so failure degrades to dense-only results, logged under `MEMO_DEBUG`, exit code unchanged
+  - [x] 6.16 Write `tests/unit/lib/lexical.test.ts`: identifier extraction for file paths, dotted names, kebab, snake, `#123`, `PROJ-45`, `--flag`, CamelCase, prose-only, empty, punctuation-heavy; tokenizer parity; boost for full, partial, none, multiple, factor 0; cosine for identical, orthogonal, opposite, zero-length
+  - [x] 6.17 Extend `tests/unit/commands/search.test.ts`: scroll call count 1 with identifiers, 0 without; union dedupe; `--lexical off`; graceful degradation on scroll failure
+  - [x] 6.18 Extend `tests/unit/lib/qdrant.test.ts` and `tests/integration/lib/qdrant.test.ts`: `ensureIndexes` creates only missing indexes and is idempotent
+  - [x] 6.19 Edge cases: identifier in 100+ entries (limit 50 respected); all-identifier query; identifier below `min_token_len`; empty `files_modified`; missing collection
+  - [x] 6.20 Verify AC1–AC2: index reconciliation and text index options
+  - [x] 6.21 Verify AC3, AC5–AC6: extraction, cosine assignment, union dedupe, boost formula
+  - [x] 6.22 Verify AC4, AC7–AC8: exactly one extra scroll when applicable, none when disabled or when no identifiers exist
+  - [x] 6.23 Verify AC9: an `identifier` eval query returns its expected entry in the top 3 with lexical on
+  - [x] 6.24 Verify AC10: overall replay ≥ baseline and ≥ task 5.0's number; `memo search` under 2.5 s with both extra scrolls active
+  - [x] 6.25 Verify AC11: run `ensureIndexes` against a collection created by v1.1.x and confirm existing points match
+  - [x] 6.26 Run `pnpm run eval:relevance` with lexical on and off; record per-category numbers in the PR body
+  - [x] 6.27 Document `--lexical`, both config keys, and the index table in `README.md`, `docs/data-model.md`, `docs/system-overview.md`
+  - [x] 6.28 Map every AC to its test in the PR body
+  - [x] 6.29 Migration: record the artifact-not-required rationale, the automatic apply path, the verification step (`getCollection` shows both text indexes), and that rollback leaves two harmless unused indexes
+  - [x] 6.30 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [ ] 6.31 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 6.32 Open PR against `main`, link `Closes #62`, obtain user approval, merge — will be opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 7.0 Implement Story S1-07: `query_id` and `--explain` — [#63](https://github.com/llipe/memo-cli/issues/63)
 
