@@ -6,7 +6,7 @@
 - Integration branch: `integration/prd-004-phase-2-banks-kinds-sessions-recall`
 - Repository: `llipe/memo-cli`
 - Started: 2026-09-21
-- Last updated: 2026-09-21 (post S2-02 merge)
+- Last updated: 2026-09-21 (post S2-03 merge)
 
 ## Story Status
 
@@ -14,7 +14,7 @@
 | -------- | -------- | ------- | ---------- | ------------------------------------------------ | ---------------------------------------------------- |
 | 1        | S2-01    | #53     | ✅ Merged  | [#92](https://github.com/llipe/memo-cli/pull/92) | `story/s2-01-config-v2-schema-v2` (deleted)          |
 | 2        | S2-02    | #81     | ✅ Merged  | [#93](https://github.com/llipe/memo-cli/pull/93) | `story/S2-02-qdrant-repository-extensions` (deleted) |
-| 3        | S2-03    | #82     | ⏳ Pending | —                                                | —                                                    |
+| 3        | S2-03    | #82     | ✅ Merged  | [#94](https://github.com/llipe/memo-cli/pull/94) | `story/S2-03-bank-filters-dedupe-v2` (deleted)       |
 | 4        | S2-04    | #83     | ⏳ Pending | —                                                | —                                                    |
 | 5        | S2-05    | #84     | ⏳ Pending | —                                                | —                                                    |
 | 6        | S2-06    | #85     | ⏳ Pending | —                                                | —                                                    |
@@ -26,9 +26,9 @@
 
 ## Current Position
 
-- Next story: S2-03
-- Last merged PR: [#93](https://github.com/llipe/memo-cli/pull/93) (S2-02, squash-merged, story branch deleted)
-- Integration branch HEAD: `92c1e0e`
+- Next story: S2-04
+- Last merged PR: [#94](https://github.com/llipe/memo-cli/pull/94) (S2-03, squash-merged, story branch deleted)
+- Integration branch HEAD: `5709e06`
 
 ## Decisions Log
 
@@ -39,3 +39,4 @@
 - 2026-09-21: `gh pr merge` is classifier-blocked when chained with other commands via `&&` in this session but succeeds as a standalone `Bash` call — noted for the remaining merges so I don't waste a turn on a compound-command retry.
 - 2026-09-21: Learned that `developer` subagents run in this **same shared working directory** (no worktree isolation was requested) — a subagent's local branch checkout persists after it finishes and can bleed uncommitted changes across branches if I `git checkout` without checking `git status` first. Now checking status before every branch switch. `qa-engineer`/`verifier` subagents in this run have been using isolated worktrees on their own, so this risk is specific to `developer`.
 - 2026-09-21: S2-02 merged. `qa-engineer` gate: PASS (verified AC2/AC3's pagination-safety contract at the code-construction level). `verifier` Audit Mode: Fidelity High, one Minor/Intended drift (D-1, `scrollAll`'s zero-length-page handling, inert) and one **Major/Intended** drift (D-2: `fetchStalenessCorpus` built a private base-filter copy instead of composing S2-03's `buildBaseFilter`, with no task reconciling them before S2-05 depends on parity). **D-2 actioned immediately** (not queued): added task 3.7 + verification steps 3.13/3.15/3.19 to `workstream/tasks-prd-004-phase-2-plan.md` task 3.0, clarified task 5.7, and posted the updated checklist to issue #82. D-1 (S2-02) joins D-1 (S2-01) in the batched-reconciliation queue.
+- 2026-09-21: S2-03 merged. `qa-engineer` gate: PASS (confirmed structurally — not just by re-running tests — that the D-2 parity tests would fail against S2-02's old signature). `verifier` Audit Mode: Fidelity High, **zero drift** — D-2 confirmed genuinely closed (`fetchStalenessCorpus` is now a pure passthrough to `buildBaseFilter`'s output, no residual private filter logic), and `base` merge semantics confirmed non-regressive for Phase 1 call sites. `qa-engineer` also flagged a process note (single squashed commit loses red/green TDD evidence) — informational only, not actioned as drift.
