@@ -2,6 +2,9 @@ import chalk from 'chalk';
 import ora from 'ora';
 import type { Ora } from 'ora';
 
+/** Confidence tier labels (#35 AC5). Kept in sync with `src/lib/ranking.ts`'s `ConfidenceTier`. */
+export type ConfidenceTierLabel = 'exact' | 'high' | 'medium' | 'low';
+
 export interface SearchHumanResult {
   id: string | number;
   similarity: number;
@@ -14,6 +17,29 @@ export interface SearchHumanResult {
   story?: string;
   commit?: string;
   timestamp_utc?: string;
+  /**
+   * Confidence tier for this result on this query (#35 AC5). Optional so
+   * callers that never rank (or that pre-date this story) keep the exact
+   * same output with no `[tier]` prefix at all.
+   */
+  confidenceTier?: ConfidenceTierLabel;
+}
+
+/**
+ * Semantic color per tier (guidelines §4): `exact`/`high` green, `medium`
+ * yellow, `low` gray. The text label (`[tier]`) is always present
+ * regardless of color support - color is a hint, never the only signal.
+ */
+const TIER_COLOR: Record<ConfidenceTierLabel, (text: string) => string> = {
+  exact: (text) => chalk.green(text),
+  high: (text) => chalk.green(text),
+  medium: (text) => chalk.yellow(text),
+  low: (text) => chalk.gray(text),
+};
+
+function renderTierPrefix(tier: ConfidenceTierLabel | undefined): string {
+  if (!tier) return '';
+  return `${TIER_COLOR[tier](`[${tier}]`)} `;
 }
 
 export interface ListHumanResult {
@@ -101,7 +127,7 @@ export const output = {
       const metadata = renderMetadata(result);
 
       process.stdout.write(
-        `${chalk.cyan(repoLabel)}  ${chalk.gray(score)}  ${chalk.bold(toLead(result.rationale))}\n`,
+        `${renderTierPrefix(result.confidenceTier)}${chalk.cyan(repoLabel)}  ${chalk.gray(score)}  ${chalk.bold(toLead(result.rationale))}\n`,
       );
 
       if (metadata.length > 0) {

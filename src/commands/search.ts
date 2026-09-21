@@ -11,8 +11,9 @@ import {
   DEFAULT_RANKING_WEIGHTS,
   DEFAULT_RECENCY_HALF_LIFE_DAYS,
   DEFAULT_TAG_BOOST_FACTOR,
+  DEFAULT_CONFIDENCE_THRESHOLDS,
 } from '../lib/ranking.js';
-import type { RankableEntry, ResolvedFactors } from '../lib/ranking.js';
+import type { RankableEntry, ResolvedFactors, ConfidenceTier } from '../lib/ranking.js';
 import type { MemoConfig } from '../types/config.js';
 import type { SearchResult } from '../lib/qdrant.js';
 
@@ -116,7 +117,23 @@ type RankedSearchResult = SearchRankInput & {
   recency_score: number;
   source_score: number;
   factors: ResolvedFactors;
+  confidence_tier: ConfidenceTier;
 };
+
+/**
+ * #35 AC4: the stored, write-path `confidence` field is dropped from every
+ * `memo search` projection (both `--json` and human output) while it stays
+ * untouched in `memo read`/`memo list`/`memo write` - this is the one
+ * output removal in Phase 1. `confidence_tier` (derived, per-query) is the
+ * replacement signal.
+ */
+function omitStoredConfidence(
+  payload: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  if (!payload) return {};
+  const { confidence: _confidence, ...rest } = payload;
+  return rest;
+}
 
 function toRankableEntry(result: SearchResult): SearchRankInput {
   const payload = result.payload;
@@ -137,7 +154,7 @@ function toRankableEntry(result: SearchResult): SearchRankInput {
 function toJsonResult(result: RankedSearchResult): Record<string, unknown> {
   return {
     id: result.id,
-    ...(result.payload ?? {}),
+    ...omitStoredConfidence(result.payload),
     similarity: result.similarity,
     final_score: result.final_score,
     recency_score: result.recency_score,
@@ -147,6 +164,8 @@ function toJsonResult(result: RankedSearchResult): Record<string, unknown> {
     // through to a real query; lexical_boost/retention/use_ratio/link stay
     // internal until their own stories (#54-#56, FR-1.3) light them up.
     tag_boost: result.factors.tag_boost,
+    // #35 AC3/AC4: confidence_tier replaces the removed static `confidence`.
+    confidence_tier: result.confidence_tier,
   };
 }
 
@@ -227,6 +246,8 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     : DEFAULT_RANKING_WEIGHTS;
   const halfLifeDays = rankingConfig?.recency_half_life_days ?? DEFAULT_RECENCY_HALF_LIFE_DAYS;
   const tagBoostFactor = rankingConfig?.tag_boost_factor ?? DEFAULT_TAG_BOOST_FACTOR;
+  const confidenceThresholds =
+    rankingConfig?.confidence_thresholds ?? DEFAULT_CONFIDENCE_THRESHOLDS;
 
   const ranked = rankResults(
     rawResults.map(toRankableEntry),
@@ -235,6 +256,7 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     Date.now(),
     flags.query,
     tagBoostFactor,
+    confidenceThresholds,
   );
   const results = ranked.slice(0, limit);
   const jsonResults = results.map(toJsonResult);
@@ -268,7 +290,9 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
       // because SearchHumanResult is a private rendering type, not the
       // `--json` contract (which exposes final_score explicitly).
       similarity: result.final_score,
-      ...(result.payload ?? {}),
+      ...omitStoredConfidence(result.payload),
+      // #35 AC5: drives the `[tier]` prefix in `output.searchResults`.
+      confidenceTier: result.confidence_tier,
     })),
   );
 }

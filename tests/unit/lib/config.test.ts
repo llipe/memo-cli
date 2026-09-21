@@ -244,6 +244,7 @@ describe('MemoConfigSchema', () => {
           w_source: 0.1,
           recency_half_life_days: 365,
           tag_boost_factor: 0.05,
+          confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
         });
       }
     });
@@ -286,6 +287,7 @@ describe('MemoConfigSchema', () => {
           w_source: 0.1,
           recency_half_life_days: 30,
           tag_boost_factor: 0.1,
+          confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
         });
       }
     });
@@ -316,6 +318,7 @@ describe('MemoConfigSchema', () => {
           w_source: 0.1,
           recency_half_life_days: 30,
           tag_boost_factor: 0.05,
+          confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
         });
       }
     });
@@ -478,6 +481,121 @@ describe('MemoConfigSchema', () => {
       if (result.success) {
         expect((result.data.ranking as Record<string, unknown>)['w_future_signal']).toBe(0.5);
       }
+    });
+
+    // -------------------------------------------------------------------------
+    // confidence_thresholds (issue #35, AC1/AC2)
+    // -------------------------------------------------------------------------
+
+    describe('confidence_thresholds', () => {
+      it('resolves to the documented defaults when omitted (AC1)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['confidence_thresholds']).toEqual(
+            {
+              exact: 0.88,
+              high: 0.75,
+              medium: 0.6,
+            },
+          );
+        }
+      });
+
+      it('accepts a valid custom threshold ordering (AC2)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.9, high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['confidence_thresholds']).toEqual(
+            {
+              exact: 0.9,
+              high: 0.7,
+              medium: 0.4,
+            },
+          );
+        }
+      });
+
+      it('rejects equal threshold values, naming the offending path (AC2)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.8, high: 0.8, medium: 0.6 } },
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const issue = result.error.issues.find((i) =>
+            i.path.join('.').startsWith('ranking.confidence_thresholds'),
+          );
+          expect(issue).toBeDefined();
+        }
+      });
+
+      it('rejects an inverted threshold ordering, naming the offending path (AC2)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.5, high: 0.8, medium: 0.9 } },
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const issue = result.error.issues.find((i) =>
+            i.path.join('.').startsWith('ranking.confidence_thresholds'),
+          );
+          expect(issue).toBeDefined();
+          expect(issue?.message).toMatch(/confidence_thresholds/);
+        }
+      });
+
+      it('accepts a partial override that only changes medium, keeping the other defaults', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { medium: 0.5 } },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['confidence_thresholds']).toEqual(
+            {
+              exact: 0.88,
+              high: 0.75,
+              medium: 0.5,
+            },
+          );
+        }
+      });
+
+      it('rejects a partial override whose resolved thresholds break ordering', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { high: 0.95 } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a threshold value above 1', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 1.5, high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a negative threshold value', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.9, high: 0.7, medium: -0.1 } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-numeric threshold value without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: '0.9', high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(false);
+      });
     });
   });
 });

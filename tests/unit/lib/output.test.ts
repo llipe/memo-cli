@@ -109,5 +109,51 @@ describe('output', () => {
       expect(repoIdx).toBeLessThan(scoreIdx);
       expect(scoreIdx).toBeLessThan(leadIdx);
     });
+
+    // #35 AC5: the `[tier]` prefix, always present as an explicit text
+    // label even with color disabled (guidelines §4).
+    it('prefixes each result with [tier] when confidenceTier is present (AC5)', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.9,
+          repo: 'memo-cli',
+          rationale: 'lead text',
+          confidenceTier: 'exact',
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[exact]');
+    });
+
+    it('renders every documented tier label', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.9, rationale: 'a', confidenceTier: 'exact' },
+        { id: '2', similarity: 0.8, rationale: 'b', confidenceTier: 'high' },
+        { id: '3', similarity: 0.65, rationale: 'c', confidenceTier: 'medium' },
+        { id: '4', similarity: 0.2, rationale: 'd', confidenceTier: 'low' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[exact]');
+      expect(written).toContain('[high]');
+      expect(written).toContain('[medium]');
+      expect(written).toContain('[low]');
+    });
+
+    it('omits the [tier] prefix entirely when confidenceTier is absent (backward compatible)', () => {
+      output.searchResults([{ id: '1', similarity: 0.9, repo: 'memo-cli', rationale: 'lead' }]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).not.toMatch(/\[(exact|high|medium|low)\]/);
+    });
+
+    it('keeps the text label readable with NO_COLOR set (no ANSI escape codes)', () => {
+      process.env['NO_COLOR'] = '1';
+      output.searchResults([
+        { id: '1', similarity: 0.9, repo: 'memo-cli', rationale: 'lead', confidenceTier: 'exact' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[exact]');
+      expect(written).not.toMatch(/\x1b\[/);
+    });
   });
 });
