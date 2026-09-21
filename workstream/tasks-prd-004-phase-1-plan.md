@@ -11,7 +11,7 @@
 | Task | Story | Issue                                              | Status                                                                |
 | ---- | ----- | -------------------------------------------------- | --------------------------------------------------------------------- |
 | 1.0  | S1-01 | [#61](https://github.com/llipe/memo-cli/issues/61) | In review (PR [#66](https://github.com/llipe/memo-cli/pull/66) draft) |
-| 2.0  | S1-02 | [#34](https://github.com/llipe/memo-cli/issues/34) | Open                                                                  |
+| 2.0  | S1-02 | [#34](https://github.com/llipe/memo-cli/issues/34) | In review (PR [#67](https://github.com/llipe/memo-cli/pull/67) draft) |
 | 3.0  | S1-03 | [#36](https://github.com/llipe/memo-cli/issues/36) | Open                                                                  |
 | 4.0  | S1-04 | [#35](https://github.com/llipe/memo-cli/issues/35) | Open                                                                  |
 | 5.0  | S1-05 | [#38](https://github.com/llipe/memo-cli/issues/38) | Open                                                                  |
@@ -114,7 +114,7 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
   - [x] 2.25 Migration: record the not-required opt-out (refinement Migration Assessment) in the PR body
   - [x] 2.26 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — lint/typecheck/test/audit all green on this diff; `format:check` is clean on every file this story touches, repo-wide `format:check` and `test:coverage` fail on pre-existing drift/shortfall that predates this story (see PR body)
   - [ ] 2.27 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
-  - [ ] 2.28 Open PR against `main`, link `Closes #34`, obtain user approval, merge — opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
+  - [ ] 2.28 Open PR against `main`, link `Closes #34`, obtain user approval, merge — PR [#67](https://github.com/llipe/memo-cli/pull/67) opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 3.0 Implement Story S1-03: Tag overlap boosting — [#36](https://github.com/llipe/memo-cli/issues/36)
 
