@@ -6,26 +6,26 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T00:27:23Z
+- Last updated: 2026-09-21T02:09:32Z
 
 ## Story Status
 
-| Sequence | Story ID | Issue # | Status      | PR  | Branch                          |
-| -------- | -------- | ------- | ----------- | --- | -------------------------------- |
-| 1        | S1-01    | #61     | ✅ Merged   | #66 | issue/61-relevance-eval-harness  |
-| 2        | S1-02    | #34     | ⏳ Pending  | —   | —                                 |
-| 3        | S1-03    | #36     | ⏳ Pending  | —   | —                                 |
-| 4        | S1-04    | #35     | ⏳ Pending  | —   | —                                 |
-| 5        | S1-05    | #38     | ⏳ Pending  | —   | —                                 |
-| 6        | S1-06    | #62     | ⏳ Pending  | —   | —                                 |
-| 7        | S1-07    | #63     | ⏳ Pending  | —   | —                                 |
-| 8        | S1-08    | #64     | ⏳ Pending  | —   | —                                 |
+| Sequence | Story ID | Issue # | Status      | PR  | Branch                            |
+| -------- | -------- | ------- | ----------- | --- | ---------------------------------- |
+| 1        | S1-01    | #61     | ✅ Merged   | #66 | issue/61-relevance-eval-harness    |
+| 2        | S1-02    | #34     | ✅ Merged   | #67 | issue/34-composite-ranking-score   |
+| 3        | S1-03    | #36     | ⏳ Pending  | —   | —                                   |
+| 4        | S1-04    | #35     | ⏳ Pending  | —   | —                                   |
+| 5        | S1-05    | #38     | ⏳ Pending  | —   | —                                   |
+| 6        | S1-06    | #62     | ⏳ Pending  | —   | —                                   |
+| 7        | S1-07    | #63     | ⏳ Pending  | —   | —                                   |
+| 8        | S1-08    | #64     | ⏳ Pending  | —   | —                                   |
 
 ## Current Position
 
-- Next story: S1-02 (#34)
-- Last merged PR: #66
-- Integration branch HEAD: 382565f
+- Next story: S1-03 (#36)
+- Last merged PR: #67
+- Integration branch HEAD: 935b77d
 
 ## Decisions Log
 
@@ -36,4 +36,12 @@
 - S1-01: qa-engineer coverage_gate PASS (coverage improved vs. integration baseline on all four metrics). Flagged that `/TESTING.md` is stale (describes an unrelated project) — non-blocking, explicitly assigned to task 8.0's exit gate.
 - S1-01: verifier Audit Mode — High fidelity, no Critical/Major drift. Comment posted to PR #66.
 - S1-01: `gh pr merge` was blocked by the auto-mode permission classifier (not git-guard); user merged PR #66 manually. Merge verified via `gh pr view 66 --json state,mergedAt` → MERGED, non-null mergedAt, before recording this checkpoint.
-- Note for S1-02: a verifier Design Mode test plan already exists at `workstream/test-plan-issue-34.md` — no new Design Mode invocation needed before delegating S1-02.
+- S1-02: existing verifier Design Mode test plan (workstream/test-plan-issue-34.md) reused — no new Design Mode invocation.
+- S1-02: developer's first pass measured composite ranking (spec-default weights 0.6/0.3/0.1, half-life 90) at 85.7% overall top-3 hit rate — a genuine failure of AC19-21's binding "replay ≥ recorded baseline" (92.9%, S1-01's identity-ordering floor). Developer initially overwrote baseline.json with the lower number; planner rejected this per explicit user decision ("Reject baseline.json overwrite, keep 92.9% as the floor") and had it reverted, leaving AC21 genuinely failing and documented rather than silently resolved.
+- S1-02: user then chose to escalate for an immediate weight-tuning decision rather than deferring to task 8.0 or leaving CI red for the rest of the phase. Since `product-engineer` is a main-thread orchestrator (not a spawnable subagent), the escalation was implemented by having `developer` apply task 8.0's own tuning-sweep methodology now: single-parameter sweep of `recency_half_life_days` (weights and D1-D9 untouched), landing on 365, legitimately re-recorded against live Qdrant Cloud at 96.4% overall (concept 100%, identifier 100%, cross-repo 83.3%, recency 100%) — a real improvement over S1-01's 92.9%, not a lowered floor.
+- S1-02: verifier Audit Mode independently re-verified the tuning resolution (not just trusted the developer's narrative) — confirmed baseline.json genuinely reflects 96.4%, only `DEFAULT_RECENCY_HALF_LIFE_DAYS` moved, replay test is unweakened, DEF-1/DEF-2/D7/D8/R9 all correctly implemented. Verdict: High fidelity, highest drift Minor (stale PR-body line, no behavioral impact).
+- S1-02: qa-engineer coverage_gate PASS; one Medium/low-likelihood structural gap noted non-blocking (custom `ranking` config values not exercised flowing through search.ts into rankResults — only default path tested).
+- S1-02: `gh pr review --approve` failed structurally — GitHub disallows self-approval when the PR author and the authenticated `gh` account are the same (`llipe`). Recorded the review as a PR comment instead of a formal Approve review. `gh pr merge 67 --squash` then succeeded (auto-mode classifier did not block this specific call, unlike PR #66's chained command).
+- S1-02: verifier's fidelity-report-issue-34.md was written to the story branch's working tree but never committed/pushed before the squash-merge; planner found it as an untracked file after switching to the integration branch and committed it directly as a follow-up doc commit (935b77d), matching S1-01's precedent of keeping fidelity reports in the repo.
+- Ongoing: `git checkout` commands are being intermittently (not consistently) blocked by the auto-mode permission classifier this run, requiring retries. Not a git-guard block — no alternative mechanism was used, just retried the same command.
+- Note for S1-03: no verifier Design Mode test plan exists yet at time of writing — check `workstream/test-plan-issue-36.md` before delegating; if absent, follow the same recommend/approve flow used for S1-01.
