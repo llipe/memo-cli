@@ -101,8 +101,13 @@ describe('MemoConfigSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects wrong schema_version literal', () => {
+  it('accepts schema_version "2" (S2-01 AC1)', () => {
     const result = MemoConfigSchema.safeParse({ ...VALID_BASE, schema_version: '2' });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a schema_version value outside the "1" | "2" enum', () => {
+    const result = MemoConfigSchema.safeParse({ ...VALID_BASE, schema_version: '3' });
     expect(result.success).toBe(false);
   });
 
@@ -814,6 +819,308 @@ describe('MemoConfigSchema', () => {
         });
         expect(result.success).toBe(false);
       });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Config v2 (issue #53 / S2-01) — spec §18.2, §8.4
+  // ---------------------------------------------------------------------------
+
+  describe('config v2 (S2-01)', () => {
+    const V2_BASE = { ...VALID_BASE, schema_version: '2' as const };
+
+    // CT-1 / SC-1: full §8.4 defaults table resolved when banks/bank/recall absent.
+    it('resolves bank.default to "kb" and recall.max_tokens to 2000 when absent (AC1)', () => {
+      const result = MemoConfigSchema.safeParse(V2_BASE);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as Record<string, unknown>)['bank']).toEqual({ default: 'kb' });
+        expect((result.data as Record<string, unknown>)['recall']).toEqual({ max_tokens: 2000 });
+      }
+    });
+
+    it('resolves every banks.* value to the spec §8.4 defaults table (AC1, CT-1)', () => {
+      const result = MemoConfigSchema.safeParse(V2_BASE);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const banks = (result.data as Record<string, unknown>)['banks'] as Record<string, unknown>;
+        expect(banks).toEqual({
+          kb: {
+            episodic: {
+              initial_stability_days: 3,
+              expires_in_days: 90,
+              archive_threshold: undefined,
+              archive_noisy: undefined,
+              promoted_grace_days: 7,
+              superseded_grace_days: undefined,
+              purge_after_days: null,
+            },
+            semantic: {
+              initial_stability_days: 90,
+              expires_in_days: undefined,
+              archive_threshold: 0.05,
+              archive_noisy: false,
+              promoted_grace_days: undefined,
+              superseded_grace_days: 30,
+              purge_after_days: null,
+            },
+          },
+          private: {
+            self: { soft_cap: 50 },
+            episodic: {
+              initial_stability_days: 3,
+              expires_in_days: 30,
+              archive_threshold: undefined,
+              archive_noisy: undefined,
+              promoted_grace_days: 7,
+              superseded_grace_days: undefined,
+              purge_after_days: 30,
+            },
+            semantic: {
+              initial_stability_days: 30,
+              expires_in_days: undefined,
+              archive_threshold: 0.05,
+              archive_noisy: true,
+              promoted_grace_days: undefined,
+              superseded_grace_days: 30,
+              purge_after_days: 90,
+            },
+          },
+        });
+      }
+    });
+
+    // CT-2: v1 file (no v2 blocks) still parses unchanged, with v2 blocks default-filled.
+    it('parses a v1.2.0-shaped config unchanged and default-fills bank/banks/recall (CT-2, AC1, AC9)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.schema_version).toBe('1');
+        expect(result.data.repo).toBe('my-app');
+        expect((result.data as Record<string, unknown>)['bank']).toEqual({ default: 'kb' });
+        expect(
+          ((result.data as Record<string, unknown>)['banks'] as Record<string, unknown>)['private'],
+        ).toBeDefined();
+      }
+    });
+
+    // CT-3: partial banks.private override does not blank sibling policy blocks.
+    it('resolves sibling policy blocks fully when only self.soft_cap is overridden (CT-3, AC2, AC3)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...V2_BASE,
+        banks: { private: { self: { soft_cap: 75 } } },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const banks = (result.data as Record<string, unknown>)['banks'] as {
+          private: { self: { soft_cap: number }; episodic: unknown; semantic: unknown };
+        };
+        expect(banks.private.self.soft_cap).toBe(75);
+        expect(banks.private.episodic).toEqual({
+          initial_stability_days: 3,
+          expires_in_days: 30,
+          archive_threshold: undefined,
+          archive_noisy: undefined,
+          promoted_grace_days: 7,
+          superseded_grace_days: undefined,
+          purge_after_days: 30,
+        });
+        expect(banks.private.semantic).toEqual({
+          initial_stability_days: 30,
+          expires_in_days: undefined,
+          archive_threshold: 0.05,
+          archive_noisy: true,
+          promoted_grace_days: undefined,
+          superseded_grace_days: 30,
+          purge_after_days: 90,
+        });
+      }
+    });
+
+    // CT-4: unknown top-level key preserved alongside v2 fields.
+    it('preserves an unknown top-level key alongside valid v2 fields (CT-4)', () => {
+      const result = MemoConfigSchema.safeParse({ ...V2_BASE, future_v2_field: 'value' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as Record<string, unknown>)['future_v2_field']).toBe('value');
+      }
+    });
+
+    // CT-5: bank.default accepts a UUID.
+    it('accepts a UUID as bank.default (CT-5)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...V2_BASE,
+        bank: { default: '123e4567-e89b-12d3-a456-426614174000' },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as Record<string, unknown>)['bank']).toEqual({
+          default: '123e4567-e89b-12d3-a456-426614174000',
+        });
+      }
+    });
+
+    it('accepts bank.default = "kb" explicit in a v2 config (edge case)', () => {
+      const result = MemoConfigSchema.safeParse({ ...V2_BASE, bank: { default: 'kb' } });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a bank.default that is neither kebab nor a UUID', () => {
+      const result = MemoConfigSchema.safeParse({ ...V2_BASE, bank: { default: 'Not Valid!' } });
+      expect(result.success).toBe(false);
+    });
+
+    // AC2 / EC-13: kb purge_after_days absent (explicit-but-empty block) vs. explicit value.
+    describe('banks.kb purge_after_days (AC2, EC-13)', () => {
+      it('resolves to undefined when the episodic block is explicitly present but empty', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...V2_BASE,
+          banks: { kb: { episodic: {}, semantic: {} } },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const kb = (result.data as Record<string, unknown>)['banks'] as {
+            kb: {
+              episodic: { purge_after_days: unknown };
+              semantic: { purge_after_days: unknown };
+            };
+          };
+          expect(kb.kb.episodic.purge_after_days).toBeUndefined();
+          expect(kb.kb.semantic.purge_after_days).toBeUndefined();
+        }
+      });
+
+      it('keeps an explicit purge_after_days value instead of overriding it', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...V2_BASE,
+          banks: { kb: { semantic: { purge_after_days: 45 } } },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const kb = (result.data as Record<string, unknown>)['banks'] as {
+            kb: { semantic: { purge_after_days: unknown } };
+          };
+          expect(kb.kb.semantic.purge_after_days).toBe(45);
+        }
+      });
+
+      it('resolves to null (never) when the whole banks block is absent (default table value)', () => {
+        const result = MemoConfigSchema.safeParse(V2_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const kb = (result.data as Record<string, unknown>)['banks'] as {
+            kb: { episodic: { purge_after_days: unknown } };
+          };
+          expect(kb.kb.episodic.purge_after_days).toBeNull();
+        }
+      });
+
+      it('defaults banks.private.episodic.purge_after_days to 30 and semantic to 90 (AC2)', () => {
+        const result = MemoConfigSchema.safeParse(V2_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const banks = (result.data as Record<string, unknown>)['banks'] as {
+            private: {
+              episodic: { purge_after_days: unknown };
+              semantic: { purge_after_days: unknown };
+            };
+          };
+          expect(banks.private.episodic.purge_after_days).toBe(30);
+          expect(banks.private.semantic.purge_after_days).toBe(90);
+        }
+      });
+    });
+
+    // AC3: self.soft_cap
+    describe('banks.private.self.soft_cap (AC3)', () => {
+      it('defaults to 50 when omitted', () => {
+        const result = MemoConfigSchema.safeParse(V2_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const banks = (result.data as Record<string, unknown>)['banks'] as {
+            private: { self: { soft_cap: number } };
+          };
+          expect(banks.private.self.soft_cap).toBe(50);
+        }
+      });
+
+      it('rejects 0 with CONFIG_INVALID-equivalent zod failure (EC-8)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...V2_BASE,
+          banks: { private: { self: { soft_cap: 0 } } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-integer value (EC-9)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...V2_BASE,
+          banks: { private: { self: { soft_cap: 2.5 } } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a negative value (EC-10)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...V2_BASE,
+          banks: { private: { self: { soft_cap: -1 } } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('accepts a valid custom soft_cap', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...V2_BASE,
+          banks: { private: { self: { soft_cap: 75 } } },
+        });
+        expect(result.success).toBe(true);
+      });
+    });
+
+    // AC4: recall.max_tokens
+    describe('recall.max_tokens (AC4)', () => {
+      it('defaults to 2000 when omitted', () => {
+        const result = MemoConfigSchema.safeParse(V2_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data as Record<string, unknown>)['recall']).toEqual({ max_tokens: 2000 });
+        }
+      });
+
+      it('rejects 0 (EC-11)', () => {
+        const result = MemoConfigSchema.safeParse({ ...V2_BASE, recall: { max_tokens: 0 } });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a negative value (EC-12)', () => {
+        const result = MemoConfigSchema.safeParse({ ...V2_BASE, recall: { max_tokens: -5 } });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a fractional value (EC-12)', () => {
+        const result = MemoConfigSchema.safeParse({ ...V2_BASE, recall: { max_tokens: 3.7 } });
+        expect(result.success).toBe(false);
+      });
+
+      it('accepts a valid custom max_tokens', () => {
+        const result = MemoConfigSchema.safeParse({ ...V2_BASE, recall: { max_tokens: 4000 } });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data as Record<string, unknown>)['recall']).toEqual({ max_tokens: 4000 });
+        }
+      });
+    });
+
+    // KindPolicySchema .strict() — unknown keys inside a policy block are rejected.
+    it('rejects an unknown key inside a KindPolicySchema block (.strict())', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...V2_BASE,
+        banks: { kb: { episodic: { unknown_field: 1 } } },
+      });
+      expect(result.success).toBe(false);
     });
   });
 });

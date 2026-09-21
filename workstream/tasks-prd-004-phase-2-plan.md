@@ -67,27 +67,27 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
 - [ ] 1.0 Implement Story S2-01: Config v2 and payload schema v2 — [#53](https://github.com/llipe/memo-cli/issues/53)
 
   > Note: reconciles issue #53 ("separate episodic and semantic memory stores") as one collection with a `kind` field per PRD §2.5, per the Decision comment already posted on the issue. Nothing user-visible changes in this task — v1 config and v1 writes still work unchanged.
-  - [ ] 1.1 Write `tests/unit/lib/config.test.ts` cases: v1 file unchanged; every `banks.*` §8.4 default; `kb` `purge_after_days` absent → `undefined`, explicit → kept; `soft_cap`/`max_tokens` rejections; unknown keys preserved
-  - [ ] 1.2 Write `tests/unit/types/entry.test.ts`: one case per AC5 rule (self-in-kb, episodic-without-session, agent-semantic-without-provenance, self-with-retention-fields, seq-on-non-episodic) plus positive cases per kind and `source: scan`
-  - [ ] 1.3 Write `tests/unit/lib/entry-normalize.test.ts`: v1 payload → defaults; v2 payload untouched; missing `timestamp_utc` handled
-  - [ ] 1.4 Write `tests/unit/commands/setup.test.ts` cases for `--v2` output shape
-  - [ ] 1.5 Extend `src/types/config.ts`: `schema_version: z.enum(['1','2'])`, `bank`, `banks.{kb,private}.{self?,episodic,semantic}` (`KindPolicySchema`, `SelfPolicySchema`), `recall.max_tokens`; export `DEFAULT_*` constants per §18.2
-  - [ ] 1.6 Add `EntryPayloadV2Schema` to `src/types/entry.ts` with the §18.3 `superRefine` rule table; keep the v1 `EntryPayloadSchema` export; extend `entry_type` (`policy`, `observation`) and `source` (`scan`)
-  - [ ] 1.7 Add `sourceToConfidence('scan') === 'low'` to `src/lib/dedupe.ts`
-  - [ ] 1.8 Create `src/lib/entry-normalize.ts` (`normalizeEntry`, pure)
-  - [ ] 1.9 Add `--v2` to `memo setup init`; print resolved default bank in `memo setup validate`
-  - [ ] 1.10 Verify AC1–AC4: config resolution and validation test matrix
-  - [ ] 1.11 Verify AC5–AC6: schema rule table and new enum values
-  - [ ] 1.12 Verify AC7: `normalizeEntry` mapping
-  - [ ] 1.13 Verify AC8: `setup --v2` / `validate` round-trip
-  - [ ] 1.14 Verify AC9: full `pnpm test` green with no command behavior change (no shipped command calls the new schema/normalize yet)
-  - [ ] 1.15 Edge cases: `bank` as UUID; `banks.private` partially overridden; invalid `contexts`/`provenance` entries
-  - [ ] 1.16 Map every AC to its test in the PR body
-  - [ ] 1.17 Migration: not required — schema definitions only, no stored data touched; record opt-out rationale in the PR body
-  - [ ] 1.18 Update `docs/data-model.md`: config v2 table, payload v2 field list
-  - [ ] 1.19 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`; confirm `setup.ts` coverage at or above `jest.config.ts` thresholds
-  - [ ] 1.20 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 1.21 Open PR against `main`, link `Closes #53` (reused issue — confirm with the user before closing a reused issue, since #53's original scope predates this PRD), obtain user approval, merge
+  - [x] 1.1 Write `tests/unit/lib/config.test.ts` cases: v1 file unchanged; every `banks.*` §8.4 default; `kb` `purge_after_days` absent → `undefined`, explicit → kept; `soft_cap`/`max_tokens` rejections; unknown keys preserved
+  - [x] 1.2 Write `tests/unit/types/entry.test.ts`: one case per AC5 rule (self-in-kb, episodic-without-session, agent-semantic-without-provenance, self-with-retention-fields, seq-on-non-episodic) plus positive cases per kind and `source: scan`
+  - [x] 1.3 Write `tests/unit/lib/entry-normalize.test.ts`: v1 payload → defaults; v2 payload untouched; missing `timestamp_utc` handled
+  - [x] 1.4 Write `tests/unit/commands/setup.test.ts` cases for `--v2` output shape
+  - [x] 1.5 Extend `src/types/config.ts`: `schema_version: z.enum(['1','2'])`, `bank`, `banks.{kb,private}.{self?,episodic,semantic}` (`KindPolicySchema`, `SelfPolicySchema`), `recall.max_tokens`; export `DEFAULT_*` constants per §18.2
+  - [x] 1.6 Add `EntryPayloadV2Schema` to `src/types/entry.ts` with the §18.3 `superRefine` rule table; keep the v1 `EntryPayloadSchema` export; extend `entry_type` (`policy`, `observation`) and `source` (`scan`)
+  - [x] 1.7 Add `sourceToConfidence('scan') === 'low'` to `src/lib/dedupe.ts`
+  - [x] 1.8 Create `src/lib/entry-normalize.ts` (`normalizeEntry`, pure)
+  - [x] 1.9 Add `--v2` to `memo setup init`; print resolved default bank in `memo setup validate`
+  - [x] 1.10 Verify AC1–AC4: config resolution and validation test matrix
+  - [x] 1.11 Verify AC5–AC6: schema rule table and new enum values
+  - [x] 1.12 Verify AC7: `normalizeEntry` mapping
+  - [x] 1.13 Verify AC8: `setup --v2` / `validate` round-trip
+  - [x] 1.14 Verify AC9: full `pnpm test` green with no command behavior change (no shipped command calls the new schema/normalize yet)
+  - [x] 1.15 Edge cases: `bank` as UUID; `banks.private` partially overridden; invalid `contexts`/`provenance` entries
+  - [x] 1.16 Map every AC to its test in the PR body
+  - [x] 1.17 Migration: not required — schema definitions only, no stored data touched; record opt-out rationale in the PR body
+  - [x] 1.18 Update `docs/data-model.md`: config v2 table, payload v2 field list
+  - [x] 1.19 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`; confirm `setup.ts` coverage at or above `jest.config.ts` thresholds
+  - [ ] 1.20 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — **not run in this execution context** (no-delegation default, see closeout payload); caller (`planner`) invokes `verifier` directly
+  - [ ] 1.21 Open PR against `main`, link `Closes #53` (reused issue — confirm with the user before closing a reused issue, since #53's original scope predates this PRD), obtain user approval, merge — PR opened as draft; approval/merge pending
 
 - [ ] 2.0 Implement Story S2-02: `QdrantRepository` extensions and v2 payload indexes — [#81](https://github.com/llipe/memo-cli/issues/81)
 

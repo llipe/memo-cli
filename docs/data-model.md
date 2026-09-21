@@ -43,12 +43,15 @@ erDiagram
     }
 
     CONFIG {
-        string schema_version "literal '1'"
+        string schema_version "'1' | '2'"
         string repo "kebab-case, required"
         string org "kebab-case, required"
         string domain "kebab-case, required"
         string[] relates_to "optional, no self-reference"
         object defaults "optional: source, search_scope"
+        object bank "v2: default bank id (kebab or UUID), default kb"
+        object banks "v2: per-kind lifecycle policy, kb + private"
+        object recall "v2: max_tokens, default 2000"
     }
 
     CONFIG ||--o{ DECISIONS : "provides context for"
@@ -171,7 +174,7 @@ Validated via Zod (`MemoConfigSchema`):
 
 | Field                                     | Type     | Required | Default                                    | Constraints                                                                |
 | ----------------------------------------- | -------- | -------- | ------------------------------------------ | -------------------------------------------------------------------------- |
-| `schema_version`                          | string   | Yes      | —                                          | Literal `"1"`                                                              |
+| `schema_version`                          | string   | Yes      | —                                          | `"1"` \| `"2"`                                                             |
 | `repo`                                    | string   | Yes      | —                                          | kebab-case                                                                 |
 | `org`                                     | string   | Yes      | —                                          | kebab-case                                                                 |
 | `domain`                                  | string   | Yes      | —                                          | kebab-case                                                                 |
@@ -194,6 +197,47 @@ The schema uses `.passthrough()` to preserve unknown keys for forward compatibil
 `ranking` (issue #34) is additive and fully optional: a v1 config without it, or with an empty `{}`, resolves every field to its default. `w_similarity + w_recency + w_source` must sum to `1.0` within `±0.001` (float tolerance) once defaults are resolved for any missing field — this rejects a partial override that breaks the sum (e.g. `{ "w_similarity": 0.5 }` alone), while a partial override that leaves all three weights untouched (e.g. only `recency_half_life_days`) still passes.
 
 `recency_half_life_days` defaults to `365`, not the originally-proposed `90` — landing composite ranking at `90` regressed the relevance-eval floor from 92.9% to 85.7% (AC21); a one-factor sweep (task 8.0's methodology, applied to this story) found `365` inside a wide, robust plateau (~260-700+ days) that restores 96.4%, without changing the weights. See `README.md`'s relevance-eval subsection and PR #67 for the full sweep.
+
+### Config v2 (issue #53 / S2-01)
+
+Additive, schema-definition-only in this story (no command wires these blocks into read/write paths yet — see S2-03/S2-05/S2-04). A v1.2.0 config parses unchanged; `bank`, `banks`, and `recall` resolve to their documented defaults even when entirely absent from the file.
+
+| Field                         | Type    | Default        | Constraints                                |
+| ----------------------------- | ------- | -------------- | ------------------------------------------ |
+| `bank.default`                | string  | `"kb"`         | Kebab-case bank id or UUID (`KebabOrUuid`) |
+| `banks.kb.episodic.*`         | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `banks.kb.semantic.*`         | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `banks.private.self.soft_cap` | integer | `50`           | Positive integer                           |
+| `banks.private.episodic.*`    | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `banks.private.semantic.*`    | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `recall.max_tokens`           | integer | `2000`         | Positive integer                           |
+
+`KindPolicySchema` fields (`initial_stability_days`, `expires_in_days`, `archive_threshold`, `archive_noisy`, `promoted_grace_days`, `superseded_grace_days`, `purge_after_days`) carry no per-field default — each bank/kind combination supplies its own full default row (below) so a partial override of one bank/kind (e.g. only `banks.private.self.soft_cap`) does not blank out sibling policy blocks. `purge_after_days: null` means "never purge automatically"; absent (when the enclosing object is explicitly present but the key is omitted) resolves to `undefined`.
+
+| Bank type / kind       | `initial_stability_days` | `expires_in_days` | `archive_threshold` | `archive_noisy` | `promoted_grace_days` | `superseded_grace_days` | `purge_after_days` |
+| ---------------------- | ------------------------ | ----------------- | ------------------- | --------------- | --------------------- | ----------------------- | ------------------ |
+| `private` / `self`     | —                        | —                 | —                   | —               | —                     | —                       | — (`soft_cap: 50`) |
+| `private` / `episodic` | 3                        | 30                | —                   | —               | 7                     | —                       | 30                 |
+| `private` / `semantic` | 30                       | —                 | 0.05                | `true`          | —                     | 30                      | 90                 |
+| `kb` / `episodic`      | 3                        | 90                | —                   | —               | 7                     | —                       | `null` (never)     |
+| `kb` / `semantic`      | 90                       | —                 | 0.05                | `false`         | —                     | 30                      | `null` (never)     |
+
+### Entry Payload Schema v2 (issue #53 / S2-01)
+
+`EntryPayloadV2Schema` (`src/types/entry.ts`) is a write-time superset of the v1 schema, which remains exported and unchanged. New fields: `schema_version` (`literal('2')`, defaults to `'2'`), `bank` (`KebabOrUuid`), `kind` (`self | episodic | semantic`), `session_id`, `seq`, `contexts`, `provenance`, `valid_from`, `valid_to`, `superseded`, `superseded_by`, `consolidated`, `consolidated_at`, `pinned`, `archived`, `archived_reason`, `archived_at`, `expires_at`, `stability`, `stability_since`, `last_retrieved_at`, `retrieval_count`, `used_count`, `pending_contradiction`, and a widened `dedupe_key_version` (`v1 | v2`). `entry_type` gains `policy`/`observation`; `source` gains `scan` (`sourceToConfidence('scan') === 'low'`). `repo`/`org`/`domain` become optional at the schema level.
+
+A single `superRefine` enforces PRD §2.5's rules:
+
+| Rule                                 | Check                                                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| K1 — `self` only in private banks    | `kind === 'self' && bank === 'kb'` rejected (path: `kind`)                                           |
+| K2 — scope required in `kb`          | `bank === 'kb' && !(repo && org && domain)` rejected (path: `repo`)                                  |
+| episodic needs a session             | `kind === 'episodic' && !session_id` rejected (path: `session_id`)                                   |
+| K3 — agent semantic needs provenance | `kind === 'semantic' && source === 'agent' && provenance` empty/absent rejected (path: `provenance`) |
+| `self` carries no retention fields   | `kind === 'self'` with `stability`/`expires_at`/`retrieval_count` rejected (path: `kind`)            |
+| `seq` only on episodic               | `seq !== undefined && kind !== 'episodic'` rejected (path: `seq`)                                    |
+
+`normalizeEntry()` (`src/lib/entry-normalize.ts`, pure) is the read boundary: `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, every boolean (`archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`) `??= false`, and `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. No shipped command calls this yet (S2-03/S2-04 wire it into the read/write paths).
 
 ---
 
