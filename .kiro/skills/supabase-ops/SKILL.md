@@ -1,6 +1,6 @@
 ---
 name: supabase-ops
-description: "Supabase CLI command sets, db diff migration flow, drift rule, backup/revert sources, inventory findings, and Cloud log table for infra-engineer. Use when planning or applying Supabase infrastructure changes."
+description: 'Supabase CLI command sets, db diff migration flow, drift rule, backup/revert sources, inventory findings, and Cloud log table for infra-engineer. Use when planning or applying Supabase infrastructure changes.'
 ---
 
 # Supabase Operations (supabase-ops)

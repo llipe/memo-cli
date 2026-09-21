@@ -1,6 +1,6 @@
 ---
-description: "Perform bounded codebase research and emit a structured artifact with file-level evidence, via the researcher subagent."
-argument-hint: "[research question — a single, focused question about the codebase]"
+description: 'Perform bounded codebase research and emit a structured artifact with file-level evidence, via the researcher subagent.'
+argument-hint: '[research question — a single, focused question about the codebase]'
 ---
 
 Delegate to the **`researcher` subagent** (via the Task tool) for a codebase investigation.

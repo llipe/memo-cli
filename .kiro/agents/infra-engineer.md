@@ -1,5 +1,5 @@
 ---
-description: "Plan and apply infrastructure changes one approved, reversible step at a time; record every result and hand off a draft PR."
+description: 'Plan and apply infrastructure changes one approved, reversible step at a time; record every result and hand off a draft PR.'
 tools: [read, write, shell]
 resources:
   - file://AGENTS.md

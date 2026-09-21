@@ -9,6 +9,7 @@ This story built a tool that measures how good memo-cli's search is, using a fix
 ### Per-AC result summary (AC1–AC9, task 1.0 / sub-tasks 1.1–1.26)
 
 All 9 ACs: **Pass**. Verified directly:
+
 - `tests/fixtures/relevance/baseline.json` recorded_at 2026-09-20T20:45:12Z, overall_top3 0.9286, by_category {concept 1, identifier 1, cross-repo 0.667, recency 1} — matches PRD changelog row 1.6 and PR claims exactly (not a placeholder).
 - `pnpm test`: 31/31 suites, 275/275 tests pass, including `tests/relevance/replay.test.ts` (asserts against baseline, no network) and `tests/unit/scripts/eval-relevance.test.ts`.
 - `pnpm run typecheck`: clean, zero errors.
@@ -24,11 +25,11 @@ All 9 ACs: **Pass**. Verified directly:
 
 ### Drift catalog
 
-| # | Item | Impact | Intent | Note |
-|---|------|--------|--------|------|
-| 1 | `scripts/` directory has never been in `tsconfig.json`'s `include`, independent of this PR | Minor | Unintended (pre-existing) | Not introduced by this story; the PR's commit message slightly overstates the fix's precision by implying typecheck coverage was the boundary at risk, when in fact `scripts/` was already outside it. No functional effect. |
-| 2 | Traceability matrix (`workstream/traceability-matrix-issue-61.md`) still shows `_pending_` for all Observed-Result cells | Minor | Intended (design-time artifact, not updated post-implementation) | Non-blocking; this audit supplies the missing evidence. |
-| 3 | Live-Qdrant claims (zero overlap with `decisions`, exactly 44 points in `memo_eval` after two `--seed` runs) are self-reported in commit/PRD text, not independently reproducible from this sandbox (no credentials here) | Minor | Undetermined | Recommend spot-check by a maintainer with live credentials before/soon after merge; not a merge blocker per policy. |
+| #   | Item                                                                                                                                                                                                                      | Impact | Intent                                                           | Note                                                                                                                                                                                                                         |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `scripts/` directory has never been in `tsconfig.json`'s `include`, independent of this PR                                                                                                                                | Minor  | Unintended (pre-existing)                                        | Not introduced by this story; the PR's commit message slightly overstates the fix's precision by implying typecheck coverage was the boundary at risk, when in fact `scripts/` was already outside it. No functional effect. |
+| 2   | Traceability matrix (`workstream/traceability-matrix-issue-61.md`) still shows `_pending_` for all Observed-Result cells                                                                                                  | Minor  | Intended (design-time artifact, not updated post-implementation) | Non-blocking; this audit supplies the missing evidence.                                                                                                                                                                      |
+| 3   | Live-Qdrant claims (zero overlap with `decisions`, exactly 44 points in `memo_eval` after two `--seed` runs) are self-reported in commit/PRD text, not independently reproducible from this sandbox (no credentials here) | Minor  | Undetermined                                                     | Recommend spot-check by a maintainer with live credentials before/soon after merge; not a merge blocker per policy.                                                                                                          |
 
 All items are non-blocking to this merge gate.
 

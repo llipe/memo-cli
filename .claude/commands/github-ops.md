@@ -1,6 +1,6 @@
 ---
-description: "Audit and standardize GitHub artifacts — issues, PRs, branches, labels, milestones — via the github-ops subagent."
-argument-hint: "audit | issue #N | pr #N | labels | milestones (repo: owner/repo)"
+description: 'Audit and standardize GitHub artifacts — issues, PRs, branches, labels, milestones — via the github-ops subagent.'
+argument-hint: 'audit | issue #N | pr #N | labels | milestones (repo: owner/repo)'
 ---
 
 Delegate to the **`github-ops` subagent** (via the Task tool) to enforce GitHub consistency conventions.

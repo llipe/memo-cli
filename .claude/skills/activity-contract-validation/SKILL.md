@@ -1,6 +1,6 @@
 ---
 name: activity-contract-validation
-description: "Validate API contracts against implementation using dt verify (contract-diff, impact, drift). Detects breaking changes, consumer impact, and spec-to-code staleness. Use when checking API boundary integrity."
+description: 'Validate API contracts against implementation using dt verify (contract-diff, impact, drift). Detects breaking changes, consumer impact, and spec-to-code staleness. Use when checking API boundary integrity.'
 ---
 
 # Activity: Contract Validation

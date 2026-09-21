@@ -1,6 +1,6 @@
 ---
-description: "Fix auto-fixable lint, type, and test-wiring issues without changing logic, via the housekeeping subagent."
-argument-hint: "[path/to/scope — blank for whole project]"
+description: 'Fix auto-fixable lint, type, and test-wiring issues without changing logic, via the housekeeping subagent.'
+argument-hint: '[path/to/scope — blank for whole project]'
 ---
 
 Delegate to the **`housekeeping` subagent** (via the Task tool) for a code-quality pass.

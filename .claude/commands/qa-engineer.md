@@ -1,6 +1,6 @@
 ---
-description: "Establish the testing standard, author missing tests, and report coverage and structural gaps, via the qa-engineer subagent."
-argument-hint: "[package, path, or diff — blank for the whole repository]"
+description: 'Establish the testing standard, author missing tests, and report coverage and structural gaps, via the qa-engineer subagent.'
+argument-hint: '[package, path, or diff — blank for the whole repository]'
 ---
 
 Delegate to the **`qa-engineer` subagent** (via the Task tool) for a quality pass.

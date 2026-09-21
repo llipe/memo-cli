@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Execute a task list step-by-step with strict sequencing, branch/PR discipline, GitHub Issue sync, and user approval gates. Single source of truth for implementation. Use when implementing from a tasks-*.md file."
+description: 'Execute a task list step-by-step with strict sequencing, branch/PR discipline, GitHub Issue sync, and user approval gates. Single source of truth for implementation. Use when implementing from a tasks-*.md file.'
 ---
 
 # Activity: Implement Task List

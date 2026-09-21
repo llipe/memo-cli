@@ -1,6 +1,6 @@
 ---
-description: "Synchronize /docs with the current state of the codebase via the technical-writer subagent."
-argument-hint: "<feature/milestone> [workstream/<file>.md] [docs/requirements/<prd>.md]"
+description: 'Synchronize /docs with the current state of the codebase via the technical-writer subagent.'
+argument-hint: '<feature/milestone> [workstream/<file>.md] [docs/requirements/<prd>.md]'
 ---
 
 Delegate to the **`technical-writer` subagent** (via the Task tool) to update documentation to current state.

@@ -1,6 +1,6 @@
 ---
 name: fly-ops
-description: "flyctl command sets, resource tiers, cost inputs, backup and revert sources, and log table for infra-engineer. Use when planning or applying fly.io infrastructure changes."
+description: 'flyctl command sets, resource tiers, cost inputs, backup and revert sources, and log table for infra-engineer. Use when planning or applying fly.io infrastructure changes.'
 ---
 
 # Fly.io Operations (fly-ops)

@@ -1,6 +1,6 @@
 ---
-description: "Generate a compliance test plan and traceability matrix from a spec or story (Design Mode), via the verifier subagent."
-argument-hint: "<workstream/specification-*.md | workstream/user-stories-*.md> #<issue> [spec|story] (repo: owner/repo)"
+description: 'Generate a compliance test plan and traceability matrix from a spec or story (Design Mode), via the verifier subagent.'
+argument-hint: '<workstream/specification-*.md | workstream/user-stories-*.md> #<issue> [spec|story] (repo: owner/repo)'
 ---
 
 Delegate to the **`verifier` subagent** (via the Task tool) in **Design Mode**.

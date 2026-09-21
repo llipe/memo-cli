@@ -1,6 +1,6 @@
 ---
-description: "Implement an existing task list interactively in the main thread, with step-gated approval after every sub-task. For autonomous per-story runs, /planner delegates to the developer subagent instead."
-argument-hint: "<workstream/tasks-*.md> #<issue-number> (repo: owner/repo) [step-gated|autonomous]"
+description: 'Implement an existing task list interactively in the main thread, with step-gated approval after every sub-task. For autonomous per-story runs, /planner delegates to the developer subagent instead.'
+argument-hint: '<workstream/tasks-*.md> #<issue-number> (repo: owner/repo) [step-gated|autonomous]'
 ---
 
 # /developer — Interactive Execution

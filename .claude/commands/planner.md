@@ -1,6 +1,6 @@
 ---
-description: "Orchestrate multi-story execution from a /workstream task file or GitHub milestone: dependency ordering, per-story delegation, checkpoint/resume, and one consolidated PR. Auto-detects an existing checkpoint to resume."
-argument-hint: "<workstream/tasks-*.md | milestone> (repo: owner/repo)"
+description: 'Orchestrate multi-story execution from a /workstream task file or GitHub milestone: dependency ordering, per-story delegation, checkpoint/resume, and one consolidated PR. Auto-detects an existing checkpoint to resume.'
+argument-hint: '<workstream/tasks-*.md | milestone> (repo: owner/repo)'
 ---
 
 # /planner — Multi-Story Orchestrator

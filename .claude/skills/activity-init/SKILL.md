@@ -1,6 +1,6 @@
 ---
 name: activity-init
-description: "Establish product-context.md and technical-guidelines.md foundation docs. Use in product-engineer Init Mode."
+description: 'Establish product-context.md and technical-guidelines.md foundation docs. Use in product-engineer Init Mode.'
 ---
 
 # Activity: Initialize Project Foundation

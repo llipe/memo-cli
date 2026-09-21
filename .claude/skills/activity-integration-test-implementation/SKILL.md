@@ -1,6 +1,6 @@
 ---
 name: activity-integration-test-implementation
-description: "Author integration tests (Layer 2.5) against real databases — local via testcontainers/docker-compose/Supabase CLI, remote via testing environments. Covers migrations, RLS, pgTAP, fixtures, and fallback paths. Use when writing or backfilling integration tests."
+description: 'Author integration tests (Layer 2.5) against real databases — local via testcontainers/docker-compose/Supabase CLI, remote via testing environments. Covers migrations, RLS, pgTAP, fixtures, and fallback paths. Use when writing or backfilling integration tests.'
 ---
 
 # Activity: Integration Test Implementation (Layer 2.5)

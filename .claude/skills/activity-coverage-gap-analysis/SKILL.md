@@ -1,6 +1,6 @@
 ---
 name: activity-coverage-gap-analysis
-description: "Measure coverage against a baseline when a provider exists, and run risk-ranked structural gap analysis when none does. Validates existing coverage artifacts before trusting them. Use when reporting test coverage and gaps."
+description: 'Measure coverage against a baseline when a provider exists, and run risk-ranked structural gap analysis when none does. Validates existing coverage artifacts before trusting them. Use when reporting test coverage and gaps.'
 ---
 
 # Activity: Coverage and Gap Analysis

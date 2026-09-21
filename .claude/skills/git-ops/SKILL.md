@@ -1,6 +1,6 @@
 ---
 name: git-ops
-description: "Branch management, rebase, merge, conflict resolution, and recovery procedures. Use for complex git operations during implementation or orchestration."
+description: 'Branch management, rebase, merge, conflict resolution, and recovery procedures. Use for complex git operations during implementation or orchestration.'
 ---
 
 # Git Operations

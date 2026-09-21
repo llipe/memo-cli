@@ -1,6 +1,6 @@
 ---
 name: activity-drift-reconciliation
-description: "Routes verifier drift findings into task-list/GitHub-checklist expansion, new-issue creation, or PRD/spec changelog write-back with a human-confirmation gate. Use when a verifier fidelity report (Design or Audit Mode) surfaces drift that needs to be acted on."
+description: 'Routes verifier drift findings into task-list/GitHub-checklist expansion, new-issue creation, or PRD/spec changelog write-back with a human-confirmation gate. Use when a verifier fidelity report (Design or Audit Mode) surfaces drift that needs to be acted on.'
 ---
 
 # Activity: Drift Reconciliation
