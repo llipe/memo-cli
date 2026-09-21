@@ -114,24 +114,27 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
 - [ ] 3.0 Implement Story S2-03: Bank resolution, base filter, and dedupe v2 — [#82](https://github.com/llipe/memo-cli/issues/82)
 
   > Note: depends on tasks 1.0 and 2.0 (needs `KindPolicySchema`/`bank`/`banks` config and the new indexes). Unblocks every remaining task.
+  > Drift follow-up (from `verifier`'s Audit Mode pass on PR #93/S2-02, D-2, Major/Intended): `fetchStalenessCorpus` (`src/lib/qdrant.ts`, S2-02) currently builds its own private copy of the §8.1 base-filter rule instead of composing `buildBaseFilter`. Sub-task 3.7 below closes that gap so S2-05 (task 5.0, AC4) can wire one shared filter through dense/lexical/staleness without a second, silently-divergent implementation surviving in the codebase.
   - [ ] 3.1 Write `tests/unit/lib/bank.test.ts`: every resolution permutation of flag/env/config/default; invalid-value error naming its source; `defaultKind`; `policyFor` incl. the `kb`/`self` throw
   - [ ] 3.2 Write `tests/unit/lib/filters.test.ts`: filter shape per combination of bank type × kind × exclusions × session × as-of
   - [ ] 3.3 Write `tests/unit/lib/search-filters.test.ts`, `tests/unit/lib/list-filters.test.ts` cases for `base` merge semantics and the conditional `repo` clause
   - [ ] 3.4 Write `tests/unit/lib/dedupe.test.ts` cases: v2 keys per kind; `self` uniqueness across 1,000 calls; `seq` sensitivity
   - [ ] 3.5 Create `src/lib/bank.ts` (`resolveBank`, `isPrivateBank`, `policyFor`, `defaultKind`)
   - [ ] 3.6 Create `src/lib/filters.ts` (`buildBaseFilter`)
-  - [ ] 3.7 Extend `src/lib/search-filters.ts` and `src/lib/list-filters.ts` to accept and merge `base`
-  - [ ] 3.8 Add `buildDedupeKeyV2` to `src/lib/dedupe.ts`
-  - [ ] 3.9 Verify AC1–AC3: bank resolution and policy lookup test matrix
-  - [ ] 3.10 Verify AC4–AC5: filter shape and builder-merge test matrix
-  - [ ] 3.11 Verify AC6–AC7: dedupe key test matrix
-  - [ ] 3.12 Edge cases: `MEMO_BANK=""` treated as unset; `MEMO_BANK=KB` invalid; `asOf` boundary inclusivity/exclusivity; `--kind self --include-superseded`
-  - [ ] 3.13 Map every AC to its test in the PR body
-  - [ ] 3.14 Migration: not required — pure functions, no data change; record opt-out rationale in the PR body
-  - [ ] 3.15 Update `docs/technical-guidelines.md` architecture tree with both new modules
-  - [ ] 3.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 3.17 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 3.18 Open PR against `main`, link `Closes #82`, obtain user approval, merge
+  - [ ] 3.7 **Drift fix (D-2):** refactor `fetchStalenessCorpus` (`src/lib/qdrant.ts`) to accept the caller-built `base: QdrantFilter` (from `buildBaseFilter`) instead of constructing its own private `bank`/`repos` filter internally; add a parity test asserting `fetchStalenessCorpus`'s effective filter is byte-identical to `buildBaseFilter`'s output for the same inputs. Write this test first (it should fail against S2-02's shipped private-helper version), then make the change.
+  - [ ] 3.8 Extend `src/lib/search-filters.ts` and `src/lib/list-filters.ts` to accept and merge `base`
+  - [ ] 3.9 Add `buildDedupeKeyV2` to `src/lib/dedupe.ts`
+  - [ ] 3.10 Verify AC1–AC3: bank resolution and policy lookup test matrix
+  - [ ] 3.11 Verify AC4–AC5: filter shape and builder-merge test matrix
+  - [ ] 3.12 Verify AC6–AC7: dedupe key test matrix
+  - [ ] 3.13 Verify the D-2 drift fix: `fetchStalenessCorpus` and `buildBaseFilter` produce identical filter shapes for `kb` and for a private bank, with and without `repos`
+  - [ ] 3.14 Edge cases: `MEMO_BANK=""` treated as unset; `MEMO_BANK=KB` invalid; `asOf` boundary inclusivity/exclusivity; `--kind self --include-superseded`
+  - [ ] 3.15 Map every AC to its test in the PR body, including the D-2 parity test as evidence the drift is closed
+  - [ ] 3.16 Migration: not required — pure functions, no data change; record opt-out rationale in the PR body
+  - [ ] 3.17 Update `docs/technical-guidelines.md` architecture tree with both new modules
+  - [ ] 3.18 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [ ] 3.19 Run `verifier` audit (mandatory, pre-PR-ready), explicitly re-checking D-2 is closed; route any remaining drift findings to `product-engineer`
+  - [ ] 3.20 Open PR against `main`, link `Closes #82`, obtain user approval, merge
 
 - [ ] 4.0 Implement Story S2-04: `memo write` v2 — banks, kinds, sessions, supersede — [#83](https://github.com/llipe/memo-cli/issues/83)
 
@@ -169,7 +172,7 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [ ] 5.4 Write `tests/unit/commands/{list,tags,read}.test.ts` cases: new flags, v2 JSON fields, `(deleted)` provenance marker
   - [ ] 5.5 Write `tests/integration/commands/search.test.ts` (two-bank mocked run) and `tests/integration/commands/read.test.ts` (provenance with one deleted id)
   - [ ] 5.6 Create `src/lib/read-flags.ts`
-  - [ ] 5.7 Wire `base` (from `buildBaseFilter`) through `search.ts`'s dense query, lexical scroll, and staleness corpus (`fetchStalenessCorpus`, removing `fetchByRepo` if task 2.0 did not already)
+  - [ ] 5.7 Wire `base` (from `buildBaseFilter`) through `search.ts`'s dense query, lexical scroll, and staleness corpus — pass the same `base` into `fetchStalenessCorpus` (its signature was refactored to accept `base` in task 3.7/D-2; if it still takes `{ bank, repos }` when this task starts, treat that as a blocker and re-open task 3.0's D-2 fix rather than reintroducing a second filter path here); remove `fetchByRepo` (deferred from task 2.0, AC6)
   - [ ] 5.8 Add read-flags to `list.ts` and `tags.ts`; merge `base` into their filters
   - [ ] 5.9 Extend `read.ts`: v2 field printing, one `scroll({ has_id: provenance })` call, `(deleted)` markers, JSON `provenance: [{ id, deleted }]`
   - [ ] 5.10 Add `[archived]`/`[superseded]` human-output prefixes and `archived`/`superseded` JSON fields via `normalizeEntry`
