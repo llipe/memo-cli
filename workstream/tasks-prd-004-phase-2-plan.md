@@ -134,7 +134,7 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [x] 3.17 Update `docs/technical-guidelines.md` architecture tree with both new modules
   - [x] 3.18 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — all pass (`pnpm run validate`: 722/722 tests, lint clean, format clean, typecheck clean, audit clean)
   - [ ] 3.19 Run `verifier` audit (mandatory, pre-PR-ready), explicitly re-checking D-2 is closed; route any remaining drift findings to `product-engineer` — **not run in this execution context** (no-delegation default, see closeout payload); caller (`planner`) invokes `verifier` directly
-  - [ ] 3.20 Open PR against `main`, link `Closes #82`, obtain user approval, merge — opened against the integration branch (`integration/prd-004-phase-2-banks-kinds-sessions-recall`, per this run's base-branch override) instead; approval/merge pending
+  - [ ] 3.20 Open PR against `main`, link `Closes #82`, obtain user approval, merge — PR [#94](https://github.com/llipe/memo-cli/pull/94) opened as draft against the integration branch (`integration/prd-004-phase-2-banks-kinds-sessions-recall`, per this run's base-branch override); approval/merge pending
 
 - [ ] 4.0 Implement Story S2-04: `memo write` v2 — banks, kinds, sessions, supersede — [#83](https://github.com/llipe/memo-cli/issues/83)
 
