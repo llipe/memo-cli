@@ -695,7 +695,7 @@ All output must go through `lib/output.ts`. This enforces consistent JSON/human 
 
 #### CI (`.github/workflows/ci.yml`)
 
-Triggers: every PR to `main` and every push to `main`.
+Triggers: every PR to `main`, and every push except to `release`/`release/**` (excluded to avoid re-running CI on a commit already validated on `main` before `publish.yml` picks it up).
 
 ```
 Steps:
