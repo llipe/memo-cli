@@ -791,18 +791,19 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                    | Description                                      |
-| ------------------------- | ------------------------------------------------ |
-| `pnpm run build`          | Compile TypeScript to `dist/`                    |
-| `pnpm run build:watch`    | Compile in watch mode                            |
-| `pnpm run typecheck`      | Type-check without emitting                      |
-| `pnpm run lint`           | ESLint (v9 flat config, strict type-checked)     |
-| `pnpm run lint:fix`       | ESLint with auto-fix                             |
-| `pnpm run format`         | Prettier format                                  |
-| `pnpm run format:check`   | Check formatting without writing                 |
-| `pnpm run test`           | Run Jest test suite                              |
-| `pnpm run test:coverage`  | Run Jest with coverage report                    |
-| `pnpm run eval:relevance` | Run the relevance evaluation harness (see below) |
+| Script                    | Description                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm run build`          | Compile TypeScript to `dist/`                                                |
+| `pnpm run build:watch`    | Compile in watch mode                                                        |
+| `pnpm run typecheck`      | Type-check without emitting                                                  |
+| `pnpm run lint`           | ESLint (v9 flat config, strict type-checked)                                 |
+| `pnpm run lint:fix`       | ESLint with auto-fix                                                         |
+| `pnpm run format`         | Prettier format                                                              |
+| `pnpm run format:check`   | Check formatting without writing                                             |
+| `pnpm run test`           | Run Jest test suite                                                          |
+| `pnpm run test:coverage`  | Run Jest with coverage report                                                |
+| `pnpm run validate`       | Run typecheck, lint, format:check, test, and audit in sequence, failing fast |
+| `pnpm run eval:relevance` | Run the relevance evaluation harness (see below)                             |
 
 ### Testing
 
