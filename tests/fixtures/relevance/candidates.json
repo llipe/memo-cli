@@ -1,0 +1,4503 @@
+[
+  {
+    "query_id": "q-concept-01",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+        "score": 0.55796015,
+        "payload": {
+          "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant operations retry with exponential backoff up to three attempts before surfacing a QDRANT_OPERATION_FAILED error, so transient network blips do not fail a write.",
+          "tags": ["retry", "qdrant", "resilience"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.4723657,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.46016455,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.4531818,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.45270628,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.42461652,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+        "score": 0.3637101,
+        "payload": {
+          "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "The interactive duplicate-resolution prompt only renders on a TTY; JSON and non-interactive callers get a clear VALIDATION_FAILED instead of hanging on stdin.",
+          "tags": ["write", "ux", "tty"],
+          "entry_type": "structure",
+          "source": "manual",
+          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.3583976,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.35052025,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.3394071,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-02",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+        "score": 0.6649152,
+        "payload": {
+          "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Duplicate entries offer four resolutions: consolidate, update, replace, or create-new, so a repeated write never silently clobbers an existing decision.",
+          "tags": ["dedupe", "write", "ux"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+        "score": 0.41602844,
+        "payload": {
+          "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Dedupe key hashing scheme v1 combines repo, commit, story, entry_type, and source into a single sha256 so near-duplicate writes collapse into one entry.",
+          "tags": ["dedupe", "hashing"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+        "score": 0.38372532,
+        "payload": {
+          "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Entry payloads carry a dedupe_key_version field so a future change to the hashing scheme can migrate old entries without breaking lookups.",
+          "tags": ["dedupe", "versioning"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+        "score": 0.32402122,
+        "payload": {
+          "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "The evaluation harness isolates its writes behind MEMO_COLLECTION so seeding fixture data can never land in the production decisions collection.",
+          "tags": ["eval", "isolation", "safety"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+        "score": 0.31136638,
+        "payload": {
+          "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Refunds above a threshold require a second approver before the charge reversal is issued, decided after a single-approver refund incident.",
+          "tags": ["billing", "refunds", "approval"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "743d37d8-b21a-48a0-937b-780b01485712",
+        "score": 0.3078488,
+        "payload": {
+          "id": "743d37d8-b21a-48a0-937b-780b01485712",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Subscription cancellations keep a 3-day grace period before access is revoked, scanned from the support runbook into a durable decision record.",
+          "tags": ["billing", "subscriptions", "grace-period"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.307307,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.30556384,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+        "score": 0.2976916,
+        "payload": {
+          "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "The interactive duplicate-resolution prompt only renders on a TTY; JSON and non-interactive callers get a clear VALIDATION_FAILED instead of hanging on stdin.",
+          "tags": ["write", "ux", "tty"],
+          "entry_type": "structure",
+          "source": "manual",
+          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.29343164,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-03",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
+        "score": 0.54674137,
+        "payload": {
+          "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Confidence is inferred from source rather than accepted as a raw flag: agent-authored entries default to high confidence, manual entries to medium, to keep the signal honest.",
+          "tags": ["confidence", "source"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-02-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+        "score": 0.3650305,
+        "payload": {
+          "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Entry payloads carry a dedupe_key_version field so a future change to the hashing scheme can migrate old entries without breaking lookups.",
+          "tags": ["dedupe", "versioning"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+        "score": 0.35559916,
+        "payload": {
+          "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "The evaluation harness isolates its writes behind MEMO_COLLECTION so seeding fixture data can never land in the production decisions collection.",
+          "tags": ["eval", "isolation", "safety"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+        "score": 0.3359483,
+        "payload": {
+          "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Duplicate entries offer four resolutions: consolidate, update, replace, or create-new, so a repeated write never silently clobbers an existing decision.",
+          "tags": ["dedupe", "write", "ux"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.31553638,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+        "score": 0.30341232,
+        "payload": {
+          "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "Adopted exponential backoff with jitter for embeddings API calls to survive rate limiting from the OpenAI provider without failing the write path outright.",
+          "tags": ["embeddings", "retry", "rate-limiting"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.29963642,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.29779392,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.28517896,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+        "score": 0.2813164,
+        "payload": {
+          "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Dedupe key hashing scheme v1 combines repo, commit, story, entry_type, and source into a single sha256 so near-duplicate writes collapse into one entry.",
+          "tags": ["dedupe", "hashing"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-04",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+        "score": 0.48254,
+        "payload": {
+          "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "CLI command structure is built on commander, one module per command file registered from a single index entrypoint.",
+          "tags": ["cli", "commander", "structure"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["src/index.ts"],
+          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.45200056,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.4182731,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+        "score": 0.3911756,
+        "payload": {
+          "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "The interactive duplicate-resolution prompt only renders on a TTY; JSON and non-interactive callers get a clear VALIDATION_FAILED instead of hanging on stdin.",
+          "tags": ["write", "ux", "tty"],
+          "entry_type": "structure",
+          "source": "manual",
+          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.37870032,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.3573049,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.3484974,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.31961226,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
+        "score": 0.30580625,
+        "payload": {
+          "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Confidence is inferred from source rather than accepted as a raw flag: agent-authored entries default to high confidence, manual entries to medium, to keep the signal honest.",
+          "tags": ["confidence", "source"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-02-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.29276362,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-05",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+        "score": 0.6994409,
+        "payload": {
+          "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search scope defaults to repo but can widen to related repos via --scope related, resolved through the registry of declared relates_to entries in config.",
+          "tags": ["search", "scope"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.44752717,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.41078863,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.3916896,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+        "score": 0.35522574,
+        "payload": {
+          "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "inspect",
+          "rationale": "Facet aggregation for memo inspect scrolls the full collection once and tallies orgs, repos, and domains client-side rather than issuing one query per facet.",
+          "tags": ["inspect", "facets", "aggregation"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/facets.ts"],
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.32087004,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+        "score": 0.30398726,
+        "payload": {
+          "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Dedupe key hashing scheme v1 combines repo, commit, story, entry_type, and source into a single sha256 so near-duplicate writes collapse into one entry.",
+          "tags": ["dedupe", "hashing"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.3025641,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.2972708,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.29416394,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-06",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+        "score": 0.65238994,
+        "payload": {
+          "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tags",
+          "rationale": "memo tags lists distinct tag values scanned across the collection so agents can discover the existing vocabulary before writing a new entry.",
+          "tags": ["tags", "discovery"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.39803362,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.3221113,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.29765594,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+        "score": 0.28545558,
+        "payload": {
+          "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "inspect",
+          "rationale": "Facet aggregation for memo inspect scrolls the full collection once and tallies orgs, repos, and domains client-side rather than issuing one query per facet.",
+          "tags": ["inspect", "facets", "aggregation"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/facets.ts"],
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.28160363,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.27541542,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "69892c81-ec02-46e5-8cb6-36f8360c2ec9",
+        "score": 0.27345407,
+        "payload": {
+          "id": "69892c81-ec02-46e5-8cb6-36f8360c2ec9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Vector size is fixed at 1536 dimensions to match text-embedding-3-small; changing embedding models later requires a full re-index, documented as a known constraint.",
+          "tags": ["qdrant", "vectors", "constraints"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-10-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.2732907,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+        "score": 0.25752133,
+        "payload": {
+          "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Dedupe key hashing scheme v1 combines repo, commit, story, entry_type, and source into a single sha256 so near-duplicate writes collapse into one entry.",
+          "tags": ["dedupe", "hashing"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-07",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+        "score": 0.6875534,
+        "payload": {
+          "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Refunds above a threshold require a second approver before the charge reversal is issued, decided after a single-approver refund incident.",
+          "tags": ["billing", "refunds", "approval"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "743d37d8-b21a-48a0-937b-780b01485712",
+        "score": 0.42465222,
+        "payload": {
+          "id": "743d37d8-b21a-48a0-937b-780b01485712",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Subscription cancellations keep a 3-day grace period before access is revoked, scanned from the support runbook into a durable decision record.",
+          "tags": ["billing", "subscriptions", "grace-period"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "074dfaac-fda5-4de0-bdde-1d4fce33efc9",
+        "score": 0.41288984,
+        "payload": {
+          "id": "074dfaac-fda5-4de0-bdde-1d4fce33efc9",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Sales tax calculation is delegated to a third-party vendor API rather than maintained in-house, given the jurisdictional complexity.",
+          "tags": ["billing", "tax", "vendor"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-01-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.4064618,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.39513484,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.3919108,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.39096612,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.37939185,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+        "score": 0.3762031,
+        "payload": {
+          "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: adding a circuit breaker around the payment provider client cut cascading failures during provider outages to near zero over two incidents.",
+          "tags": ["billing", "circuit-breaker", "outcome"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
+        "score": 0.36799017,
+        "payload": {
+          "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Plan-change proration uses a day-based algorithm rather than second-based, trading minor precision for customer-facing simplicity.",
+          "tags": ["billing", "proration", "plans"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-06-22T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-concept-08",
+    "category": "concept",
+    "candidates": [
+      {
+        "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
+        "score": 0.76330566,
+        "payload": {
+          "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Plan-change proration uses a day-based algorithm rather than second-based, trading minor precision for customer-facing simplicity.",
+          "tags": ["billing", "proration", "plans"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-06-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.34028733,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+        "score": 0.33299094,
+        "payload": {
+          "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Refunds above a threshold require a second approver before the charge reversal is issued, decided after a single-approver refund incident.",
+          "tags": ["billing", "refunds", "approval"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "743d37d8-b21a-48a0-937b-780b01485712",
+        "score": 0.31462732,
+        "payload": {
+          "id": "743d37d8-b21a-48a0-937b-780b01485712",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Subscription cancellations keep a 3-day grace period before access is revoked, scanned from the support runbook into a durable decision record.",
+          "tags": ["billing", "subscriptions", "grace-period"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "dda93970-cace-4ced-8624-93a86d662400",
+        "score": 0.3145672,
+        "payload": {
+          "id": "dda93970-cace-4ced-8624-93a86d662400",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Currency amounts round half-up to the smallest unit at the point of charge, decided after a rounding-drift bug in monthly invoice totals.",
+          "tags": ["billing", "currency", "rounding"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.3137942,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "074dfaac-fda5-4de0-bdde-1d4fce33efc9",
+        "score": 0.30377406,
+        "payload": {
+          "id": "074dfaac-fda5-4de0-bdde-1d4fce33efc9",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Sales tax calculation is delegated to a third-party vendor API rather than maintained in-house, given the jurisdictional complexity.",
+          "tags": ["billing", "tax", "vendor"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-01-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+        "score": 0.29314992,
+        "payload": {
+          "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant operations retry with exponential backoff up to three attempts before surfacing a QDRANT_OPERATION_FAILED error, so transient network blips do not fail a write.",
+          "tags": ["retry", "qdrant", "resilience"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.29108283,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.29090717,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-01",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+        "score": 0.38512993,
+        "payload": {
+          "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant operations retry with exponential backoff up to three attempts before surfacing a QDRANT_OPERATION_FAILED error, so transient network blips do not fail a write.",
+          "tags": ["retry", "qdrant", "resilience"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.36420697,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+        "score": 0.3572136,
+        "payload": {
+          "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "Adopted exponential backoff with jitter for embeddings API calls to survive rate limiting from the OpenAI provider without failing the write path outright.",
+          "tags": ["embeddings", "retry", "rate-limiting"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.3381074,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.3091801,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.27445093,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.2730173,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+        "score": 0.26496643,
+        "payload": {
+          "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "The interactive duplicate-resolution prompt only renders on a TTY; JSON and non-interactive callers get a clear VALIDATION_FAILED instead of hanging on stdin.",
+          "tags": ["write", "ux", "tty"],
+          "entry_type": "structure",
+          "source": "manual",
+          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.25594598,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+        "score": 0.246662,
+        "payload": {
+          "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "The evaluation harness isolates its writes behind MEMO_COLLECTION so seeding fixture data can never land in the production decisions collection.",
+          "tags": ["eval", "isolation", "safety"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-02",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.62487423,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+        "score": 0.43527412,
+        "payload": {
+          "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant operations retry with exponential backoff up to three attempts before surfacing a QDRANT_OPERATION_FAILED error, so transient network blips do not fail a write.",
+          "tags": ["retry", "qdrant", "resilience"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+        "score": 0.4110519,
+        "payload": {
+          "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Entry payloads carry a dedupe_key_version field so a future change to the hashing scheme can migrate old entries without breaking lookups.",
+          "tags": ["dedupe", "versioning"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.40922868,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "69892c81-ec02-46e5-8cb6-36f8360c2ec9",
+        "score": 0.40796807,
+        "payload": {
+          "id": "69892c81-ec02-46e5-8cb6-36f8360c2ec9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Vector size is fixed at 1536 dimensions to match text-embedding-3-small; changing embedding models later requires a full re-index, documented as a known constraint.",
+          "tags": ["qdrant", "vectors", "constraints"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-10-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.36213,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.2972757,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+        "score": 0.2915812,
+        "payload": {
+          "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "Adopted exponential backoff with jitter for embeddings API calls to survive rate limiting from the OpenAI provider without failing the write path outright.",
+          "tags": ["embeddings", "retry", "rate-limiting"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.2894163,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.27219757,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-03",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+        "score": 0.601524,
+        "payload": {
+          "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "inspect",
+          "rationale": "Facet aggregation for memo inspect scrolls the full collection once and tallies orgs, repos, and domains client-side rather than issuing one query per facet.",
+          "tags": ["inspect", "facets", "aggregation"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/facets.ts"],
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.2913161,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.28743756,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.2825636,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.26526824,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.2627372,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.26034862,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+        "score": 0.25923216,
+        "payload": {
+          "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tags",
+          "rationale": "memo tags lists distinct tag values scanned across the collection so agents can discover the existing vocabulary before writing a new entry.",
+          "tags": ["tags", "discovery"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.25370657,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.2500364,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-04",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.4730226,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.36551932,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.3603047,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+        "score": 0.33740133,
+        "payload": {
+          "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search scope defaults to repo but can widen to related repos via --scope related, resolved through the registry of declared relates_to entries in config.",
+          "tags": ["search", "scope"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.33679858,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.33641258,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.3147565,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+        "score": 0.3057098,
+        "payload": {
+          "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "delete",
+          "rationale": "Deleting by filter first scrolls the matching set to report an accurate deleted count before issuing the batch delete call.",
+          "tags": ["delete", "filters"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/commands/delete.ts"],
+          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.2566623,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.2559523,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-05",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+        "score": 0.5469137,
+        "payload": {
+          "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "delete",
+          "rationale": "Deleting by filter first scrolls the matching set to report an accurate deleted count before issuing the batch delete call.",
+          "tags": ["delete", "filters"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/commands/delete.ts"],
+          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.33518383,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.28901178,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.26438808,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.25070143,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.24972984,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.24792592,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+        "score": 0.23337491,
+        "payload": {
+          "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "CLI command structure is built on commander, one module per command file registered from a single index entrypoint.",
+          "tags": ["cli", "commander", "structure"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["src/index.ts"],
+          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.22763935,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+        "score": 0.22675046,
+        "payload": {
+          "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "The interactive duplicate-resolution prompt only renders on a TTY; JSON and non-interactive callers get a clear VALIDATION_FAILED instead of hanging on stdin.",
+          "tags": ["write", "ux", "tty"],
+          "entry_type": "structure",
+          "source": "manual",
+          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-06",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.42827228,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.34149137,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+        "score": 0.32919478,
+        "payload": {
+          "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "CLI command structure is built on commander, one module per command file registered from a single index entrypoint.",
+          "tags": ["cli", "commander", "structure"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["src/index.ts"],
+          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+        "score": 0.3119344,
+        "payload": {
+          "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search scope defaults to repo but can widen to related repos via --scope related, resolved through the registry of declared relates_to entries in config.",
+          "tags": ["search", "scope"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.29566342,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.29349,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.28545782,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.28416687,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.28099006,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+        "score": 0.26952267,
+        "payload": {
+          "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tags",
+          "rationale": "memo tags lists distinct tag values scanned across the collection so agents can discover the existing vocabulary before writing a new entry.",
+          "tags": ["tags", "discovery"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-07",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.5499447,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.39903563,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.38826376,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.3166084,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.30037975,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.29568872,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.28732094,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+        "score": 0.27430522,
+        "payload": {
+          "id": "ed6a8239-b067-4ed8-9cb8-f2f6fc6c52e9",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "The interactive duplicate-resolution prompt only renders on a TTY; JSON and non-interactive callers get a clear VALIDATION_FAILED instead of hanging on stdin.",
+          "tags": ["write", "ux", "tty"],
+          "entry_type": "structure",
+          "source": "manual",
+          "timestamp_utc": "2026-05-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+        "score": 0.26252258,
+        "payload": {
+          "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "The evaluation harness isolates its writes behind MEMO_COLLECTION so seeding fixture data can never land in the production decisions collection.",
+          "tags": ["eval", "isolation", "safety"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.24027449,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-identifier-08",
+    "category": "identifier",
+    "candidates": [
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.7104131,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.45341253,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.41604954,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.388026,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.37620518,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.35298818,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+        "score": 0.34456858,
+        "payload": {
+          "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "Adopted exponential backoff with jitter for embeddings API calls to survive rate limiting from the OpenAI provider without failing the write path outright.",
+          "tags": ["embeddings", "retry", "rate-limiting"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+        "score": 0.3373831,
+        "payload": {
+          "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: adding a circuit breaker around the payment provider client cut cascading failures during provider outages to near zero over two incidents.",
+          "tags": ["billing", "circuit-breaker", "outcome"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.33516675,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.32329738,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-cross-repo-01",
+    "category": "cross-repo",
+    "candidates": [
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.62786406,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.55165917,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.43963817,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.4326253,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.39511478,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.3731978,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.36266857,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.35087276,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.34741062,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+        "score": 0.34569365,
+        "payload": {
+          "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Refunds above a threshold require a second approver before the charge reversal is issued, decided after a single-approver refund incident.",
+          "tags": ["billing", "refunds", "approval"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-cross-repo-02",
+    "category": "cross-repo",
+    "candidates": [
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.68640786,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.48119086,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.46544236,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.4270221,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.3926066,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.37945879,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.37069345,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+        "score": 0.3703577,
+        "payload": {
+          "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: adding a circuit breaker around the payment provider client cut cascading failures during provider outages to near zero over two incidents.",
+          "tags": ["billing", "circuit-breaker", "outcome"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.35581067,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.35437346,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-cross-repo-03",
+    "category": "cross-repo",
+    "candidates": [
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.79374653,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.5196574,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.45746619,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.441473,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.3832543,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.36783916,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.36126888,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.33706665,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.33706018,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+        "score": 0.3230347,
+        "payload": {
+          "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: adding a circuit breaker around the payment provider client cut cascading failures during provider outages to near zero over two incidents.",
+          "tags": ["billing", "circuit-breaker", "outcome"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-cross-repo-04",
+    "category": "cross-repo",
+    "candidates": [
+      {
+        "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+        "score": 0.5480211,
+        "payload": {
+          "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Dedupe key hashing scheme v1 combines repo, commit, story, entry_type, and source into a single sha256 so near-duplicate writes collapse into one entry.",
+          "tags": ["dedupe", "hashing"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+        "score": 0.4677853,
+        "payload": {
+          "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Duplicate entries offer four resolutions: consolidate, update, replace, or create-new, so a repeated write never silently clobbers an existing decision.",
+          "tags": ["dedupe", "write", "ux"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.45018917,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.45005384,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+        "score": 0.40468934,
+        "payload": {
+          "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Entry payloads carry a dedupe_key_version field so a future change to the hashing scheme can migrate old entries without breaking lookups.",
+          "tags": ["dedupe", "versioning"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.3625971,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.362431,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+        "score": 0.35953742,
+        "payload": {
+          "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "inspect",
+          "rationale": "Facet aggregation for memo inspect scrolls the full collection once and tallies orgs, repos, and domains client-side rather than issuing one query per facet.",
+          "tags": ["inspect", "facets", "aggregation"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/facets.ts"],
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.35517007,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.33876672,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-cross-repo-05",
+    "category": "cross-repo",
+    "candidates": [
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.7307654,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.55769056,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.48140264,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.4464814,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.4314364,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+        "score": 0.422368,
+        "payload": {
+          "id": "c29c9288-01a4-4a55-99de-c3045ab72602",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "CLI command structure is built on commander, one module per command file registered from a single index entrypoint.",
+          "tags": ["cli", "commander", "structure"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["src/index.ts"],
+          "timestamp_utc": "2025-09-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.41172534,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "38498ba0-f079-4547-aaa9-6967404f1d9a",
+        "score": 0.4092647,
+        "payload": {
+          "id": "38498ba0-f079-4547-aaa9-6967404f1d9a",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice PDFs are generated from a single templated renderer so every invoice format change happens in one file instead of per-customer branches.",
+          "tags": ["billing", "invoices", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/pdf.ts"],
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+        "score": 0.37108698,
+        "payload": {
+          "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "inspect",
+          "rationale": "Facet aggregation for memo inspect scrolls the full collection once and tallies orgs, repos, and domains client-side rather than issuing one query per facet.",
+          "tags": ["inspect", "facets", "aggregation"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/facets.ts"],
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "71759c73-559d-4afd-ad11-fdac7973f2f6",
+        "score": 0.35333708,
+        "payload": {
+          "id": "71759c73-559d-4afd-ad11-fdac7973f2f6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "output",
+          "rationale": "Human-readable output uses chalk for color and ora for spinners, scanned into the codebase as an established pattern rather than a one-off choice.",
+          "tags": ["output", "chalk", "cli"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-30T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-cross-repo-06",
+    "category": "cross-repo",
+    "candidates": [
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.7119187,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.50310975,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.4929826,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+        "score": 0.44381917,
+        "payload": {
+          "id": "70bc6252-9321-4335-a2f4-132e20066ea6",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "debug",
+          "rationale": "Verbose internal logging is gated behind the MEMO_DEBUG environment variable so normal CLI runs stay quiet by default.",
+          "tags": ["debug", "logging"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2026-03-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.43929482,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+        "score": 0.4263258,
+        "payload": {
+          "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: adding a circuit breaker around the payment provider client cut cascading failures during provider outages to near zero over two incidents.",
+          "tags": ["billing", "circuit-breaker", "outcome"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "743d37d8-b21a-48a0-937b-780b01485712",
+        "score": 0.39873862,
+        "payload": {
+          "id": "743d37d8-b21a-48a0-937b-780b01485712",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Subscription cancellations keep a 3-day grace period before access is revoked, scanned from the support runbook into a durable decision record.",
+          "tags": ["billing", "subscriptions", "grace-period"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+        "score": 0.38578716,
+        "payload": {
+          "id": "3af69c6d-8219-413f-8258-3692e23dee6a",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Refunds above a threshold require a second approver before the charge reversal is issued, decided after a single-approver refund incident.",
+          "tags": ["billing", "refunds", "approval"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.37883502,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.36424762,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-recency-01",
+    "category": "recency",
+    "candidates": [
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.6624174,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.6522342,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+        "score": 0.48962086,
+        "payload": {
+          "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "The evaluation harness isolates its writes behind MEMO_COLLECTION so seeding fixture data can never land in the production decisions collection.",
+          "tags": ["eval", "isolation", "safety"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.33764184,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.29599202,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.28959155,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.28917125,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
+        "score": 0.2813761,
+        "payload": {
+          "id": "8b847ce0-58dd-47fd-bd77-b91112134c7f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Confidence is inferred from source rather than accepted as a raw flag: agent-authored entries default to high confidence, manual entries to medium, to keep the signal honest.",
+          "tags": ["confidence", "source"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-02-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.2689875,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+        "score": 0.26779717,
+        "payload": {
+          "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Duplicate entries offer four resolutions: consolidate, update, replace, or create-new, so a repeated write never silently clobbers an existing decision.",
+          "tags": ["dedupe", "write", "ux"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-recency-02",
+    "category": "recency",
+    "candidates": [
+      {
+        "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+        "score": 0.6242502,
+        "payload": {
+          "id": "6dc279cb-99fd-406f-bae6-4202de976a44",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "The evaluation harness isolates its writes behind MEMO_COLLECTION so seeding fixture data can never land in the production decisions collection.",
+          "tags": ["eval", "isolation", "safety"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-09-19T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.40347344,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+        "score": 0.40020055,
+        "payload": {
+          "id": "a1eb1972-26ba-41c1-82b5-ae624bdb1d9f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "A standalone bootstrap validation script checks a JSON array of seed entries against a strict Zod schema before any import into the collection.",
+          "tags": ["validation", "bootstrap"],
+          "entry_type": "structure",
+          "source": "scan",
+          "files_modified": ["scripts/validate-bootstrap.ts"],
+          "timestamp_utc": "2025-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.38750446,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+        "score": 0.35647735,
+        "payload": {
+          "id": "28b99522-e35a-48d5-8b60-1e76fdeb79b4",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant collection bootstrap is idempotent: ensureCollection checks getCollection before createCollection so repeated CLI invocations never fail on an existing collection.",
+          "tags": ["qdrant", "bootstrap", "idempotency"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+        "score": 0.32949114,
+        "payload": {
+          "id": "28595d5f-22ab-4986-8e24-758864af95dd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "ESLint runs typescript-eslint strict-type-checked plus stylistic-type-checked against src/**, favoring caught bugs over convenience escapes.",
+          "tags": ["tooling", "eslint", "typescript"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-12-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+        "score": 0.31447574,
+        "payload": {
+          "id": "a9ad6605-8f03-4836-9927-733eaac5e20f",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tooling",
+          "rationale": "Husky and lint-staged run ESLint and Prettier on staged files at commit time, scanned in as the existing pre-commit convention for this repository.",
+          "tags": ["tooling", "husky", "lint"],
+          "entry_type": "structure",
+          "source": "scan",
+          "timestamp_utc": "2025-09-27T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+        "score": 0.31177247,
+        "payload": {
+          "id": "56bcf16f-35d7-4be9-9099-b91f80591e5c",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "config",
+          "rationale": "Config schema validation moved to Zod so memo.config.json fails fast with a readable error instead of an undefined-property crash deep in a command handler.",
+          "tags": ["config", "validation", "zod"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/lib/config.ts"],
+          "timestamp_utc": "2026-01-13T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.29661727,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "743d37d8-b21a-48a0-937b-780b01485712",
+        "score": 0.28530252,
+        "payload": {
+          "id": "743d37d8-b21a-48a0-937b-780b01485712",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Subscription cancellations keep a 3-day grace period before access is revoked, scanned from the support runbook into a durable decision record.",
+          "tags": ["billing", "subscriptions", "grace-period"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-recency-03",
+    "category": "recency",
+    "candidates": [
+      {
+        "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+        "score": 0.5713328,
+        "payload": {
+          "id": "972be930-3b87-46b2-8b2b-f4cb1a3dd587",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: adding a circuit breaker around the payment provider client cut cascading failures during provider outages to near zero over two incidents.",
+          "tags": ["billing", "circuit-breaker", "outcome"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-08-21T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "423469b9-356e-45f3-a6e4-804b92720938",
+        "score": 0.49341422,
+        "payload": {
+          "id": "423469b9-356e-45f3-a6e4-804b92720938",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Outcome: dunning emails now go out on a 1/3/7/14-day cadence after a failed charge, reducing involuntary churn measured over the following quarter.",
+          "tags": ["billing", "dunning", "outcome"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-06-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+        "score": 0.4619704,
+        "payload": {
+          "id": "06fb36be-9791-4143-b995-be6ac9e7f4bb",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Invoice generation retries transient vendor timeouts with the same exponential backoff pattern used elsewhere, capped at three attempts before failing the job.",
+          "tags": ["billing", "retry", "invoices"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/retry.ts"],
+          "timestamp_utc": "2026-08-06T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+        "score": 0.4288118,
+        "payload": {
+          "id": "150c0e5c-8849-4485-abe4-4a6722981b12",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "The billing API gateway applies its own rate limiting per API key, independent of any client-side retry behavior, to protect the payment provider quota.",
+          "tags": ["billing", "rate-limiting", "gateway"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/billing/gateway.ts"],
+          "timestamp_utc": "2026-08-11T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+        "score": 0.3986841,
+        "payload": {
+          "id": "d95a338a-988c-4326-bfae-801eb2f59156",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Payment webhooks require a client-supplied idempotency key so a retried webhook delivery never double-charges a customer.",
+          "tags": ["billing", "webhooks", "idempotency"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/billing/webhooks.ts"],
+          "timestamp_utc": "2025-08-16T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+        "score": 0.37617594,
+        "payload": {
+          "id": "ac842b1a-5870-4369-a034-0c154286c98f",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Every billing state change writes an append-only audit log entry, structured with actor, action, and before/after amounts.",
+          "tags": ["billing", "audit", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
+        "score": 0.37290764,
+        "payload": {
+          "id": "388c4ae6-31a8-498c-897c-7564c2d7c5f2",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Plan-change proration uses a day-based algorithm rather than second-based, trading minor precision for customer-facing simplicity.",
+          "tags": ["billing", "proration", "plans"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-06-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+        "score": 0.36927614,
+        "payload": {
+          "id": "0017bf26-3ca1-4239-87d7-d2f02cc1fc56",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Qdrant operations retry with exponential backoff up to three attempts before surfacing a QDRANT_OPERATION_FAILED error, so transient network blips do not fail a write.",
+          "tags": ["retry", "qdrant", "resilience"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2025-10-25T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.36299893,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+        "score": 0.35699508,
+        "payload": {
+          "id": "81f55258-79bb-46a2-9134-6100e8783d27",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing database migrations are structured as sequential numbered files under a migrations directory, applied in order by a single runner.",
+          "tags": ["billing", "migrations", "structure"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/billing/migrations/001_init.ts"],
+          "timestamp_utc": "2025-09-05T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-recency-04",
+    "category": "recency",
+    "candidates": [
+      {
+        "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+        "score": 0.476841,
+        "payload": {
+          "id": "db8d7ff2-a32c-42cc-b87b-83b04682a159",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Billing-service reuses the memo-cli decision store conventions for its own auth token sharing between services, relating this repo back to memo-cli.",
+          "tags": ["billing", "auth", "cross-repo"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "relates_to": ["memo-cli"],
+          "timestamp_utc": "2026-08-31T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+        "score": 0.37628666,
+        "payload": {
+          "id": "05d1fa6b-ab7f-46cc-aec1-c98f8022b589",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Dedupe key hashing scheme v1 combines repo, commit, story, entry_type, and source into a single sha256 so near-duplicate writes collapse into one entry.",
+          "tags": ["dedupe", "hashing"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2025-11-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+        "score": 0.32262707,
+        "payload": {
+          "id": "64b1a5e5-b19d-4718-a97d-9aeca6c98a97",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "setup",
+          "rationale": "memo setup init writes memo.config.json with schema_version, repo, org, and domain so later commands can resolve context without repeated flags.",
+          "tags": ["setup", "config"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/commands/setup.ts"],
+          "timestamp_utc": "2025-11-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+        "score": 0.31979603,
+        "payload": {
+          "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search scope defaults to repo but can widen to related repos via --scope related, resolved through the registry of declared relates_to entries in config.",
+          "tags": ["search", "scope"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.31643394,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+        "score": 0.3055439,
+        "payload": {
+          "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Duplicate entries offer four resolutions: consolidate, update, replace, or create-new, so a repeated write never silently clobbers an existing decision.",
+          "tags": ["dedupe", "write", "ux"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.3021051,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.2969532,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+        "score": 0.296238,
+        "payload": {
+          "id": "e7b85438-97b8-46a6-a109-a233d9c117ff",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "cli",
+          "rationale": "Adopted exponential backoff with jitter for embeddings API calls to survive rate limiting from the OpenAI provider without failing the write path outright.",
+          "tags": ["embeddings", "retry", "rate-limiting"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/lib/retry.ts"],
+          "timestamp_utc": "2026-09-15T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+        "score": 0.29329175,
+        "payload": {
+          "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Entry payloads carry a dedupe_key_version field so a future change to the hashing scheme can migrate old entries without breaking lookups.",
+          "tags": ["dedupe", "versioning"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-recency-05",
+    "category": "recency",
+    "candidates": [
+      {
+        "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+        "score": 0.5420339,
+        "payload": {
+          "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "delete",
+          "rationale": "Deleting by filter first scrolls the matching set to report an accurate deleted count before issuing the batch delete call.",
+          "tags": ["delete", "filters"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/commands/delete.ts"],
+          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+        "score": 0.4188841,
+        "payload": {
+          "id": "3506a2ab-e3eb-4758-b083-33038e644f29",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "write",
+          "rationale": "Duplicate entries offer four resolutions: consolidate, update, replace, or create-new, so a repeated write never silently clobbers an existing decision.",
+          "tags": ["dedupe", "write", "ux"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "timestamp_utc": "2026-03-14T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.40013444,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.3695333,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "743d37d8-b21a-48a0-937b-780b01485712",
+        "score": 0.2901043,
+        "payload": {
+          "id": "743d37d8-b21a-48a0-937b-780b01485712",
+          "repo": "billing-service",
+          "org": "llipe",
+          "domain": "billing",
+          "rationale": "Subscription cancellations keep a 3-day grace period before access is revoked, scanned from the support runbook into a durable decision record.",
+          "tags": ["billing", "subscriptions", "grace-period"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2026-02-12T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+        "score": 0.2898544,
+        "payload": {
+          "id": "6fd2c583-7374-4cbe-946c-2a390f21a8bd",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Entry payloads carry a dedupe_key_version field so a future change to the hashing scheme can migrate old entries without breaking lookups.",
+          "tags": ["dedupe", "versioning"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2025-12-04T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.27169544,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.2605211,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+        "score": 0.25937456,
+        "payload": {
+          "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tags",
+          "rationale": "memo tags lists distinct tag values scanned across the collection so agents can discover the existing vocabulary before writing a new entry.",
+          "tags": ["tags", "discovery"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+        "score": 0.25664005,
+        "payload": {
+          "id": "49e2cecc-5010-45a2-9b56-2243b1685e54",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Intent: build a relevance evaluation harness before any ranking change lands, so future ordering work is judged against a recorded baseline instead of intuition.",
+          "tags": ["eval", "relevance", "intent"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-18T20:43:38.969Z"
+        }
+      }
+    ]
+  },
+  {
+    "query_id": "q-recency-06",
+    "category": "recency",
+    "candidates": [
+      {
+        "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+        "score": 0.5294912,
+        "payload": {
+          "id": "475c59d0-dbe7-46fa-8ac1-ca48c080f1b8",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "tags",
+          "rationale": "memo tags lists distinct tag values scanned across the collection so agents can discover the existing vocabulary before writing a new entry.",
+          "tags": ["tags", "discovery"],
+          "entry_type": "integration_point",
+          "source": "scan",
+          "timestamp_utc": "2026-06-02T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+        "score": 0.38736543,
+        "payload": {
+          "id": "08ee6a49-c120-4464-b426-b24a4968193d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "validation",
+          "rationale": "Tags and repo/org/domain identifiers are constrained to a kebab-case regex so filenames, filters, and dedupe keys never have to worry about casing drift.",
+          "tags": ["validation", "kebab-case"],
+          "entry_type": "decision",
+          "source": "scan",
+          "timestamp_utc": "2025-10-10T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+        "score": 0.36899632,
+        "payload": {
+          "id": "80e439d1-0255-41c8-af48-eb8558d4c337",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "list",
+          "rationale": "List filters use exact match on repo, org, tags, and entry_type rather than fuzzy matching, keeping memo list predictable for scripting.",
+          "tags": ["list", "filters"],
+          "entry_type": "decision",
+          "source": "manual",
+          "timestamp_utc": "2026-05-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+        "score": 0.33006096,
+        "payload": {
+          "id": "74807f3a-fd84-40f1-9e94-254a0bbc2ca7",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "storage",
+          "rationale": "Payload indexes for repo, org, entry_type, source, tags, timestamp_utc, commit, and dedupe_key_sha256 are created once at collection bootstrap to keep exact filters fast.",
+          "tags": ["qdrant", "indexes", "performance"],
+          "entry_type": "integration_point",
+          "source": "manual",
+          "files_modified": ["src/lib/qdrant.ts"],
+          "timestamp_utc": "2025-10-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+        "score": 0.31567946,
+        "payload": {
+          "id": "52912115-d62e-48a5-9097-6a3ac0e9b318",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "eval",
+          "rationale": "Outcome: the relevance evaluation harness now seeds a fixture set, runs live queries, and records a baseline top-3 hit rate as the floor for every later Phase 1 story.",
+          "tags": ["eval", "relevance", "outcome"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-09-20T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+        "score": 0.3068198,
+        "payload": {
+          "id": "d7b4fac5-b3d1-48db-a0a9-9f688841623d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "delete",
+          "rationale": "Deleting by filter first scrolls the matching set to report an accurate deleted count before issuing the batch delete call.",
+          "tags": ["delete", "filters"],
+          "entry_type": "decision",
+          "source": "agent",
+          "files_modified": ["src/commands/delete.ts"],
+          "timestamp_utc": "2026-07-22T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+        "score": 0.30130166,
+        "payload": {
+          "id": "fc55840c-6805-4140-8fcd-c05d8fe22c72",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "inspect",
+          "rationale": "Facet aggregation for memo inspect scrolls the full collection once and tallies orgs, repos, and domains client-side rather than issuing one query per facet.",
+          "tags": ["inspect", "facets", "aggregation"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/facets.ts"],
+          "timestamp_utc": "2026-04-23T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+        "score": 0.29162237,
+        "payload": {
+          "id": "b4100590-45b7-44d0-a2e4-80ca3341836d",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search filters are built as Qdrant must-clauses so every exact filter narrows the candidate set before semantic scoring ever runs.",
+          "tags": ["search", "filters", "qdrant"],
+          "entry_type": "integration_point",
+          "source": "agent",
+          "files_modified": ["src/lib/search-filters.ts"],
+          "timestamp_utc": "2026-04-03T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+        "score": 0.289332,
+        "payload": {
+          "id": "9ae390e9-ef03-4796-8952-85a9f8e3e7ba",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "read",
+          "rationale": "memo read fetches a single entry by id via a bounded scroll with has_id, avoiding a full collection scan for a point lookup.",
+          "tags": ["read", "lookup"],
+          "entry_type": "structure",
+          "source": "agent",
+          "files_modified": ["src/commands/read.ts"],
+          "timestamp_utc": "2026-06-17T20:43:38.969Z"
+        }
+      },
+      {
+        "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+        "score": 0.28904948,
+        "payload": {
+          "id": "f64932f6-80f3-4b70-a08a-a65f272e0feb",
+          "repo": "memo-cli",
+          "org": "llipe",
+          "domain": "search",
+          "rationale": "Search scope defaults to repo but can widen to related repos via --scope related, resolved through the registry of declared relates_to entries in config.",
+          "tags": ["search", "scope"],
+          "entry_type": "decision",
+          "source": "agent",
+          "timestamp_utc": "2026-03-24T20:43:38.969Z"
+        }
+      }
+    ]
+  }
+]

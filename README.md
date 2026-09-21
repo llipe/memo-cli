@@ -679,17 +679,18 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                   | Description                                  |
-| ------------------------ | -------------------------------------------- |
-| `pnpm run build`         | Compile TypeScript to `dist/`                |
-| `pnpm run build:watch`   | Compile in watch mode                        |
-| `pnpm run typecheck`     | Type-check without emitting                  |
-| `pnpm run lint`          | ESLint (v9 flat config, strict type-checked) |
-| `pnpm run lint:fix`      | ESLint with auto-fix                         |
-| `pnpm run format`        | Prettier format                              |
-| `pnpm run format:check`  | Check formatting without writing             |
-| `pnpm run test`          | Run Jest test suite                          |
-| `pnpm run test:coverage` | Run Jest with coverage report                |
+| Script                    | Description                                      |
+| ------------------------- | ------------------------------------------------ |
+| `pnpm run build`          | Compile TypeScript to `dist/`                    |
+| `pnpm run build:watch`    | Compile in watch mode                            |
+| `pnpm run typecheck`      | Type-check without emitting                      |
+| `pnpm run lint`           | ESLint (v9 flat config, strict type-checked)     |
+| `pnpm run lint:fix`       | ESLint with auto-fix                             |
+| `pnpm run format`         | Prettier format                                  |
+| `pnpm run format:check`   | Check formatting without writing                 |
+| `pnpm run test`           | Run Jest test suite                              |
+| `pnpm run test:coverage`  | Run Jest with coverage report                    |
+| `pnpm run eval:relevance` | Run the relevance evaluation harness (see below) |
 
 ### Testing
 
@@ -697,6 +698,50 @@ cp .env.example .env   # configure credentials
 pnpm run test                          # all tests
 pnpm run test -- --testPathPattern=write   # specific module
 pnpm run test:coverage                 # with coverage report
+```
+
+### Relevance evaluation harness
+
+`scripts/eval-relevance.ts` measures `memo search`'s top-3 retrieval relevance
+against a versioned fixture set (`tests/fixtures/relevance/`), so ranking
+changes are judged against a recorded baseline instead of intuition. It is a
+development/eval affordance, not a shipped CLI command.
+
+Modes (flags are combinable):
+
+| Invocation                                                 | Effect                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm run eval:relevance`                                  | Runs every query in `queries.json` against a live Qdrant + embeddings provider; prints per-category and overall top-3 hit rate; always exits 0 (reports, does not gate).                                                                                                       |
+| `MEMO_COLLECTION=memo_eval pnpm run eval:relevance --seed` | Upserts `entries.json` into the collection named by `MEMO_COLLECTION`. **Refuses (exit 1) if `MEMO_COLLECTION` is unset or empty** — this guard exists so fixture data can never land in the production `decisions` collection. Idempotent: re-seeding overwrites by fixed id. |
+| `pnpm run eval:relevance --record`                         | Runs every query and additionally writes `candidates.json` and `baseline.json`. Manual only — CI replays, it never records.                                                                                                                                                    |
+
+`MEMO_COLLECTION` isolates the evaluation collection from production data:
+`QdrantRepository` resolves it once at construction (default `decisions` when
+unset or empty/whitespace-only). Plain `run` and `--record` do **not** refuse
+when `MEMO_COLLECTION` is unset, since neither writes a Qdrant point (only
+local JSON files); only `--seed` — the one mode that writes points — enforces
+the refusal.
+
+`tests/relevance/replay.test.ts` replays the committed `candidates.json`
+offline (no network, no `QDRANT_URL`/`EMBEDDINGS_API_KEY`) and asserts the
+recomputed hit rate is at least `baseline.json.overall_top3`, guarding every
+later ranking change against a regression.
+
+The `eval:relevance` script sets `TS_NODE_TRANSPILE_ONLY=true` for its
+`node --loader ts-node/esm` invocation: ts-node/esm's own type-check pass
+does not apply `esModuleInterop` for `openai`'s CJS default export the same
+way `tsc`/the compiled `dist/` bin entry does, which otherwise aborts the
+script with spurious `TS2709`/`TS2351` diagnostics before any code runs,
+independent of credentials or network reachability. `pnpm run typecheck`
+still covers `src/**` with correct interop; this only skips ts-node's
+redundant re-check for this one script invocation.
+
+Typical workflow when re-recording the baseline against local Docker Qdrant:
+
+```bash
+MEMO_COLLECTION=memo_eval pnpm run eval:relevance --seed
+MEMO_COLLECTION=memo_eval pnpm run eval:relevance --record
+memo inspect   # confirm "decisions" point counts are unaffected
 ```
 
 202+ test cases across unit and integration layers. Coverage threshold: 80% lines/functions/statements.
@@ -803,6 +848,7 @@ src/
 │   ├── search-filters.ts # Search pre-filter builder
 │   ├── list-filters.ts   # List pre-filter builder (date range)
 │   ├── retry.ts          # Exponential backoff retry
+│   ├── eval.ts           # Pure top-3 hit-rate computation (eval harness)
 │   └── debug.ts          # Debug logging (MEMO_DEBUG)
 ├── adapters/
 │   └── openai-embeddings.ts  # OpenAI text-embedding-3-small
@@ -811,11 +857,14 @@ src/
     ├── config.ts          # MemoConfig Zod schema
     └── cli.ts             # Shared CLI interfaces
 tests/
-├── unit/                  # Unit tests (lib, adapters, commands)
-└── integration/           # Integration tests (commands, qdrant)
+├── unit/                  # Unit tests (lib, adapters, commands, scripts)
+├── integration/           # Integration tests (commands, qdrant)
+├── relevance/             # Offline replay guard (replay.test.ts)
+└── fixtures/relevance/    # entries/queries/candidates/baseline.json
 scripts/
 ├── run-jest.mjs           # Jest argument forwarder
-└── validate-bootstrap.ts  # Bootstrap JSON validator
+├── validate-bootstrap.ts  # Bootstrap JSON validator
+└── eval-relevance.ts      # Relevance evaluation harness (seed/run/record)
 docs/
 ├── product-context.md     # Product strategy & roadmap
 ├── technical-guidelines.md # Technical standards

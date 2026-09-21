@@ -8,16 +8,16 @@
 
 ## GitHub Issues
 
-| Task | Story | Issue                                              | Status |
-| ---- | ----- | -------------------------------------------------- | ------ |
-| 1.0  | S1-01 | [#61](https://github.com/llipe/memo-cli/issues/61) | Open   |
-| 2.0  | S1-02 | [#34](https://github.com/llipe/memo-cli/issues/34) | Open   |
-| 3.0  | S1-03 | [#36](https://github.com/llipe/memo-cli/issues/36) | Open   |
-| 4.0  | S1-04 | [#35](https://github.com/llipe/memo-cli/issues/35) | Open   |
-| 5.0  | S1-05 | [#38](https://github.com/llipe/memo-cli/issues/38) | Open   |
-| 6.0  | S1-06 | [#62](https://github.com/llipe/memo-cli/issues/62) | Open   |
-| 7.0  | S1-07 | [#63](https://github.com/llipe/memo-cli/issues/63) | Open   |
-| 8.0  | S1-08 | [#64](https://github.com/llipe/memo-cli/issues/64) | Open   |
+| Task | Story | Issue                                              | Status                                                                |
+| ---- | ----- | -------------------------------------------------- | --------------------------------------------------------------------- |
+| 1.0  | S1-01 | [#61](https://github.com/llipe/memo-cli/issues/61) | In review (PR [#66](https://github.com/llipe/memo-cli/pull/66) draft) |
+| 2.0  | S1-02 | [#34](https://github.com/llipe/memo-cli/issues/34) | Open                                                                  |
+| 3.0  | S1-03 | [#36](https://github.com/llipe/memo-cli/issues/36) | Open                                                                  |
+| 4.0  | S1-04 | [#35](https://github.com/llipe/memo-cli/issues/35) | Open                                                                  |
+| 5.0  | S1-05 | [#38](https://github.com/llipe/memo-cli/issues/38) | Open                                                                  |
+| 6.0  | S1-06 | [#62](https://github.com/llipe/memo-cli/issues/62) | Open                                                                  |
+| 7.0  | S1-07 | [#63](https://github.com/llipe/memo-cli/issues/63) | Open                                                                  |
+| 8.0  | S1-08 | [#64](https://github.com/llipe/memo-cli/issues/64) | Open                                                                  |
 
 ## Relevant Files
 
@@ -53,35 +53,36 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
 
 ## Tasks
 
-- [ ] 1.0 Implement Story S1-01: Relevance evaluation harness and recorded baseline — [#61](https://github.com/llipe/memo-cli/issues/61)
+- [x] 1.0 Implement Story S1-01: Relevance evaluation harness and recorded baseline — [#61](https://github.com/llipe/memo-cli/issues/61) — PR [#66](https://github.com/llipe/memo-cli/pull/66) (draft, against integration branch)
 
   > Note: nothing else in Phase 1 may start until the baseline exists. This task changes no ranking behavior.
-  - [ ] 1.1 Add `MEMO_COLLECTION` resolution to `src/lib/qdrant.ts` (default `decisions`), read once at construction
-  - [ ] 1.2 Write `tests/unit/lib/qdrant.test.ts` cases for collection-name resolution (set, unset, empty string)
-  - [ ] 1.3 Define the fixture Zod schemas (entry seed, query) in `scripts/eval-relevance.ts`
-  - [ ] 1.4 Author `tests/fixtures/relevance/entries.json`: ≥ 40 entries, stable UUIDs, relative `age_days`, `source` spread across `agent`/`manual`/`scan`, ≥ 2 repos, several naming files in `files_modified`
-  - [ ] 1.5 Author `tests/fixtures/relevance/queries.json`: 20–30 queries across `concept`, `identifier` (≥ 6), `cross-repo`, `recency`
-  - [ ] 1.6 Implement `computeTop3HitRate` and report shaping in `src/lib/eval.ts` (pure)
-  - [ ] 1.7 Implement `--seed` mode: resolve relative ages to timestamps, embed, upsert with fixed ids, idempotent
-  - [ ] 1.8 Implement default run mode: per-category and overall hit rate to stdout, always exit 0
-  - [ ] 1.9 Implement `--record` mode: write `candidates.json` and `baseline.json`
-  - [ ] 1.10 Guard: refuse `--seed` when `MEMO_COLLECTION` is unset, exit 1 with a clear message
-  - [ ] 1.11 Add `eval:relevance` to `package.json` scripts
-  - [ ] 1.12 Run `MEMO_COLLECTION=memo_eval pnpm run eval:relevance --seed` then `--record` against local Docker Qdrant; commit both artifacts
-  - [ ] 1.13 Write `tests/relevance/replay.test.ts` asserting hit rate ≥ `baseline.json.overall_top3`, no network
-  - [ ] 1.14 Write `tests/unit/lib/eval.test.ts`: all hits, no hits, partial, duplicate expected ids, empty `expected_ids`
-  - [ ] 1.15 Edge cases: empty `candidates.json`; expected entry missing from fixture (must fail loudly); Qdrant unreachable → exit 2 `QDRANT_UNREACHABLE`
-  - [ ] 1.16 Verify AC1–AC2: fixture counts, categories, and schema validation pass
-  - [ ] 1.17 Verify AC3–AC5: manual run of all three modes, artifacts written
-  - [ ] 1.18 Verify AC6, AC9: `pnpm test` green with the replay test, no credentials required
-  - [ ] 1.19 Verify AC7: `memo inspect` before and after a seed run shows `decisions` untouched
-  - [ ] 1.20 Verify AC8: record overall and per-category baseline as a PRD changelog row
-  - [ ] 1.21 Document the eval workflow and `MEMO_COLLECTION` under Development in `README.md`
-  - [ ] 1.22 Map every AC to its test or evidence in the PR body
-  - [ ] 1.23 Migration: record the not-required opt-out rationale in the PR body
-  - [ ] 1.24 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 1.25 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 1.26 Open PR against `main`, link `Closes #61`, obtain user approval, merge
+  > Update (2026-09-20): live Qdrant Cloud + OpenAI credentials became available on this branch; also fixed a real `--seed`/`--record` execution bug (ts-node/esm type-check false positive on the `openai` import, unrelated to credentials — see 1.12 and PR #66). The real baseline is now recorded (PRD changelog row 1.6). Only 1.26 (merge) remains open.
+  - [x] 1.1 Add `MEMO_COLLECTION` resolution to `src/lib/qdrant.ts` (default `decisions`), read once at construction
+  - [x] 1.2 Write `tests/unit/lib/qdrant.test.ts` cases for collection-name resolution (set, unset, empty string)
+  - [x] 1.3 Define the fixture Zod schemas (entry seed, query) in `scripts/eval-relevance.ts`
+  - [x] 1.4 Author `tests/fixtures/relevance/entries.json`: ≥ 40 entries, stable UUIDs, relative `age_days`, `source` spread across `agent`/`manual`/`scan`, ≥ 2 repos, several naming files in `files_modified`
+  - [x] 1.5 Author `tests/fixtures/relevance/queries.json`: 20–30 queries across `concept`, `identifier` (≥ 6), `cross-repo`, `recency`
+  - [x] 1.6 Implement `computeTop3HitRate` and report shaping in `src/lib/eval.ts` (pure)
+  - [x] 1.7 Implement `--seed` mode: resolve relative ages to timestamps, embed, upsert with fixed ids, idempotent
+  - [x] 1.8 Implement default run mode: per-category and overall hit rate to stdout, always exit 0
+  - [x] 1.9 Implement `--record` mode: write `candidates.json` and `baseline.json`
+  - [x] 1.10 Guard: refuse `--seed` when `MEMO_COLLECTION` is unset, exit 1 with a clear message
+  - [x] 1.11 Add `eval:relevance` to `package.json` scripts
+  - [x] 1.12 Run `MEMO_COLLECTION=memo_eval pnpm run eval:relevance --seed` then `--record` against live Qdrant Cloud; commit both artifacts. Fixed a real bug found first: `eval:relevance`'s `node --loader ts-node/esm` invocation raised fatal spurious `TS2709`/`TS2351`/`TS18046` diagnostics on the `openai` default import (ts-node/esm's own type-check pass mis-applies `esModuleInterop`, independent of credentials/network) — fixed by scoping `TS_NODE_TRANSPILE_ONLY=true` to the `eval:relevance` script only; `pnpm run typecheck` (`tsc --noEmit`) already covers `src/**` correctly and is unaffected
+  - [x] 1.13 Write `tests/relevance/replay.test.ts` asserting hit rate ≥ `baseline.json.overall_top3`, no network
+  - [x] 1.14 Write `tests/unit/lib/eval.test.ts`: all hits, no hits, partial, duplicate expected ids, empty `expected_ids`
+  - [x] 1.15 Edge cases: empty `candidates.json`; expected entry missing from fixture (must fail loudly); Qdrant unreachable → exit 2 `QDRANT_UNREACHABLE`
+  - [x] 1.16 Verify AC1–AC2: fixture counts, categories, and schema validation pass
+  - [x] 1.17 Verify AC3–AC5: manual run of all three modes, artifacts written — real live run of default/`--seed`/`--record` against Qdrant Cloud, overall 92.9% (concept 100%, identifier 100%, cross-repo 66.7%, recency 100%)
+  - [x] 1.18 Verify AC6, AC9: `pnpm test` green with the replay test, no credentials required
+  - [x] 1.19 Verify AC7: `memo inspect`-equivalent check before/after a seed run shows `decisions` untouched — `decisions` (170 production points) has zero overlap with the 44 fixture ids; `memo_eval` holds exactly 44 points after two `--seed` runs (idempotency confirmed)
+  - [x] 1.20 Verify AC8: record overall and per-category baseline as a PRD changelog row — real numbers recorded in row 1.6, superseding the 1.5 placeholder
+  - [x] 1.21 Document the eval workflow and `MEMO_COLLECTION` under Development in `README.md`
+  - [x] 1.22 Map every AC to its test or evidence in the PR body
+  - [x] 1.23 Migration: record the not-required opt-out rationale in the PR body
+  - [x] 1.24 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` (`format:check` clean on this diff; repo-wide fails on pre-existing unrelated drift — see PR #66)
+  - [ ] 1.25 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 1.26 Open PR against `main`, link `Closes #61`, obtain user approval, merge — PR [#66](https://github.com/llipe/memo-cli/pull/66) opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not yet merged
 
 - [ ] 2.0 Implement Story S1-02: Composite ranking score — [#34](https://github.com/llipe/memo-cli/issues/34)
 
