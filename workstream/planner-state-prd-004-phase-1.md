@@ -6,16 +6,16 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T02:32:48Z
+- Last updated: 2026-09-21T02:54:26Z
 
 ## Story Status
 
-| Sequence | Story ID | Issue # | Status      | PR  | Branch                            |
-| -------- | -------- | ------- | ----------- | --- | ---------------------------------- |
-| 1        | S1-01    | #61     | ✅ Merged   | #66 | issue/61-relevance-eval-harness    |
-| 2        | S1-02    | #34     | ✅ Merged   | #67 | issue/34-composite-ranking-score   |
-| 3        | S1-03    | #36     | ✅ Merged   | #68 | story/s1-03-tag-overlap-boosting   |
-| 4        | S1-04    | #35     | ⏳ Pending  | —   | —                                   |
+| Sequence | Story ID | Issue # | Status      | PR  | Branch                              |
+| -------- | -------- | ------- | ----------- | --- | ------------------------------------ |
+| 1        | S1-01    | #61     | ✅ Merged   | #66 | issue/61-relevance-eval-harness      |
+| 2        | S1-02    | #34     | ✅ Merged   | #67 | issue/34-composite-ranking-score     |
+| 3        | S1-03    | #36     | ✅ Merged   | #68 | story/s1-03-tag-overlap-boosting     |
+| 4        | S1-04    | #35     | ✅ Merged   | #69 | issue/35-dynamic-confidence-tiers    |
 | 5        | S1-05    | #38     | ⏳ Pending  | —   | —                                   |
 | 6        | S1-06    | #62     | ⏳ Pending  | —   | —                                   |
 | 7        | S1-07    | #63     | ⏳ Pending  | —   | —                                   |
@@ -23,9 +23,9 @@
 
 ## Current Position
 
-- Next story: S1-04 (#35)
-- Last merged PR: #68
-- Integration branch HEAD: 753e313
+- Next story: S1-05 (#38)
+- Last merged PR: #69
+- Integration branch HEAD: 922d368
 
 ## Decisions Log
 
@@ -51,4 +51,9 @@
 - S1-03: verifier Audit Mode — High fidelity, highest drift Minor (branch naming only). Comment posted to PR #68.
 - S1-03: mid-run, local git branch had drifted back to `main` (cause unclear — possibly a subagent's own checkout) and the branch-guard hook correctly blocked a Write attempt while on main; recovered by checking out the integration branch again before retrying, per "a blocked guard is a decision, not an obstacle."
 - S1-03: `gh pr merge 68 --squash` succeeded without classifier interference this time; verifier's fidelity-report-S1-03.md was again left uncommitted on the story branch and was committed as a follow-up doc commit (753e313) after the merge, same as S1-02's pattern — consider having developer commit these before closeout in future stories.
-- Note for S1-04: no test plan expected to exist yet — proceed directly to delegation, following the same pattern used for S1-03.
+- S1-04: only output-removal story in Phase 1 — `confidence` dropped from `memo search` output only, retained in `memo read`/`list`/`write`/storage. Boundary independently verified correct by both qa-engineer and verifier.
+- S1-04: no relevance regression — baseline.json/candidates.json zero-diff against integration branch, confirmed by verifier (tiers only annotate, per AC7).
+- S1-04: correct `issue/35-<description>` branch naming used this time (explicitly instructed after S1-03's deviation).
+- S1-04: qa-engineer coverage_gate FAIL — but pre-existing global threshold debt (branches/functions), confirmed present on integration branch before this story too; every metric actually improved by this diff. Not a merge blocker per policy (self-reported/gate FAIL doesn't block, only omission does).
+- S1-04: verifier Audit Mode — High fidelity, highest drift Minor (non-TTY edge case under-tested, no functional defect). Comment posted to PR #69. No fidelity-report-*.md artifact was written this time (verifier used PR comment only) — no orphaned file to commit.
+- Note for S1-05: no test plan expected to exist yet — proceed directly to delegation, following the same pattern used for S1-03/S1-04.
