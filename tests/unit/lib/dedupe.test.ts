@@ -87,6 +87,11 @@ describe('sourceToConfidence', () => {
   it('maps manual → medium', () => {
     expect(sourceToConfidence('manual')).toBe('medium');
   });
+
+  // S2-01 / AC6: sourceToConfidence('scan') === 'low'.
+  it('maps scan → low (S2-01 AC6)', () => {
+    expect(sourceToConfidence('scan')).toBe('low');
+  });
 });
 
 describe('buildEmbedText', () => {

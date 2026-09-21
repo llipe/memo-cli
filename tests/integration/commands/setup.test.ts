@@ -417,4 +417,58 @@ describe('setup validate', () => {
       }
     });
   });
+
+  // Issue #53 (S2-01) - `setup init --v2` then `setup validate` round-trip (SC-10, AC8).
+  describe('config v2 round-trip (S2-01)', () => {
+    it('validates a config written by init --v2 and prints the resolved default bank (SC-10)', async () => {
+      await handleInit(
+        { repo: 'memo-cli', org: 'llipe', domain: 'developer-tools', v2: true },
+        tmpDir,
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      const lines: string[] = [];
+      const origWrite = process.stdout.write.bind(process.stdout);
+      process.stdout.write = (chunk: string | Uint8Array) => {
+        lines.push(String(chunk));
+        return true;
+      };
+
+      try {
+        await handleValidate(tmpDir);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(0)');
+      } finally {
+        process.stdout.write = origWrite;
+        mockExit.mockRestore();
+      }
+
+      expect(lines.join('')).toContain('kb');
+    });
+
+    it('rejects a hand-edited schema_version "3" as CONFIG_INVALID (round-trip regression guard)', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify({ ...VALID_CONFIG, schema_version: '3' }, null, 2),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      try {
+        await handleValidate(tmpDir);
+        fail('Expected process.exit to be called');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(1)');
+      } finally {
+        mockExit.mockRestore();
+      }
+    });
+  });
 });

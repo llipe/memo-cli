@@ -15,8 +15,10 @@ export function buildDedupeKey(params: DedupeKeyParams): string {
   return createHash('sha256').update(canonical).digest('hex');
 }
 
-export function sourceToConfidence(source: 'agent' | 'manual'): 'high' | 'medium' {
-  return source === 'agent' ? 'high' : 'medium';
+export function sourceToConfidence(source: 'agent' | 'manual' | 'scan'): 'high' | 'medium' | 'low' {
+  if (source === 'agent') return 'high';
+  if (source === 'manual') return 'medium';
+  return 'low';
 }
 
 export function buildEmbedText(rationale: string, tags: string[]): string {

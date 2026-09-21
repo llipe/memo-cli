@@ -2,9 +2,13 @@ import { z } from 'zod';
 
 const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
-const KebabString = z
+export const KebabString = z
   .string()
   .regex(KEBAB_CASE, 'Must be kebab-case (lowercase letters, digits, hyphens only)');
+
+// Spec §18.2: `bank.default` (and, via S2-01's schema-only scope, any future
+// per-entry `bank` field) accepts either a kebab-case bank id or a UUID.
+export const KebabOrUuid = KebabString.or(z.string().uuid());
 
 // Ranking defaults per issue #34's binding refinement (D1-D9). The three
 // weights are intentionally documented as 0.6/0.3/0.1 even though, in IEEE
@@ -104,9 +108,103 @@ const RankingConfigSchema = z
 
 export type RankingConfig = z.infer<typeof RankingConfigSchema>;
 
+// ---------------------------------------------------------------------------
+// Config v2 (issue #53 / S2-01) — spec §18.2, defaults per §8.4
+// ---------------------------------------------------------------------------
+
+// Per-kind lifecycle/retention policy. No field carries a Zod `.default()` at
+// this level (spec §18.2): defaults are supplied one level up, as the literal
+// object passed to each bank/kind's own `.default(...)` below, so a partial
+// override (e.g. only `banks.private.self.soft_cap`) does not blank out
+// sibling policy blocks (AC2/AC3, spec §18.2, test plan CT-3).
+const KindPolicySchema = z
+  .object({
+    initial_stability_days: z.number().positive().optional(),
+    expires_in_days: z.number().int().positive().optional(),
+    archive_threshold: z.number().min(0).max(1).optional(),
+    archive_noisy: z.boolean().optional(),
+    promoted_grace_days: z.number().int().min(0).optional(),
+    superseded_grace_days: z.number().int().min(0).optional(),
+    // `null` = never purge automatically; absent = no policy opinion (see the
+    // per-bank/kind `.default()` literals below for when each resolves).
+    purge_after_days: z.number().int().positive().nullable().optional(),
+  })
+  .strict();
+
+export type KindPolicy = z.infer<typeof KindPolicySchema>;
+
+const SelfPolicySchema = z.object({ soft_cap: z.number().int().positive().default(50) }).strict();
+
+export type SelfPolicy = z.infer<typeof SelfPolicySchema>;
+
+// Policy defaults table (spec §8.4, refined by A5/A6). Exported as named
+// constants (`DEFAULT_*` pattern) per the story's Business Rules.
+export const DEFAULT_KB_EPISODIC_POLICY: KindPolicy = {
+  initial_stability_days: 3,
+  expires_in_days: 90,
+  promoted_grace_days: 7,
+  purge_after_days: null,
+};
+export const DEFAULT_KB_SEMANTIC_POLICY: KindPolicy = {
+  initial_stability_days: 90,
+  archive_threshold: 0.05,
+  archive_noisy: false,
+  superseded_grace_days: 30,
+  purge_after_days: null,
+};
+export const DEFAULT_PRIVATE_EPISODIC_POLICY: KindPolicy = {
+  initial_stability_days: 3,
+  expires_in_days: 30,
+  promoted_grace_days: 7,
+  purge_after_days: 30,
+};
+export const DEFAULT_PRIVATE_SEMANTIC_POLICY: KindPolicy = {
+  initial_stability_days: 30,
+  archive_threshold: 0.05,
+  archive_noisy: true,
+  superseded_grace_days: 30,
+  purge_after_days: 90,
+};
+export const DEFAULT_PRIVATE_SELF_SOFT_CAP = 50;
+export const DEFAULT_BANK_ID = 'kb';
+export const DEFAULT_RECALL_MAX_TOKENS = 2000;
+
+const BanksConfigSchema = z
+  .object({
+    kb: z
+      .object({
+        episodic: KindPolicySchema.default(DEFAULT_KB_EPISODIC_POLICY),
+        semantic: KindPolicySchema.default(DEFAULT_KB_SEMANTIC_POLICY),
+      })
+      .default({}),
+    private: z
+      .object({
+        self: SelfPolicySchema.default({}),
+        episodic: KindPolicySchema.default(DEFAULT_PRIVATE_EPISODIC_POLICY),
+        semantic: KindPolicySchema.default(DEFAULT_PRIVATE_SEMANTIC_POLICY),
+      })
+      .default({}),
+  })
+  .default({});
+
+export type BanksConfig = z.infer<typeof BanksConfigSchema>;
+
+const BankConfigSchema = z.object({ default: KebabOrUuid.default(DEFAULT_BANK_ID) }).default({});
+
+export type BankConfig = z.infer<typeof BankConfigSchema>;
+
+const RecallConfigSchema = z
+  .object({ max_tokens: z.number().int().positive().default(DEFAULT_RECALL_MAX_TOKENS) })
+  .default({});
+
+export type RecallConfig = z.infer<typeof RecallConfigSchema>;
+
 export const MemoConfigSchema = z
   .object({
-    schema_version: z.literal('1'),
+    schema_version: z.enum(['1', '2']),
+    bank: BankConfigSchema,
+    banks: BanksConfigSchema,
+    recall: RecallConfigSchema,
     repo: KebabString,
     org: KebabString,
     domain: KebabString,

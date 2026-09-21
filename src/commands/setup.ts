@@ -86,7 +86,7 @@ async function confirmOverwrite(
 // Interactive wizard
 // ---------------------------------------------------------------------------
 
-async function runInteractiveWizard(cwd: string): Promise<MemoConfig | null> {
+async function runInteractiveWizard(cwd: string, v2 = false): Promise<MemoConfig | null> {
   const suggestedRepo = getGitRemoteRepo() ?? '';
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -140,7 +140,7 @@ async function runInteractiveWizard(cwd: string): Promise<MemoConfig | null> {
       : [];
 
     const config: MemoConfig = MemoConfigSchema.parse({
-      schema_version: '1',
+      schema_version: v2 ? '2' : '1',
       repo,
       org,
       domain,
@@ -185,6 +185,7 @@ interface InitOptions {
   domain?: string;
   relatesTo?: string;
   json?: boolean;
+  v2?: boolean;
 }
 
 async function handleInit(opts: InitOptions, cwd: string): Promise<void> {
@@ -213,7 +214,10 @@ async function handleInit(opts: InitOptions, cwd: string): Promise<void> {
       : [];
 
     const result = MemoConfigSchema.safeParse({
-      schema_version: '1',
+      // S2-01 / AC8: `--v2` writes `schema_version: "2"`, which resolves the
+      // default `bank`/`banks`/`recall` blocks via the schema itself; without
+      // it, `setup init` keeps writing `"1"` (spec §18.2).
+      schema_version: opts.v2 ? '2' : '1',
       repo: opts.repo,
       org: opts.org,
       domain: opts.domain,
@@ -234,7 +238,7 @@ async function handleInit(opts: InitOptions, cwd: string): Promise<void> {
       process.stderr.write(chalk.yellow(`Warning: overwriting existing ${CONFIG_FILE}\n`));
     }
   } else {
-    config = await runInteractiveWizard(cwd);
+    config = await runInteractiveWizard(cwd, opts.v2);
   }
 
   if (!config) return;
@@ -277,6 +281,11 @@ async function handleValidate(cwd: string): Promise<void> {
 
   if (result.valid) {
     process.stdout.write(chalk.green(`✔ ${CONFIG_FILE} is valid\n`));
+    // S2-01 / AC8: print the resolved default bank (falls back to "kb" for a
+    // v1 config too, since `bank.default` always resolves via its schema
+    // default regardless of schema_version).
+    const config = await loadConfig(cwd);
+    process.stdout.write(`  Default bank: ${chalk.bold(config.bank.default)}\n`);
     process.exit(0);
   } else {
     process.stderr.write(chalk.red(`✗ ${CONFIG_FILE} is invalid\n`));
@@ -300,6 +309,7 @@ const setupInit = new Command('init')
   .option('--domain <name>', 'Domain (kebab-case)')
   .option('--relates-to <repos>', 'Comma-separated related repos')
   .option('--json', 'Output written config as JSON to stdout')
+  .option('--v2', 'Write schema_version "2" with default bank/banks/recall blocks')
   .action(async function (this: Command) {
     const opts = this.opts<InitOptions>();
     try {
