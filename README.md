@@ -328,6 +328,7 @@ memo search "event publishing" \
 | `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                                  |
 | `--limit`      | `5`     | Maximum results to return                                              |
 | `--lexical`    | `on`    | `on` \| `off` — enable/disable lexical identifier matching (issue #62) |
+| `--explain`    | `false` | Show a per-result factor breakdown (issue #63) — see below             |
 | `--json`       | `false` | Output as JSON                                                         |
 
 #### Reading search results
@@ -344,11 +345,12 @@ Results are ordered by a composite `final_score` — not raw similarity (see [Ra
       source: agent  2026-04-09T10:00:00Z
 ```
 
-JSON mode (`--json`) returns the full machine-readable payload, including all five score components plus `confidence_tier` on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by):
+JSON mode (`--json`) returns the full machine-readable payload, including all five score components plus `confidence_tier` on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by), and a `query_id` at the envelope level:
 
 ```json
 {
   "query": "how do we handle authentication",
+  "query_id": "6f1c2e6a-2b3f-4a3b-9c1e-7a1f9c9e6f1c",
   "filters": { "scope": "repo", "repos": ["my-service"] },
   "results": [
     {
@@ -374,6 +376,49 @@ JSON mode (`--json`) returns the full machine-readable payload, including all fi
 > **Note for existing `--json` consumers:** if you previously sorted or filtered on `results[].similarity`, that field's raw meaning is unchanged, but the array's own order now follows `final_score`, not `similarity` — switch to `final_score` if you rely on result order.
 
 > **Breaking change (#35, the one output removal in Phase 1):** the static `confidence` field (`high`/`medium`/`low`, inherited from the entry's write-time `source`) is **removed from `memo search` output only** — both `--json` and human mode. It is replaced by `confidence_tier`, a per-query signal computed from `final_score` (`exact ≥ 0.88`, `high` `[0.75, 0.88)`, `medium` `[0.60, 0.75)`, `low` below `0.60`; thresholds are configurable under `ranking.confidence_thresholds` above). `confidence` is unaffected everywhere else — it remains on `memo read`, `memo list`, and `memo write` output, and in the stored payload. If your integration reads `confidence` from `memo search --json`, switch to `confidence_tier`.
+
+#### `query_id` and `--explain` (issue #63)
+
+Every `memo search --json` response carries a fresh, random `query_id` (UUID v4) at the envelope level, generated once per invocation — two identical queries produce two different ids. `query_id` is **inert in Phase 1**: nothing is persisted (no file, no Qdrant payload change), and nothing reads it back. It exists purely to establish the contract Phase 3 fills in (attaching feedback and relevance snapshots to a specific result set via `memo used`) without another output-shape change. In human mode, `query_id` is not printed unless `--explain` is set.
+
+`--explain` is a diagnostic flag: it never changes ordering, scores, or which results return, and it adds no extra Qdrant or embeddings call. It adds a `factors` object to every `--json` result:
+
+```json
+{
+  "results": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      ...,
+      "factors": {
+        "similarity": 0.94,
+        "recency_score": 0.71,
+        "source_score": 1.0,
+        "tag_boost": 0.025,
+        "lexical_boost": 0.0,
+        "retention": 1.0,
+        "use_ratio": 0,
+        "link_factor": 1.0,
+        "final_score": 0.87
+      }
+    }
+  ]
+}
+```
+
+`retention`, `use_ratio`, and `link_factor` are always the neutral values shown above in Phase 1 (they belong to issues #54-#56) — they are explicit, not omitted, so `--explain`'s shape never changes once those stories light them up. `lexical_boost` is present and numeric (`0.0`, not omitted) even when `--lexical off` disabled lexical matching for that query.
+
+In human mode, `--explain` appends an aligned factor table under each result and a `query_id: <uuid>` footer line after all results:
+
+```
+  [high] my-service  87%  Adopted JWT with RS256 for service-to-service auth...
+      repo: my-service  tags: auth, jwt, security  type: decision
+      source: agent  2026-04-10T15:30:00Z
+sim   recency  source  tag    lex   retention  use   final
+0.94  0.71     1.00    0.03   0.00  1.00       0.00  0.87
+id:550e8400-e29b-41d4-a716-446655440000
+
+query_id: 6f1c2e6a-2b3f-4a3b-9c1e-7a1f9c9e6f1c
+```
 
 ---
 

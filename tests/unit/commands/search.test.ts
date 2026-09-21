@@ -211,10 +211,12 @@ describe('handleSearch', () => {
       }
     });
 
-    it('does not remove or rename existing envelope keys (AC7)', async () => {
+    it('does not remove or rename existing envelope keys, only adds query_id (AC4, #63 AC1)', async () => {
       await handleSearch({ query: 'q', limit: '5', json: true }, rankedDeps);
       const parsed = JSON.parse(stdoutData) as Record<string, unknown>;
-      expect(Object.keys(parsed).sort()).toEqual(['count', 'filters', 'query', 'results'].sort());
+      expect(Object.keys(parsed).sort()).toEqual(
+        ['count', 'filters', 'query', 'query_id', 'results'].sort(),
+      );
     });
 
     it('slices ranked results down to --limit (AC13)', async () => {
@@ -661,6 +663,141 @@ describe('handleSearch', () => {
 
       const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
       expect(parsed.results[0]?.id).toBe('match');
+    });
+  });
+
+  describe('query_id and --explain (#63)', () => {
+    const explainDeps: SearchDeps = {
+      loadCfg: jest.fn().mockResolvedValue(mockConfig),
+      createRepo: () => mockQdrant as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      createEmbeddings: () => mockEmbeddings as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+
+    const oneResult = [
+      {
+        id: 'result-1',
+        score: 0.71,
+        payload: {
+          repo: 'memo-cli',
+          rationale: 'A tagged decision about search-filters.ts',
+          source: 'agent',
+          tags: ['search'],
+          timestamp_utc: new Date().toISOString(),
+        },
+      },
+    ];
+
+    beforeEach(() => {
+      mockQdrant.search.mockResolvedValue(oneResult);
+    });
+
+    it('includes a UUID v4 query_id in every --json response (AC1)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
+      const parsed = JSON.parse(stdoutData) as { query_id: string };
+      expect(parsed.query_id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+    });
+
+    it('generates a fresh query_id per invocation (AC2)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
+      const first = (JSON.parse(stdoutData) as { query_id: string }).query_id;
+
+      stdoutData = '';
+      await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
+      const second = (JSON.parse(stdoutData) as { query_id: string }).query_id;
+
+      expect(first).not.toBe(second);
+    });
+
+    it('includes query_id even with zero results, and leaves the empty-state message unchanged (AC3, edge case)', async () => {
+      mockQdrant.search.mockResolvedValue([]);
+      await handleSearch({ query: 'q', limit: '5', json: true, explain: true }, explainDeps);
+      const parsed = JSON.parse(stdoutData) as {
+        query_id: string;
+        message?: string;
+        results: unknown[];
+      };
+      expect(typeof parsed.query_id).toBe('string');
+      expect(parsed.results).toHaveLength(0);
+      expect(parsed.message).toBe('No results found for the requested scope and filters.');
+    });
+
+    it('does not persist anything for query_id: no qdrant write/setPayload/batchUpdate calls exist to invoke (AC3)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
+      // search.ts never imports/calls any write-path qdrant method; the only
+      // mocked methods it can call are read/scroll ones, all asserted below.
+      expect(mockQdrant.ensureCollection).toHaveBeenCalledTimes(1);
+      expect(mockQdrant.search).toHaveBeenCalledTimes(1);
+    });
+
+    it('adds a complete factors object to every result under --explain, including neutral values (AC5, AC8)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true, explain: true }, explainDeps);
+      const parsed = JSON.parse(stdoutData) as {
+        results: { factors: Record<string, unknown> }[];
+      };
+      expect(parsed.results).toHaveLength(1);
+      const factors = parsed.results[0]?.factors;
+      expect(factors).toEqual({
+        similarity: expect.any(Number),
+        recency_score: expect.any(Number),
+        source_score: expect.any(Number),
+        tag_boost: expect.any(Number),
+        lexical_boost: expect.any(Number),
+        retention: 1.0,
+        use_ratio: 0,
+        link_factor: 1.0,
+        final_score: expect.any(Number),
+      });
+    });
+
+    it('omits the factors object entirely when --explain is not set', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      expect(parsed.results[0]).not.toHaveProperty('factors');
+    });
+
+    it('shows lexical_boost: 0.0 (present, not omitted) under --explain with --lexical off (edge case)', async () => {
+      await handleSearch(
+        { query: 'q', limit: '5', json: true, explain: true, lexical: 'off' },
+        explainDeps,
+      );
+      const parsed = JSON.parse(stdoutData) as {
+        results: { factors: { lexical_boost: number } }[];
+      };
+      expect(parsed.results[0]?.factors.lexical_boost).toBe(0);
+    });
+
+    it('adds no extra Qdrant or embeddings calls under --explain (AC7)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
+      const baselineSearchCalls = mockQdrant.search.mock.calls.length;
+      const baselineFetchByRepoCalls = mockQdrant.fetchByRepo.mock.calls.length;
+      const baselineEmbedCalls = mockEmbeddings.embed.mock.calls.length;
+      jest.clearAllMocks();
+      mockQdrant.search.mockResolvedValue(oneResult);
+      mockQdrant.fetchByRepo.mockResolvedValue([]);
+      mockQdrant.scroll.mockResolvedValue([]);
+
+      await handleSearch({ query: 'q', limit: '5', json: true, explain: true }, explainDeps);
+
+      expect(mockQdrant.search.mock.calls.length).toBe(baselineSearchCalls);
+      expect(mockQdrant.fetchByRepo.mock.calls.length).toBe(baselineFetchByRepoCalls);
+      expect(mockEmbeddings.embed.mock.calls.length).toBe(baselineEmbedCalls);
+    });
+
+    it('does not change human-mode output without --explain (AC6)', async () => {
+      await handleSearch({ query: 'q', limit: '5' }, explainDeps);
+      expect(stdoutData).not.toContain('query_id');
+      expect(stdoutData).not.toContain('retention');
+    });
+
+    it('renders an aligned factor table and the query_id footer under --explain in human mode (AC6)', async () => {
+      await handleSearch({ query: 'q', limit: '5', explain: true }, explainDeps);
+      expect(stdoutData).toContain('sim');
+      expect(stdoutData).toContain('recency');
+      expect(stdoutData).toContain('retention');
+      expect(stdoutData).toContain('final');
+      expect(stdoutData).toContain('query_id:');
     });
   });
 });

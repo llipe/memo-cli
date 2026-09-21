@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Command } from 'commander';
 import { loadConfig } from '../lib/config.js';
 import { debugLog } from '../lib/debug.js';
@@ -5,6 +6,7 @@ import { createEmbeddingsAdapter } from '../lib/embeddings.js';
 import { MemoError } from '../lib/errors.js';
 import { cosine, computeLexicalBoost, extractIdentifierTokens } from '../lib/lexical.js';
 import { output } from '../lib/output.js';
+import type { ExplainFactors } from '../lib/output.js';
 import { QdrantRepository } from '../lib/qdrant.js';
 import { resolveScopeRepos } from '../lib/registry.js';
 import { buildSearchFilters } from '../lib/search-filters.js';
@@ -57,6 +59,7 @@ export interface SearchFlags {
   source?: string;
   limit?: string | number;
   lexical?: string;
+  explain?: boolean;
   json?: boolean;
 }
 
@@ -216,7 +219,35 @@ function toRankableEntry(result: SearchResult): SearchRankInput {
 /** A ranked result with its optional staleness annotation attached (#38 D-1). */
 type StaleAnnotated<T> = T & { stale?: true; stale_by?: string | number };
 
-function toJsonResult(result: StaleAnnotated<RankedSearchResult>): Record<string, unknown> {
+/**
+ * Projects a ranked result into the `--explain` factor bag (#63 AC5, AC8).
+ * `retention`, `use_ratio`, and `link_factor` are hardcoded to their
+ * documented neutral values rather than read from `result.factors` -
+ * `ResolvedFactors`'s `retention_factor`/`use_ratio_factor`/`link_factor`
+ * are the *multiplicative* neutral (`1`), but the spec's `--explain`
+ * contract calls for the *raw metric* neutral (`retention` 1.0, `use_ratio`
+ * 0, `link_factor` 1.0) - these three stay unimplemented until Phase 3
+ * (#54-#56), so the explicit literals here are the contract, not a
+ * derivation.
+ */
+function buildExplainFactors(result: RankedSearchResult): ExplainFactors {
+  return {
+    similarity: result.similarity,
+    recency_score: result.recency_score,
+    source_score: result.source_score,
+    tag_boost: result.factors.tag_boost,
+    lexical_boost: result.factors.lexical_boost,
+    retention: 1.0,
+    use_ratio: 0,
+    link_factor: 1.0,
+    final_score: result.final_score,
+  };
+}
+
+function toJsonResult(
+  result: StaleAnnotated<RankedSearchResult>,
+  explain: boolean,
+): Record<string, unknown> {
   return {
     id: result.id,
     ...omitStoredConfidence(result.payload),
@@ -226,14 +257,17 @@ function toJsonResult(result: StaleAnnotated<RankedSearchResult>): Record<string
     source_score: result.source_score,
     // #36 AC4: tag_boost is surfaced explicitly (not the full factor bag)
     // since it is the only additive/multiplicative factor this story wires
-    // through to a real query; lexical_boost/retention/use_ratio/link stay
-    // internal until their own stories (#54-#56, FR-1.3) light them up.
+    // through to a real query outside of --explain; the full bag (including
+    // lexical_boost/retention/use_ratio/link_factor) is only ever added via
+    // #63's `factors` projection below.
     tag_boost: result.factors.tag_boost,
     // #35 AC3/AC4: confidence_tier replaces the removed static `confidence`.
     confidence_tier: result.confidence_tier,
     // #38 AC3: `stale`/`stale_by` are omitted entirely (not `false`/`null`)
     // when the result is not flagged - never spread an `undefined` value in.
     ...(result.stale ? { stale: true as const, stale_by: result.stale_by } : {}),
+    // #63 AC5: `factors` is additive-only, present exclusively under --explain.
+    ...(explain ? { factors: buildExplainFactors(result) } : {}),
   };
 }
 
@@ -254,6 +288,11 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     createEmbeddings = createEmbeddingsAdapter,
     resolveRepos = resolveScopeRepos,
   } = deps;
+
+  // #63 AC1/AC2: a fresh, purely local (no I/O) correlation id per
+  // invocation. Inert in Phase 1 - never persisted, never read back (AC3).
+  const queryId = randomUUID();
+  const explain = flags.explain === true;
 
   // Only a missing config is tolerated (the caller may supply --repo instead).
   // An invalid config - including invalid `ranking` weights - MUST fail fast
@@ -416,12 +455,16 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     const staleBy = staleFlags.get(String(result.id));
     return staleBy === undefined ? result : { ...result, stale: true, stale_by: staleBy };
   });
-  const jsonResults = annotatedResults.map(toJsonResult);
+  const jsonResults = annotatedResults.map((result) => toJsonResult(result, explain));
 
   if (flags.json) {
     output.result(
       {
         query: flags.query,
+        // #63 AC1/AC4: additive envelope key, positioned right after `query`
+        // per spec §6.2's JSON example - every other key keeps its name,
+        // type, and position.
+        query_id: queryId,
         filters: responseFilters,
         results: jsonResults,
         count: jsonResults.length,
@@ -452,8 +495,16 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
       confidenceTier: result.confidence_tier,
       // #38 AC7: drives the inline `⚠ STALE` warning in `output.searchResults`.
       ...(result.stale ? { stale: true as const, staleBy: result.stale_by } : {}),
+      // #63 AC6: drives the aligned factor table in `output.searchResults`.
+      ...(explain ? { explain: buildExplainFactors(result) } : {}),
     })),
   );
+
+  // #63: the query_id footer is human-mode-only and only under --explain
+  // (Business Rules) - default human output stays exactly as before.
+  if (explain) {
+    output.explainFooter(queryId);
+  }
 }
 
 const search = new Command('search')
@@ -467,6 +518,7 @@ const search = new Command('search')
   .option('--source <csv>', 'comma-separated sources to include')
   .option('--limit <n>', 'maximum number of results', '10')
   .option('--lexical <on|off>', 'enable/disable lexical identifier matching (default: on)')
+  .option('--explain', 'show a per-result factor breakdown (#63)')
   .option('--json', 'output as JSON')
   .action(async (query: string, opts: Record<string, unknown>) => {
     await handleSearch({
@@ -479,6 +531,7 @@ const search = new Command('search')
       source: opts['source'] as string | undefined,
       limit: opts['limit'] as string | undefined,
       lexical: opts['lexical'] as string | undefined,
+      explain: opts['explain'] as boolean | undefined,
       json: opts['json'] as boolean | undefined,
     });
   });

@@ -583,14 +583,14 @@ So that feedback can be attached to a specific result set later and so that rank
 
 #### Acceptance Criteria
 
-- [ ] **AC1** — Every `memo search --json` response includes a `query_id` (UUID v4) at the envelope level.
-- [ ] **AC2** — A fresh `query_id` is generated per invocation; two identical queries produce different ids.
-- [ ] **AC3** — Phase 1 persists nothing for `query_id`: no file is written, no Qdrant payload changes (asserted on mocks).
-- [ ] **AC4** — Existing envelope keys (`query`, `filters`, `results`, `count`, `message`) keep their names, types, and positions; `query_id` is additive.
-- [ ] **AC5** — `memo search --explain` adds a `factors` object per result in JSON containing `similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, `retention` (1.0), `use_ratio` (0), `link_factor` (1.0), and `final_score`.
-- [ ] **AC6** — `--explain` in human mode prints an aligned factor table under each result; without `--explain` output is unchanged.
-- [ ] **AC7** — `--explain` adds no Qdrant or embeddings call.
-- [ ] **AC8** — Neutral factors are explicitly present and documented as neutral, so Phase 3 changes values rather than shapes.
+- [x] **AC1** — Every `memo search --json` response includes a `query_id` (UUID v4) at the envelope level.
+- [x] **AC2** — A fresh `query_id` is generated per invocation; two identical queries produce different ids.
+- [x] **AC3** — Phase 1 persists nothing for `query_id`: no file is written, no Qdrant payload changes (asserted on mocks).
+- [x] **AC4** — Existing envelope keys (`query`, `filters`, `results`, `count`, `message`) keep their names, types, and positions; `query_id` is additive.
+- [x] **AC5** — `memo search --explain` adds a `factors` object per result in JSON containing `similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, `retention` (1.0), `use_ratio` (0), `link_factor` (1.0), and `final_score`.
+- [x] **AC6** — `--explain` in human mode prints an aligned factor table under each result; without `--explain` output is unchanged.
+- [x] **AC7** — `--explain` adds no Qdrant or embeddings call.
+- [x] **AC8** — Neutral factors are explicitly present and documented as neutral, so Phase 3 changes values rather than shapes.
 
 #### Business Rules
 
@@ -633,12 +633,12 @@ So that feedback can be attached to a specific result set later and so that rank
 
 #### Definition of Done Checklist
 
-- [ ] Code implemented per technical guidelines
-- [ ] Unit/integration/manual/edge-case tests written and passing
-- [ ] Quality gates passing (`lint`, `format:check`, `typecheck`, `test`, `audit`)
+- [x] Code implemented per technical guidelines
+- [x] Unit/integration/edge-case tests written and passing; manual steps documented in README (not executable in this sandbox — no live Qdrant instance)
+- [x] Quality gates passing (`lint`, `format:check`, `typecheck`, `test`, `audit`) — `format:check` passes on every file this story touches; its overall repo-wide failure is pre-existing and unrelated (58 files, none from this story)
 - [ ] Code reviewed and approved
-- [ ] Acceptance criteria verified and mapped to test evidence
-- [ ] Migration opt-out documented
+- [x] Acceptance criteria verified and mapped to test evidence
+- [x] Migration opt-out documented
 - [ ] Pull Request created and merged
 
 ---

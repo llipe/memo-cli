@@ -212,5 +212,82 @@ describe('output', () => {
       const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
       expect(written).not.toContain('STALE');
     });
+
+    // #63 AC6: `--explain` appends an aligned factor table
+    // (`sim recency source tag lex retention use final`) under each result.
+    describe('--explain factor table (#63)', () => {
+      it('omits the factor table entirely when explain is absent (backward compatible)', () => {
+        output.searchResults([
+          { id: '1', similarity: 0.7, repo: 'memo-cli', rationale: 'A decision' },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).not.toContain('sim');
+        expect(written).not.toContain('retention');
+      });
+
+      it('renders the header and value rows with short, near-zero values (AC6, AC8)', () => {
+        output.searchResults([
+          {
+            id: '1',
+            similarity: 0.7,
+            repo: 'memo-cli',
+            rationale: 'A decision',
+            explain: {
+              similarity: 0.5,
+              recency_score: 0.1,
+              source_score: 1,
+              tag_boost: 0,
+              lexical_boost: 0,
+              retention: 1.0,
+              use_ratio: 0,
+              link_factor: 1.0,
+              final_score: 0.6,
+            },
+          },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).toContain('sim');
+        expect(written).toContain('recency');
+        expect(written).toContain('source');
+        expect(written).toContain('tag');
+        expect(written).toContain('lex');
+        expect(written).toContain('retention');
+        expect(written).toContain('use');
+        expect(written).toContain('final');
+        expect(written).toContain('0.50');
+        expect(written).toContain('1.00');
+        expect(written).toContain('0.00');
+      });
+
+      it('aligns columns for long (multi-digit) and short values without truncation', () => {
+        output.searchResults([
+          {
+            id: '1',
+            similarity: 0.7,
+            repo: 'memo-cli',
+            rationale: 'A decision',
+            explain: {
+              similarity: 0.987654,
+              recency_score: 0.1,
+              source_score: 1,
+              tag_boost: 0.123456,
+              lexical_boost: 0,
+              retention: 1.0,
+              use_ratio: 0,
+              link_factor: 1.0,
+              final_score: 1,
+            },
+          },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        const lines = written.split('\n');
+        const headerLine = lines.find((l) => l.includes('sim') && l.includes('recency'));
+        const valueLine = lines.find((l) => l.includes('0.99') || l.includes('0.9'));
+        expect(headerLine).toBeDefined();
+        expect(valueLine).toBeDefined();
+        expect(written).toContain('0.99');
+        expect(written).toContain('0.12');
+      });
+    });
   });
 });
