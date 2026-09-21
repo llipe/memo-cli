@@ -6,7 +6,7 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T04:07:05Z
+- Last updated: 2026-09-21T04:22:43Z
 
 ## Story Status
 
@@ -19,13 +19,15 @@
 | 5        | S1-05    | #38     | ✅ Merged   | #70 | issue/38-staleness-detection         |
 | 6        | S1-06    | #62     | ✅ Merged   | #71 | issue/62-lexical-identifier-matching |
 | 7        | S1-07    | #63     | ✅ Merged   | #72 | issue/63-query-id-explain            |
-| 8        | S1-08    | #64     | ⏳ Pending  | —   | —                                   |
+| 8        | S1-08    | #64     | ✅ Merged   | #73 | issue/64-phase-1-exit-gate           |
+
+**ALL 8 STORIES MERGED.** Proceeding to Phase 5 (consolidated PR to main).
 
 ## Current Position
 
-- Next story: S1-08 (#64) — Phase 1 exit gate
-- Last merged PR: #72
-- Integration branch HEAD: 4dad2dc
+- Next: Phase 5 — PRD-level rollup verifier audit, consolidated PR to main, user approval/merge
+- Last merged PR: #73
+- Integration branch HEAD: fa5b98b
 
 ## Decisions Log
 
@@ -66,4 +68,10 @@
 - S1-07: developer's sandbox had no live Qdrant credentials this time (unlike prior stories); planner ran manual live validation directly against Qdrant Cloud (query_id in envelope, factors object with correct neutral literals, human --explain table + footer) — all correct.
 - S1-07: qa-engineer coverage_gate FAIL on one real, specific, non-blocking gap — the envelope key-order test uses a sorted-array comparison, which can't prove order (only set membership). Verifier independently confirmed the actual runtime order is correct (matches planner's live JSON) via diff reading, so this is a test-rigor gap, not a functional defect. Flagged for follow-up fix, not blocking.
 - S1-07: verifier Audit Mode — High fidelity, no Critical/Major drift. query_id confirmed genuinely inert (no caching/dedup wiring), envelope additive-only, neutral-factor semantics correctly distinguished from S1-02's separate ranking.ts factor bag.
-- Note for S1-08: this is the Phase 1 EXIT GATE — a gate, not a feature. Per Execution Notes, if the gate fails and tuning cannot close it, stop and escalate (PRD revision needed, not a code change). This is also where /TESTING.md's stale/mismatched-project content (flagged repeatedly by qa-engineer across S1-01 through S1-07) must finally be corrected, and where a true 1,000-entry-scale latency measurement (deferred from S1-05's AC8) should be captured if feasible.
+- S1-08: gate MET on first measurement — 96.4% overall top-3 hit rate live against Qdrant Cloud, no tuning needed (fixtures genuinely unchanged, confirmed by both gates). No config/ranking.ts defaults touched.
+- S1-08: /TESTING.md finally corrected after being flagged as stale/mismatched (wrong project entirely) across every prior story. qa-engineer independently re-verified the rewrite's every claim, including the specific "test:coverage flag-passthrough bug doesn't reproduce" claim (ran three ways, identical results).
+- S1-08: real docs drift found and fixed across the FULL merged Phase 1 surface (not just this story's own changes) — docs/data-model.md, docs/technical-guidelines.md, docs/system-overview.md all brought current. Verified via diff by both gates, not narrative-trusted.
+- S1-08: coverage_gate FAIL, honestly and consistently reported everywhere (TESTING.md, PR, task list, PRD changelog) — pre-existing global branches/functions debt, not introduced by any Phase 1 story. Independently re-measured by qa-engineer, numbers confirmed exact.
+- S1-08: sub-task 8.25 (tag/publish v1.2.0) deliberately NOT performed per planner's explicit instruction — confirmed by both gates (unchanged package.json version, empty diff). Release is a separate decision after the consolidated PR is reviewed.
+- S1-08: verifier treated this as functionally the Phase 1 rollup audit too (posted summary to both PR #73 and issue #64). High fidelity, Minor-only (self-disclosed) drift, no Critical.
+- Not yet addressed, tracked for follow-up beyond this run: the 1,000-entry-scale latency measurement deferred from S1-05's AC8 was not revisited in S1-08 (developer's scope was gate/docs/coverage, not latency); the S1-07 test-rigor gap (sorted-array key-order assertion) also remains unfixed. Neither blocks Phase 1 completion.
