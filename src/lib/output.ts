@@ -2,6 +2,28 @@ import chalk from 'chalk';
 import ora from 'ora';
 import type { Ora } from 'ora';
 
+/** Confidence tier labels (#35 AC5). Kept in sync with `src/lib/ranking.ts`'s `ConfidenceTier`. */
+export type ConfidenceTierLabel = 'exact' | 'high' | 'medium' | 'low';
+
+/**
+ * The `--explain` factor projection (#63 AC5, AC8): a self-contained bag
+ * that duplicates the top-level score fields alongside the additive/
+ * multiplicative factors, including neutral values for factors Phase 1 does
+ * not yet compute (`retention`, `use_ratio`, `link_factor`) so Phase 3 can
+ * change their values without changing this shape.
+ */
+export interface ExplainFactors {
+  similarity: number;
+  recency_score: number;
+  source_score: number;
+  tag_boost: number;
+  lexical_boost: number;
+  retention: number;
+  use_ratio: number;
+  link_factor: number;
+  final_score: number;
+}
+
 export interface SearchHumanResult {
   id: string | number;
   similarity: number;
@@ -14,6 +36,52 @@ export interface SearchHumanResult {
   story?: string;
   commit?: string;
   timestamp_utc?: string;
+  /**
+   * Confidence tier for this result on this query (#35 AC5). Optional so
+   * callers that never rank (or that pre-date this story) keep the exact
+   * same output with no `[tier]` prefix at all.
+   */
+  confidenceTier?: ConfidenceTierLabel;
+  /**
+   * Staleness annotation (#38 AC7). Optional so callers that never detect
+   * staleness (or that pre-date this story) keep the exact same output with
+   * no warning line at all. `staleBy` is only meaningful when `stale` is
+   * `true`.
+   */
+  stale?: boolean;
+  staleBy?: string | number;
+  /**
+   * `--explain` factor breakdown (#63 AC6). Optional so callers that never
+   * pass `--explain` keep the exact same output with no table at all.
+   */
+  explain?: ExplainFactors;
+}
+
+/**
+ * Semantic color per tier (guidelines §4): `exact`/`high` green, `medium`
+ * yellow, `low` gray. The text label (`[tier]`) is always present
+ * regardless of color support - color is a hint, never the only signal.
+ */
+const TIER_COLOR: Record<ConfidenceTierLabel, (text: string) => string> = {
+  exact: (text) => chalk.green(text),
+  high: (text) => chalk.green(text),
+  medium: (text) => chalk.yellow(text),
+  low: (text) => chalk.gray(text),
+};
+
+function renderTierPrefix(tier: ConfidenceTierLabel | undefined): string {
+  if (!tier) return '';
+  return `${TIER_COLOR[tier](`[${tier}]`)} `;
+}
+
+/**
+ * `⚠ STALE — superseded by <id>` (#38 AC7). Returns `null` (not rendered)
+ * when `stale` is falsy or `staleBy` is missing, so the warning line is
+ * omitted entirely rather than shown empty.
+ */
+function renderStaleWarning(result: SearchHumanResult): string | null {
+  if (!result.stale || result.staleBy === undefined) return null;
+  return `${chalk.yellow.bold('⚠ STALE')} — superseded by ${String(result.staleBy)}`;
 }
 
 export interface ListHumanResult {
@@ -48,6 +116,41 @@ function renderMetadata(result: SearchHumanResult): string {
   ].filter((value): value is string => value !== null);
 
   return parts.join('  ');
+}
+
+/**
+ * Column order for the `--explain` human table, per spec §10: `sim recency
+ * source tag lex retention use final`. `link_factor` is JSON-only (AC5) -
+ * the human table intentionally stays narrow and omits it, matching the
+ * spec's literal column list.
+ */
+const EXPLAIN_TABLE_COLUMNS: { key: keyof ExplainFactors; label: string }[] = [
+  { key: 'similarity', label: 'sim' },
+  { key: 'recency_score', label: 'recency' },
+  { key: 'source_score', label: 'source' },
+  { key: 'tag_boost', label: 'tag' },
+  { key: 'lexical_boost', label: 'lex' },
+  { key: 'retention', label: 'retention' },
+  { key: 'use_ratio', label: 'use' },
+  { key: 'final_score', label: 'final' },
+];
+
+function formatFactorValue(value: number): string {
+  return Number.isFinite(value) ? value.toFixed(2) : '0.00';
+}
+
+/**
+ * Renders the `--explain` factor table (#63 AC6) as two aligned lines (a
+ * header row and a value row), each column padded to the wider of its
+ * label or formatted value so long and short values never misalign.
+ */
+function renderExplainTable(factors: ExplainFactors): [string, string] {
+  const cells = EXPLAIN_TABLE_COLUMNS.map(({ key, label }) => {
+    const formatted = formatFactorValue(factors[key]);
+    const width = Math.max(label.length, formatted.length);
+    return { label: label.padEnd(width), value: formatted.padEnd(width) };
+  });
+  return [cells.map((c) => c.label).join('  '), cells.map((c) => c.value).join('  ')];
 }
 
 function renderListMetadata(result: ListHumanResult): string {
@@ -101,15 +204,31 @@ export const output = {
       const metadata = renderMetadata(result);
 
       process.stdout.write(
-        `${chalk.cyan(repoLabel)}  ${chalk.gray(score)}  ${chalk.bold(toLead(result.rationale))}\n`,
+        `${renderTierPrefix(result.confidenceTier)}${chalk.cyan(repoLabel)}  ${chalk.gray(score)}  ${chalk.bold(toLead(result.rationale))}\n`,
       );
 
       if (metadata.length > 0) {
         process.stdout.write(`${chalk.gray(metadata)}\n`);
       }
 
+      const staleWarning = renderStaleWarning(result);
+      if (staleWarning) {
+        process.stdout.write(`${staleWarning}\n`);
+      }
+
+      if (result.explain) {
+        const [header, values] = renderExplainTable(result.explain);
+        process.stdout.write(`${chalk.gray(header)}\n`);
+        process.stdout.write(`${chalk.gray(values)}\n`);
+      }
+
       process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
     }
+  },
+
+  /** `--explain` footer line (#63): the `query_id` correlation id, human mode only. */
+  explainFooter(queryId: string): void {
+    process.stdout.write(`${chalk.gray(`query_id: ${queryId}`)}\n`);
   },
 
   searchEmpty(query: string, activeFilters: string[]): void {

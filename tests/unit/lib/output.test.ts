@@ -81,4 +81,213 @@ describe('output', () => {
       expect(written).not.toMatch(/\x1b\[/);
     });
   });
+
+  // Issue #34 (D6, AC6): the human-output percentage now renders the caller's
+  // composite score. `searchResults` itself is score-source agnostic - the
+  // caller (`search.ts`) is responsible for passing `final_score` into the
+  // `similarity` field - so these tests assert the rendering contract, not
+  // ranking math (that belongs to `ranking.test.ts`).
+  describe('searchResults()', () => {
+    it('renders the passed-in score as a rounded percentage, not a separate raw value', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.72, repo: 'memo-cli', rationale: 'An old but relevant decision' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('72%');
+      expect(written).not.toContain('91%');
+    });
+
+    it('keeps the repo label, then the score, then the rationale lead in order', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.5, repo: 'my-service', rationale: 'lead text' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      const repoIdx = written.indexOf('my-service');
+      const scoreIdx = written.indexOf('50%');
+      const leadIdx = written.indexOf('lead text');
+      expect(repoIdx).toBeGreaterThanOrEqual(0);
+      expect(repoIdx).toBeLessThan(scoreIdx);
+      expect(scoreIdx).toBeLessThan(leadIdx);
+    });
+
+    // #35 AC5: the `[tier]` prefix, always present as an explicit text
+    // label even with color disabled (guidelines §4).
+    it('prefixes each result with [tier] when confidenceTier is present (AC5)', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.9,
+          repo: 'memo-cli',
+          rationale: 'lead text',
+          confidenceTier: 'exact',
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[exact]');
+    });
+
+    it('renders every documented tier label', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.9, rationale: 'a', confidenceTier: 'exact' },
+        { id: '2', similarity: 0.8, rationale: 'b', confidenceTier: 'high' },
+        { id: '3', similarity: 0.65, rationale: 'c', confidenceTier: 'medium' },
+        { id: '4', similarity: 0.2, rationale: 'd', confidenceTier: 'low' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[exact]');
+      expect(written).toContain('[high]');
+      expect(written).toContain('[medium]');
+      expect(written).toContain('[low]');
+    });
+
+    it('omits the [tier] prefix entirely when confidenceTier is absent (backward compatible)', () => {
+      output.searchResults([{ id: '1', similarity: 0.9, repo: 'memo-cli', rationale: 'lead' }]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).not.toMatch(/\[(exact|high|medium|low)\]/);
+    });
+
+    it('keeps the text label readable with NO_COLOR set (no ANSI escape codes)', () => {
+      process.env['NO_COLOR'] = '1';
+      output.searchResults([
+        { id: '1', similarity: 0.9, repo: 'memo-cli', rationale: 'lead', confidenceTier: 'exact' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[exact]');
+      expect(written).not.toMatch(/\x1b\[/);
+    });
+
+    // #38 AC7: the staleness warning renders inline under the flagged result.
+    it('renders the STALE warning with the superseder id when stale is true (AC7)', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.7,
+          repo: 'memo-cli',
+          rationale: 'An old decision',
+          stale: true,
+          staleBy: 'newer-entry-id',
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('⚠ STALE');
+      expect(written).toContain('superseded by newer-entry-id');
+    });
+
+    it('places the STALE warning under the flagged result, after its main line', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.7,
+          repo: 'memo-cli',
+          rationale: 'An old decision',
+          stale: true,
+          staleBy: 'newer-entry-id',
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      const mainLineIdx = written.indexOf('An old decision');
+      const staleIdx = written.indexOf('⚠ STALE');
+      expect(mainLineIdx).toBeGreaterThanOrEqual(0);
+      expect(staleIdx).toBeGreaterThan(mainLineIdx);
+    });
+
+    it('omits the STALE warning entirely when stale is absent (backward compatible)', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.7, repo: 'memo-cli', rationale: 'A fresh decision' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).not.toContain('STALE');
+    });
+
+    it('omits the STALE warning when stale is false', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.7,
+          repo: 'memo-cli',
+          rationale: 'A fresh decision',
+          stale: false,
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).not.toContain('STALE');
+    });
+
+    // #63 AC6: `--explain` appends an aligned factor table
+    // (`sim recency source tag lex retention use final`) under each result.
+    describe('--explain factor table (#63)', () => {
+      it('omits the factor table entirely when explain is absent (backward compatible)', () => {
+        output.searchResults([
+          { id: '1', similarity: 0.7, repo: 'memo-cli', rationale: 'A decision' },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).not.toContain('sim');
+        expect(written).not.toContain('retention');
+      });
+
+      it('renders the header and value rows with short, near-zero values (AC6, AC8)', () => {
+        output.searchResults([
+          {
+            id: '1',
+            similarity: 0.7,
+            repo: 'memo-cli',
+            rationale: 'A decision',
+            explain: {
+              similarity: 0.5,
+              recency_score: 0.1,
+              source_score: 1,
+              tag_boost: 0,
+              lexical_boost: 0,
+              retention: 1.0,
+              use_ratio: 0,
+              link_factor: 1.0,
+              final_score: 0.6,
+            },
+          },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).toContain('sim');
+        expect(written).toContain('recency');
+        expect(written).toContain('source');
+        expect(written).toContain('tag');
+        expect(written).toContain('lex');
+        expect(written).toContain('retention');
+        expect(written).toContain('use');
+        expect(written).toContain('final');
+        expect(written).toContain('0.50');
+        expect(written).toContain('1.00');
+        expect(written).toContain('0.00');
+      });
+
+      it('aligns columns for long (multi-digit) and short values without truncation', () => {
+        output.searchResults([
+          {
+            id: '1',
+            similarity: 0.7,
+            repo: 'memo-cli',
+            rationale: 'A decision',
+            explain: {
+              similarity: 0.987654,
+              recency_score: 0.1,
+              source_score: 1,
+              tag_boost: 0.123456,
+              lexical_boost: 0,
+              retention: 1.0,
+              use_ratio: 0,
+              link_factor: 1.0,
+              final_score: 1,
+            },
+          },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        const lines = written.split('\n');
+        const headerLine = lines.find((l) => l.includes('sim') && l.includes('recency'));
+        const valueLine = lines.find((l) => l.includes('0.99') || l.includes('0.9'));
+        expect(headerLine).toBeDefined();
+        expect(valueLine).toBeDefined();
+        expect(written).toContain('0.99');
+        expect(written).toContain('0.12');
+      });
+    });
+  });
 });

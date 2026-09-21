@@ -228,4 +228,592 @@ describe('MemoConfigSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  // ---------------------------------------------------------------------------
+  // ranking (issue #34)
+  // ---------------------------------------------------------------------------
+
+  describe('ranking', () => {
+    it('resolves full defaults when the ranking block is absent (AC10)', () => {
+      const result = MemoConfigSchema.safeParse(VALID_BASE);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking).toEqual({
+          w_similarity: 0.6,
+          w_recency: 0.3,
+          w_source: 0.1,
+          recency_half_life_days: 365,
+          tag_boost_factor: 0.05,
+          confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
+          staleness_threshold_days: 120,
+          staleness_tag_overlap_threshold: 0.5,
+          lexical: true,
+          lexical_boost_factor: 0.15,
+        });
+      }
+    });
+
+    it('resolves full defaults when the ranking block is an empty object', () => {
+      const result = MemoConfigSchema.safeParse({ ...VALID_BASE, ranking: {} });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking.w_similarity).toBe(0.6);
+      }
+    });
+
+    // EC-11 / F-2: the documented defaults, written out literally, must
+    // themselves pass validation even though 0.6 + 0.3 + 0.1 !== 1.0 in
+    // IEEE 754 - the ±0.001 tolerance is load-bearing.
+    it('accepts the documented defaults written out literally (EC-11, F-2)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts a fully specified valid ranking block (AC8)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: {
+          w_similarity: 0.5,
+          w_recency: 0.4,
+          w_source: 0.1,
+          recency_half_life_days: 30,
+          tag_boost_factor: 0.1,
+        },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking).toEqual({
+          w_similarity: 0.5,
+          w_recency: 0.4,
+          w_source: 0.1,
+          recency_half_life_days: 30,
+          tag_boost_factor: 0.1,
+          confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
+          staleness_threshold_days: 120,
+          staleness_tag_overlap_threshold: 0.5,
+          lexical: true,
+          lexical_boost_factor: 0.15,
+        });
+      }
+    });
+
+    it('rejects a partial block whose resolved weights break the sum check (AC11)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.5 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'ranking');
+        expect(issue).toBeDefined();
+        expect(issue?.message).toContain('0.9');
+      }
+    });
+
+    it('accepts a partial block that only overrides recency_half_life_days, since the untouched weights still sum to 1.0 (CT-5c)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: 30 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking).toEqual({
+          w_similarity: 0.6,
+          w_recency: 0.3,
+          w_source: 0.1,
+          recency_half_life_days: 30,
+          tag_boost_factor: 0.05,
+          confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
+          staleness_threshold_days: 120,
+          staleness_tag_overlap_threshold: 0.5,
+          lexical: true,
+          lexical_boost_factor: 0.15,
+        });
+      }
+    });
+
+    it('rejects weights summing to 0.9, naming the ranking path and the actual sum (AC9)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.5, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'ranking');
+        expect(issue?.message).toMatch(/ranking weights/);
+        expect(issue?.message).toContain('0.9');
+      }
+    });
+
+    it('rejects weights summing to 1.1', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: 0.4, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts a sum within the ±0.001 tolerance boundary', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6005, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a sum just outside the ±0.001 tolerance boundary', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6015, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects recency_half_life_days of 0 (R10)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: 0 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a negative recency_half_life_days (R10)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: -1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a non-finite recency_half_life_days', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: Infinity },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('resolves tag_boost_factor to its 0.05 default when omitted (#36 AC1)', () => {
+      const result = MemoConfigSchema.safeParse(VALID_BASE);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['tag_boost_factor']).toBe(0.05);
+      }
+    });
+
+    it('accepts tag_boost_factor: 0 to disable boosting entirely (#36 AC2)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: 0 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['tag_boost_factor']).toBe(0);
+      }
+    });
+
+    it('accepts a custom tag_boost_factor without disturbing the weight-sum check', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: 0.1 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['tag_boost_factor']).toBe(0.1);
+        expect(result.data.ranking.w_similarity).toBe(0.6);
+      }
+    });
+
+    it('rejects a negative tag_boost_factor', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: -0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a non-finite tag_boost_factor', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: Infinity },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a string in place of a numeric tag_boost_factor, without coercion', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: '0.05' },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects an individual weight above 1 even if the sum is 1.0 (R11)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 2.0, w_recency: -1.0, w_source: 0.0 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a string in place of a numeric weight, without coercion (CT-6)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: '0.6', w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'ranking.w_similarity');
+        expect(issue).toBeDefined();
+      }
+    });
+
+    it('rejects null in place of a numeric weight', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: null, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('preserves an unknown key inside ranking and ignores it in the sum (CT-7)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: {
+          w_similarity: 0.6,
+          w_recency: 0.3,
+          w_source: 0.1,
+          w_future_signal: 0.5,
+        },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['w_future_signal']).toBe(0.5);
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // confidence_thresholds (issue #35, AC1/AC2)
+    // -------------------------------------------------------------------------
+
+    describe('confidence_thresholds', () => {
+      it('resolves to the documented defaults when omitted (AC1)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['confidence_thresholds']).toEqual(
+            {
+              exact: 0.88,
+              high: 0.75,
+              medium: 0.6,
+            },
+          );
+        }
+      });
+
+      it('accepts a valid custom threshold ordering (AC2)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.9, high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['confidence_thresholds']).toEqual(
+            {
+              exact: 0.9,
+              high: 0.7,
+              medium: 0.4,
+            },
+          );
+        }
+      });
+
+      it('rejects equal threshold values, naming the offending path (AC2)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.8, high: 0.8, medium: 0.6 } },
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const issue = result.error.issues.find((i) =>
+            i.path.join('.').startsWith('ranking.confidence_thresholds'),
+          );
+          expect(issue).toBeDefined();
+        }
+      });
+
+      it('rejects an inverted threshold ordering, naming the offending path (AC2)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.5, high: 0.8, medium: 0.9 } },
+        });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const issue = result.error.issues.find((i) =>
+            i.path.join('.').startsWith('ranking.confidence_thresholds'),
+          );
+          expect(issue).toBeDefined();
+          expect(issue?.message).toMatch(/confidence_thresholds/);
+        }
+      });
+
+      it('accepts a partial override that only changes medium, keeping the other defaults', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { medium: 0.5 } },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['confidence_thresholds']).toEqual(
+            {
+              exact: 0.88,
+              high: 0.75,
+              medium: 0.5,
+            },
+          );
+        }
+      });
+
+      it('rejects a partial override whose resolved thresholds break ordering', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { high: 0.95 } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a threshold value above 1', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 1.5, high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a negative threshold value', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: 0.9, high: 0.7, medium: -0.1 } },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-numeric threshold value without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { confidence_thresholds: { exact: '0.9', high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // staleness_threshold_days / staleness_tag_overlap_threshold (issue #38)
+    // -------------------------------------------------------------------------
+
+    describe('staleness', () => {
+      it('resolves staleness_threshold_days to its 120 default when omitted (#38 AC1)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['staleness_threshold_days']).toBe(
+            120,
+          );
+        }
+      });
+
+      it('resolves staleness_tag_overlap_threshold to its 0.5 default when omitted (#38 AC1)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(
+            (result.data.ranking as Record<string, unknown>)['staleness_tag_overlap_threshold'],
+          ).toBe(0.5);
+        }
+      });
+
+      it('accepts a custom staleness_threshold_days without disturbing the weight-sum check', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: 30 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['staleness_threshold_days']).toBe(
+            30,
+          );
+          expect(result.data.ranking.w_similarity).toBe(0.6);
+        }
+      });
+
+      it('accepts staleness_threshold_days: 0', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: 0 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['staleness_threshold_days']).toBe(
+            0,
+          );
+        }
+      });
+
+      it('rejects a negative staleness_threshold_days', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: -1 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-finite staleness_threshold_days', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: Infinity },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a string in place of a numeric staleness_threshold_days, without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: '120' },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('accepts a custom staleness_tag_overlap_threshold in [0, 1]', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: 0.75 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(
+            (result.data.ranking as Record<string, unknown>)['staleness_tag_overlap_threshold'],
+          ).toBe(0.75);
+        }
+      });
+
+      it('rejects a staleness_tag_overlap_threshold above 1', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: 1.5 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a negative staleness_tag_overlap_threshold', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: -0.1 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-numeric staleness_tag_overlap_threshold without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: '0.5' },
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // lexical / lexical_boost_factor (issue #62)
+    // -------------------------------------------------------------------------
+
+    describe('lexical', () => {
+      it('resolves lexical to true by default when omitted (#62 AC7)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical']).toBe(true);
+        }
+      });
+
+      it('resolves lexical_boost_factor to its 0.15 default when omitted (#62 AC6)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical_boost_factor']).toBe(
+            0.15,
+          );
+        }
+      });
+
+      it('accepts lexical: false to disable the lexical scroll entirely (#62 AC7)', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical: false },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical']).toBe(false);
+        }
+      });
+
+      it('rejects a non-boolean lexical value without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical: 'off' },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('accepts lexical_boost_factor: 0 to disable boosting entirely', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: 0 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical_boost_factor']).toBe(0);
+        }
+      });
+
+      it('accepts a custom lexical_boost_factor without disturbing the weight-sum check', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: 0.25 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['lexical_boost_factor']).toBe(
+            0.25,
+          );
+          expect(result.data.ranking.w_similarity).toBe(0.6);
+        }
+      });
+
+      it('rejects a negative lexical_boost_factor', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: -0.1 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-finite lexical_boost_factor', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: Infinity },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a string in place of a numeric lexical_boost_factor, without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { lexical_boost_factor: '0.15' },
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+  });
 });

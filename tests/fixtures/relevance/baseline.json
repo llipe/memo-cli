@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-09-21T01:56:57.059Z",
+  "overall_top3": 0.9642857142857143,
+  "by_category": {
+    "concept": 1,
+    "identifier": 1,
+    "cross-repo": 0.8333333333333334,
+    "recency": 1
+  },
+  "ranking_config": {
+    "note": "S1-02 composite ranking (issue #34): final_score = 0.6*similarity + 0.3*recency + 0.1*source, default weights.",
+    "w_similarity": 0.6,
+    "w_recency": 0.3,
+    "w_source": 0.1,
+    "recency_half_life_days": 365
+  }
+}

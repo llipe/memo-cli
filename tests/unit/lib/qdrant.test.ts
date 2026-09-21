@@ -31,6 +31,7 @@ describe('QdrantRepository', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv, QDRANT_URL: 'http://localhost:6333' };
+    delete process.env['MEMO_COLLECTION'];
     jest.clearAllMocks();
   });
 
@@ -42,6 +43,77 @@ describe('QdrantRepository', () => {
     it('throws MISSING_CREDENTIAL when QDRANT_URL is not set', () => {
       delete process.env['QDRANT_URL'];
       expect(() => new QdrantRepository()).toThrow(MemoError);
+    });
+  });
+
+  describe('MEMO_COLLECTION resolution', () => {
+    it('resolves to the default "decisions" collection when MEMO_COLLECTION is unset', async () => {
+      delete process.env['MEMO_COLLECTION'];
+      mockGetCollection.mockRejectedValueOnce(new Error('Not found'));
+      mockCreateCollection.mockResolvedValueOnce({});
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('decisions');
+
+      await repo.ensureCollection();
+      expect(mockCreateCollection).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ vectors: expect.objectContaining({ size: 1536 }) }),
+      );
+    });
+
+    it('resolves to the MEMO_COLLECTION value when set', async () => {
+      process.env['MEMO_COLLECTION'] = 'memo_eval';
+      mockGetCollection.mockRejectedValueOnce(new Error('Not found'));
+      mockCreateCollection.mockResolvedValueOnce({});
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('memo_eval');
+
+      await repo.ensureCollection();
+      expect(mockCreateCollection).toHaveBeenCalledWith(
+        'memo_eval',
+        expect.objectContaining({ vectors: expect.objectContaining({ size: 1536 }) }),
+      );
+    });
+
+    it('treats an empty-string MEMO_COLLECTION as unset and falls back to "decisions"', () => {
+      process.env['MEMO_COLLECTION'] = '';
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('decisions');
+    });
+
+    it('treats a whitespace-only MEMO_COLLECTION as unset and falls back to "decisions"', () => {
+      process.env['MEMO_COLLECTION'] = '   ';
+      const repo = new QdrantRepository('http://localhost:6333');
+      expect(repo.collectionName).toBe('decisions');
+    });
+
+    it('is read once at construction and does not change if the env var mutates afterward', () => {
+      process.env['MEMO_COLLECTION'] = 'memo_eval';
+      const repo = new QdrantRepository('http://localhost:6333');
+      process.env['MEMO_COLLECTION'] = 'something-else';
+      expect(repo.collectionName).toBe('memo_eval');
+    });
+
+    it('scopes upsert/search/scroll calls to the resolved collection name', async () => {
+      process.env['MEMO_COLLECTION'] = 'memo_eval';
+      mockUpsert.mockResolvedValueOnce({});
+      mockQuery.mockResolvedValueOnce({ points: [] });
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const vector = Array(1536).fill(0.1) as number[];
+
+      await repo.upsert('id-1', vector, {});
+      await repo.search(vector);
+      await repo.scroll();
+
+      expect(mockUpsert).toHaveBeenCalledWith('memo_eval', expect.anything());
+      expect(mockQuery).toHaveBeenCalledWith('memo_eval', expect.anything());
+      expect(mockScroll).toHaveBeenCalledWith('memo_eval', expect.anything());
     });
   });
 
@@ -130,6 +202,156 @@ describe('QdrantRepository', () => {
         }),
       );
       expect(results).toHaveLength(1);
+    });
+
+    it('defaults with_vector to false and omits vector from results (#62 AC4/AC5, existing call sites unaffected)', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: '1', payload: { text: 'hello' } }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const results = await repo.scroll({ must: [] }, 50);
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ with_vector: false }),
+      );
+      expect(results[0]).not.toHaveProperty('vector');
+    });
+
+    it('passes with_vector: true and attaches the vector when { withVector: true } (#62 AC4/AC5)', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: '1', payload: { text: 'hello' }, vector: [0.1, 0.2] }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const results = await repo.scroll({ must: [] }, 50, { withVector: true });
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({ with_vector: true }),
+      );
+      expect(results[0]?.vector).toEqual([0.1, 0.2]);
+    });
+  });
+
+  describe('ensureIndexes()', () => {
+    it('reads payload_schema and creates only missing indexes, including the #62 text indexes', async () => {
+      mockGetCollection.mockResolvedValueOnce({
+        payload_schema: {
+          repo: {},
+          org: {},
+          entry_type: {},
+          source: {},
+          tags: {},
+          timestamp_utc: {},
+          commit: {},
+          dedupe_key_sha256: {},
+        },
+      });
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.ensureIndexes();
+
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(2);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          field_name: 'rationale',
+          field_schema: expect.objectContaining({ type: 'text', tokenizer: 'word' }),
+        }),
+      );
+      expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          field_name: 'files_modified',
+          field_schema: expect.objectContaining({ type: 'text', tokenizer: 'word' }),
+        }),
+      );
+    });
+
+    it('is idempotent: a second call creates nothing once every index exists', async () => {
+      const fullSchema = {
+        repo: {},
+        org: {},
+        entry_type: {},
+        source: {},
+        tags: {},
+        timestamp_utc: {},
+        commit: {},
+        dedupe_key_sha256: {},
+        rationale: {},
+        files_modified: {},
+      };
+      mockGetCollection.mockResolvedValueOnce({ payload_schema: fullSchema });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.ensureIndexes();
+
+      expect(mockCreatePayloadIndex).not.toHaveBeenCalled();
+    });
+
+    it('throws COLLECTION_BOOTSTRAP_FAILED when the collection cannot be read', async () => {
+      mockGetCollection.mockRejectedValue(new Error('Connection refused'));
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await expect(repo.ensureIndexes()).rejects.toMatchObject({
+        code: 'COLLECTION_BOOTSTRAP_FAILED',
+      });
+    });
+  });
+
+  describe('fetchByRepo()', () => {
+    it('scrolls with an any-match repo filter, descending timestamp order, and the default 1000 bound (#38 AC5, AC6)', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: '1', payload: { repo: 'memo-cli' } }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const results = await repo.fetchByRepo(['memo-cli']);
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          filter: { must: [{ key: 'repo', match: { any: ['memo-cli'] } }] },
+          limit: 1000,
+          order_by: { key: 'timestamp_utc', direction: 'desc' },
+        }),
+      );
+      expect(results).toHaveLength(1);
+    });
+
+    it('matches any repo in the provided set (--scope related, AC6)', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.fetchByRepo(['memo-cli', 'platform-docs']);
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          filter: { must: [{ key: 'repo', match: { any: ['memo-cli', 'platform-docs'] } }] },
+        }),
+      );
+    });
+
+    it('accepts a custom limit override', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.fetchByRepo(['memo-cli'], 50);
+
+      expect(mockScroll).toHaveBeenCalledWith('decisions', expect.objectContaining({ limit: 50 }));
+    });
+
+    it('calls scroll exactly once per invocation', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.fetchByRepo(['memo-cli']);
+
+      expect(mockScroll).toHaveBeenCalledTimes(1);
     });
   });
 

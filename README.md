@@ -15,6 +15,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
 - [Getting Started](#getting-started)
 - [Usage Guide](#usage-guide)
   - [Step 1: Initialize a Repository](#step-1-initialize-a-repository)
+    - [Ranking configuration (optional)](#ranking-configuration-optional)
   - [Step 2: Write Your First Decision](#step-2-write-your-first-decision)
   - [Step 3: Search Decisions](#step-3-search-decisions)
   - [Step 4: List Decisions](#step-4-list-decisions)
@@ -165,6 +166,62 @@ memo setup validate    # check config validity (exit 0 = valid)
 }
 ```
 
+#### Ranking configuration (optional)
+
+`memo search` orders results by a composite `final_score`, not raw similarity. The `ranking` block is additive and optional — omit it entirely to use the documented defaults:
+
+```json
+{
+  "schema_version": "1",
+  "repo": "my-service",
+  "org": "my-company",
+  "domain": "backend",
+  "ranking": {
+    "w_similarity": 0.6,
+    "w_recency": 0.3,
+    "w_source": 0.1,
+    "recency_half_life_days": 365,
+    "tag_boost_factor": 0.05,
+    "confidence_thresholds": {
+      "exact": 0.88,
+      "high": 0.75,
+      "medium": 0.6
+    },
+    "staleness_threshold_days": 120,
+    "staleness_tag_overlap_threshold": 0.5,
+    "lexical": true,
+    "lexical_boost_factor": 0.15
+  }
+}
+```
+
+| Field                             | Default                                    | Meaning                                                                                                                                                                                                                                                                                       |
+| --------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `w_similarity`                    | `0.6`                                      | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                                       |
+| `w_recency`                       | `0.3`                                      | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                                  |
+| `w_source`                        | `0.1`                                      | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                                     |
+| `recency_half_life_days`          | `365`                                      | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection)             |
+| `tag_boost_factor`                | `0.05`                                     | Additive boost for tag overlap between the query and a result's `tags` (issue #36): `tag_boost = matched_tags / total_query_terms * tag_boost_factor`, added to the base score before the `1.0` cap. `0` disables tag boosting entirely; must be a non-negative finite number                 |
+| `confidence_thresholds`           | `{ exact: 0.88, high: 0.75, medium: 0.6 }` | Band boundaries (issue #35) for the `confidence_tier` attached to every `memo search` result: `exact` at/above the `exact` threshold, `high` in `[high, exact)`, `medium` in `[medium, high)`, `low` below `medium`. Each threshold is a number in `[0, 1]`.                                  |
+| `staleness_threshold_days`        | `120`                                      | Age (in days) beyond which a result becomes eligible to be flagged stale (issue #38); must be a non-negative finite number                                                                                                                                                                    |
+| `staleness_tag_overlap_threshold` | `0.5`                                      | Minimum Jaccard tag overlap with a newer same-repo entry required to flag a result stale (issue #38); a number in `[0, 1]`                                                                                                                                                                    |
+| `lexical`                         | `true`                                     | Enables lexical identifier matching (issue #62); `false` (or `--lexical off`) skips the extra scroll entirely                                                                                                                                                                                 |
+| `lexical_boost_factor`            | `0.15`                                     | Additive boost for lexical identifier matches (issue #62): `lexical_boost = identifiers_matched / total_identifiers * lexical_boost_factor`, added to the base score alongside `tag_boost` before the `1.0` cap. `0` disables lexical boosting entirely; must be a non-negative finite number |
+
+**Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` (or `tag_boost_factor`) is fine, since the untouched weights still sum to `1.0`.
+
+**Tag overlap boosting (#36):** matching is case-insensitive and whole-word. The query is normalized by splitting on whitespace, stripping leading/trailing punctuation from each term (keeping internal hyphens, so a kebab-case tag like `rate-limiting` only matches the whole query token `rate-limiting`, not the bare word `rate`), and excluding a fixed stopword list (`a, the, is, for, of, in, to, with`) from `total_query_terms`. A query with only stopwords, or no terms at all, yields `tag_boost: 0` and never divides by zero.
+
+**Confidence threshold ordering (#35):** `confidence_thresholds` must be strictly descending (`exact > high > medium`); equal values are rejected too, since a zero-width band would make that tier unreachable. Like the weight-sum rule, an invalid ordering — including a partial override that breaks it — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`), naming the offending `ranking.confidence_thresholds` path.
+
+`final_score`, `recency_score`, `source_score`, and `tag_boost` are always present alongside the original `similarity` on every `--json` result (backward compatible — `similarity` keeps its original raw meaning). Human-mode output is unaffected by tag boosting — it only shifts `final_score` ordering and percentage.
+
+**Staleness detection (#38):** every `memo search` result older than `staleness_threshold_days` (default `120`) is checked, once per invocation, against a same-repo corpus fetched via one `scroll` call (bounded at 1,000 entries, cached for the command's duration — never a per-result network call). If a _strictly newer_ entry in that corpus has Jaccard tag overlap `>= staleness_tag_overlap_threshold` (default `0.5`) with the result, the result carries `stale: true` and `stale_by: <newest qualifying entry's id>` on `--json` output, and an inline `⚠ STALE — superseded by <id>` warning under the result in human output. Same-timestamp entries never supersede each other, an entry is never marked stale by itself, and an entry with no tags is never a superseder. Staleness is advisory-only: it is derived per-query, never stored, and never changes `final_score` or ordering — a stale result keeps its position. When a result is not stale, the `stale` and `stale_by` keys are omitted entirely (not `false`/`null`). Note the field name is `stale_by`, not `superseded_by` — Phase 2 introduces a distinct, _stored_ `superseded_by` payload field with different (authoritative, not inferred) semantics; a result may legitimately carry both.
+
+**Lexical identifier matching (#62):** `memo search` widens (never narrows) its candidate set when the query contains identifier-shaped tokens — a token containing `.`, `/`, `-`, or `_`, matching `#\d+` or `[A-Z]+-\d+`, starting with `--`, or written in CamelCase (e.g. `search-filters.ts`, `#123`, `PROJ-45`, `--lexical`, `QdrantRepository`). When at least one such token is present and `ranking.lexical` is `true` (the default), exactly one extra Qdrant `scroll` runs against `rationale`/`files_modified` text indexes (`should` per identifier, `min_should: 1`, same pre-filters as the dense query, `limit 50`), in addition to the normal dense vector search — never instead of it. Candidates found only via this scroll get a locally computed cosine similarity against the query embedding; candidates already found by the dense search keep their Qdrant score. Every candidate (dense or lexical) then receives `lexical_boost = identifiers_matched / total_identifiers * lexical_boost_factor`, added to the base score alongside `tag_boost` before the `1.0` cap — matching is all-or-nothing per identifier (every one of `search-filters.ts`'s word-tokens must appear in a candidate's `rationale`/`files_modified` for that identifier to count). Use `--lexical off` (or `ranking.lexical: false`) to disable this entirely; a query with no identifier tokens never issues the extra scroll regardless of the setting. If the lexical scroll itself fails, `memo search` degrades to dense-only results (logged under `MEMO_DEBUG`, exit code unchanged) rather than failing the command. `lexical_boost` is internal to Phase 1 ranking — it becomes visible in `--json` output via `--explain` (issue #63).
+
+The two supporting Qdrant `text` indexes (`rationale`, `files_modified` — see [Data Model](docs/data-model.md)) are created automatically and idempotently by `ensureIndexes()` on every `memo search`/`memo write` invocation, including against a collection created by an earlier memo-cli version; no manual migration step is required.
+
 ---
 
 ### Step 2: Write Your First Decision
@@ -263,34 +320,37 @@ memo search "event publishing" \
 
 #### All search flags
 
-| Flag           | Default | Description                                                       |
-| -------------- | ------- | ----------------------------------------------------------------- |
-| `--scope`      | `repo`  | `repo` (this repo only) or `related` (include `relates_to` repos) |
-| `--tags`       | —       | Comma-separated tags to require (AND semantics)                   |
-| `--entry-type` | —       | Filter: `decision` \| `integration_point` \| `structure`          |
-| `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                             |
-| `--limit`      | `5`     | Maximum results to return                                         |
-| `--json`       | `false` | Output as JSON                                                    |
+| Flag           | Default | Description                                                            |
+| -------------- | ------- | ---------------------------------------------------------------------- |
+| `--scope`      | `repo`  | `repo` (this repo only) or `related` (include `relates_to` repos)      |
+| `--tags`       | —       | Comma-separated tags to require (AND semantics)                        |
+| `--entry-type` | —       | Filter: `decision` \| `integration_point` \| `structure`               |
+| `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                                  |
+| `--limit`      | `5`     | Maximum results to return                                              |
+| `--lexical`    | `on`    | `on` \| `off` — enable/disable lexical identifier matching (issue #62) |
+| `--explain`    | `false` | Show a per-result factor breakdown (issue #63) — see below             |
+| `--json`       | `false` | Output as JSON                                                         |
 
 #### Reading search results
 
-Human mode output shows:
+Results are ordered by a composite `final_score` — not raw similarity (see [Ranking configuration](#ranking-configuration-optional) above). Human mode output shows the `final_score` percentage in the same position raw similarity used to occupy, prefixed with a `[tier]` confidence-tier label (issue #35; `exact`/`high` render green, `medium` yellow, `low` gray — the text label is always present regardless of color support):
 
 ```
-  1.  (94%) Adopted JWT with RS256 for service-to-service auth...
+  [exact] my-service  94%  Adopted JWT with RS256 for service-to-service auth...
       repo: my-service  tags: auth, jwt, security  type: decision
-      source: agent  confidence: high  2026-04-10T15:30:00Z
+      source: agent  2026-04-10T15:30:00Z
 
-  2.  (87%) Auth service exposes /validate endpoint for token...
+  [high] auth-service  87%  Auth service exposes /validate endpoint for token...
       repo: auth-service  tags: auth, api, validation  type: integration_point
-      source: agent  confidence: high  2026-04-09T10:00:00Z
+      source: agent  2026-04-09T10:00:00Z
 ```
 
-JSON mode (`--json`) returns the full machine-readable payload:
+JSON mode (`--json`) returns the full machine-readable payload, including all five score components plus `confidence_tier` on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by), and a `query_id` at the envelope level:
 
 ```json
 {
   "query": "how do we handle authentication",
+  "query_id": "6f1c2e6a-2b3f-4a3b-9c1e-7a1f9c9e6f1c",
   "filters": { "scope": "repo", "repos": ["my-service"] },
   "results": [
     {
@@ -301,11 +361,63 @@ JSON mode (`--json`) returns the full machine-readable payload:
       "tags": ["auth", "jwt", "security"],
       "entry_type": "decision",
       "similarity": 0.94,
+      "final_score": 0.87,
+      "recency_score": 0.71,
+      "source_score": 1.0,
+      "tag_boost": 0.025,
+      "confidence_tier": "high",
       ...
     }
   ],
   "count": 2
 }
+```
+
+> **Note for existing `--json` consumers:** if you previously sorted or filtered on `results[].similarity`, that field's raw meaning is unchanged, but the array's own order now follows `final_score`, not `similarity` — switch to `final_score` if you rely on result order.
+
+> **Breaking change (#35, the one output removal in Phase 1):** the static `confidence` field (`high`/`medium`/`low`, inherited from the entry's write-time `source`) is **removed from `memo search` output only** — both `--json` and human mode. It is replaced by `confidence_tier`, a per-query signal computed from `final_score` (`exact ≥ 0.88`, `high` `[0.75, 0.88)`, `medium` `[0.60, 0.75)`, `low` below `0.60`; thresholds are configurable under `ranking.confidence_thresholds` above). `confidence` is unaffected everywhere else — it remains on `memo read`, `memo list`, and `memo write` output, and in the stored payload. If your integration reads `confidence` from `memo search --json`, switch to `confidence_tier`.
+
+#### `query_id` and `--explain` (issue #63)
+
+Every `memo search --json` response carries a fresh, random `query_id` (UUID v4) at the envelope level, generated once per invocation — two identical queries produce two different ids. `query_id` is **inert in Phase 1**: nothing is persisted (no file, no Qdrant payload change), and nothing reads it back. It exists purely to establish the contract Phase 3 fills in (attaching feedback and relevance snapshots to a specific result set via `memo used`) without another output-shape change. In human mode, `query_id` is not printed unless `--explain` is set.
+
+`--explain` is a diagnostic flag: it never changes ordering, scores, or which results return, and it adds no extra Qdrant or embeddings call. It adds a `factors` object to every `--json` result:
+
+```json
+{
+  "results": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      ...,
+      "factors": {
+        "similarity": 0.94,
+        "recency_score": 0.71,
+        "source_score": 1.0,
+        "tag_boost": 0.025,
+        "lexical_boost": 0.0,
+        "retention": 1.0,
+        "use_ratio": 0,
+        "link_factor": 1.0,
+        "final_score": 0.87
+      }
+    }
+  ]
+}
+```
+
+`retention`, `use_ratio`, and `link_factor` are always the neutral values shown above in Phase 1 (they belong to issues #54-#56) — they are explicit, not omitted, so `--explain`'s shape never changes once those stories light them up. `lexical_boost` is present and numeric (`0.0`, not omitted) even when `--lexical off` disabled lexical matching for that query.
+
+In human mode, `--explain` appends an aligned factor table under each result and a `query_id: <uuid>` footer line after all results:
+
+```
+  [high] my-service  87%  Adopted JWT with RS256 for service-to-service auth...
+      repo: my-service  tags: auth, jwt, security  type: decision
+      source: agent  2026-04-10T15:30:00Z
+sim   recency  source  tag    lex   retention  use   final
+0.94  0.71     1.00    0.03   0.00  1.00       0.00  0.87
+id:550e8400-e29b-41d4-a716-446655440000
+
+query_id: 6f1c2e6a-2b3f-4a3b-9c1e-7a1f9c9e6f1c
 ```
 
 ---
@@ -679,17 +791,18 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                   | Description                                  |
-| ------------------------ | -------------------------------------------- |
-| `pnpm run build`         | Compile TypeScript to `dist/`                |
-| `pnpm run build:watch`   | Compile in watch mode                        |
-| `pnpm run typecheck`     | Type-check without emitting                  |
-| `pnpm run lint`          | ESLint (v9 flat config, strict type-checked) |
-| `pnpm run lint:fix`      | ESLint with auto-fix                         |
-| `pnpm run format`        | Prettier format                              |
-| `pnpm run format:check`  | Check formatting without writing             |
-| `pnpm run test`          | Run Jest test suite                          |
-| `pnpm run test:coverage` | Run Jest with coverage report                |
+| Script                    | Description                                      |
+| ------------------------- | ------------------------------------------------ |
+| `pnpm run build`          | Compile TypeScript to `dist/`                    |
+| `pnpm run build:watch`    | Compile in watch mode                            |
+| `pnpm run typecheck`      | Type-check without emitting                      |
+| `pnpm run lint`           | ESLint (v9 flat config, strict type-checked)     |
+| `pnpm run lint:fix`       | ESLint with auto-fix                             |
+| `pnpm run format`         | Prettier format                                  |
+| `pnpm run format:check`   | Check formatting without writing                 |
+| `pnpm run test`           | Run Jest test suite                              |
+| `pnpm run test:coverage`  | Run Jest with coverage report                    |
+| `pnpm run eval:relevance` | Run the relevance evaluation harness (see below) |
 
 ### Testing
 
@@ -697,6 +810,61 @@ cp .env.example .env   # configure credentials
 pnpm run test                          # all tests
 pnpm run test -- --testPathPattern=write   # specific module
 pnpm run test:coverage                 # with coverage report
+```
+
+### Relevance evaluation harness
+
+`scripts/eval-relevance.ts` measures `memo search`'s top-3 retrieval relevance
+against a versioned fixture set (`tests/fixtures/relevance/`), so ranking
+changes are judged against a recorded baseline instead of intuition. It is a
+development/eval affordance, not a shipped CLI command.
+
+Modes (flags are combinable):
+
+| Invocation                                                 | Effect                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm run eval:relevance`                                  | Runs every query in `queries.json` against a live Qdrant + embeddings provider; prints per-category and overall top-3 hit rate; always exits 0 (reports, does not gate).                                                                                                       |
+| `MEMO_COLLECTION=memo_eval pnpm run eval:relevance --seed` | Upserts `entries.json` into the collection named by `MEMO_COLLECTION`. **Refuses (exit 1) if `MEMO_COLLECTION` is unset or empty** — this guard exists so fixture data can never land in the production `decisions` collection. Idempotent: re-seeding overwrites by fixed id. |
+| `pnpm run eval:relevance --record`                         | Runs every query and additionally writes `candidates.json` and `baseline.json`. Manual only — CI replays, it never records.                                                                                                                                                    |
+
+`MEMO_COLLECTION` isolates the evaluation collection from production data:
+`QdrantRepository` resolves it once at construction (default `decisions` when
+unset or empty/whitespace-only). Plain `run` and `--record` do **not** refuse
+when `MEMO_COLLECTION` is unset, since neither writes a Qdrant point (only
+local JSON files); only `--seed` — the one mode that writes points — enforces
+the refusal.
+
+`tests/relevance/replay.test.ts` replays the committed `candidates.json`
+offline (no network, no `QDRANT_URL`/`EMBEDDINGS_API_KEY`) and asserts the
+recomputed hit rate is at least `baseline.json.overall_top3`, guarding every
+later ranking change against a regression.
+
+**Story S1-02 (issue #34) case study:** landing composite ranking at the
+originally-proposed defaults (`recency_half_life_days: 90`) dropped the
+overall hit rate from the recorded 92.9% floor to 85.7% — a real regression,
+not a fluke (`concept` and `identifier` queries were hit hardest, consistent
+with recency weighting burying a genuinely correct older decision). Rather
+than accept the regression or move the floor, a one-factor sweep over
+`recency_half_life_days` (keeping the weights at their spec values) found a
+wide, robust plateau from ~260 to 700+ days all measuring 96.4%; `365` was
+chosen as the simplest, most legible value well inside that plateau. See PR
+#67 for the full sweep grid and numbers.
+
+The `eval:relevance` script sets `TS_NODE_TRANSPILE_ONLY=true` for its
+`node --loader ts-node/esm` invocation: ts-node/esm's own type-check pass
+does not apply `esModuleInterop` for `openai`'s CJS default export the same
+way `tsc`/the compiled `dist/` bin entry does, which otherwise aborts the
+script with spurious `TS2709`/`TS2351` diagnostics before any code runs,
+independent of credentials or network reachability. `pnpm run typecheck`
+still covers `src/**` with correct interop; this only skips ts-node's
+redundant re-check for this one script invocation.
+
+Typical workflow when re-recording the baseline against local Docker Qdrant:
+
+```bash
+MEMO_COLLECTION=memo_eval pnpm run eval:relevance --seed
+MEMO_COLLECTION=memo_eval pnpm run eval:relevance --record
+memo inspect   # confirm "decisions" point counts are unaffected
 ```
 
 202+ test cases across unit and integration layers. Coverage threshold: 80% lines/functions/statements.
@@ -803,6 +971,7 @@ src/
 │   ├── search-filters.ts # Search pre-filter builder
 │   ├── list-filters.ts   # List pre-filter builder (date range)
 │   ├── retry.ts          # Exponential backoff retry
+│   ├── eval.ts           # Pure top-3 hit-rate computation (eval harness)
 │   └── debug.ts          # Debug logging (MEMO_DEBUG)
 ├── adapters/
 │   └── openai-embeddings.ts  # OpenAI text-embedding-3-small
@@ -811,11 +980,14 @@ src/
     ├── config.ts          # MemoConfig Zod schema
     └── cli.ts             # Shared CLI interfaces
 tests/
-├── unit/                  # Unit tests (lib, adapters, commands)
-└── integration/           # Integration tests (commands, qdrant)
+├── unit/                  # Unit tests (lib, adapters, commands, scripts)
+├── integration/           # Integration tests (commands, qdrant)
+├── relevance/             # Offline replay guard (replay.test.ts)
+└── fixtures/relevance/    # entries/queries/candidates/baseline.json
 scripts/
 ├── run-jest.mjs           # Jest argument forwarder
-└── validate-bootstrap.ts  # Bootstrap JSON validator
+├── validate-bootstrap.ts  # Bootstrap JSON validator
+└── eval-relevance.ts      # Relevance evaluation harness (seed/run/record)
 docs/
 ├── product-context.md     # Product strategy & roadmap
 ├── technical-guidelines.md # Technical standards

@@ -4,6 +4,7 @@ import type { SearchDeps } from '../../../src/commands/search.js';
 const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   search: jest.fn(),
+  fetchByRepo: jest.fn().mockResolvedValue([]),
 };
 
 const mockEmbeddings = {
@@ -91,6 +92,7 @@ describe('search integration', () => {
 
     await handleSearch({ query: 'cross repo decision' }, deps);
 
+    // DEF-1: default --limit 10 over-fetches max(10, min(30, 50)) = 30 (D2).
     expect(mockQdrant.search).toHaveBeenCalledWith(
       expect.any(Array),
       {
@@ -101,7 +103,7 @@ describe('search integration', () => {
           { key: 'repo', match: { value: 'agent-sdk' } },
         ],
       },
-      10,
+      30,
     );
   });
 
@@ -123,8 +125,15 @@ describe('search integration', () => {
 
     await handleSearch({ query: 'scope expansion' }, deps);
 
+    // D6: the human-output percentage is now final_score, not raw similarity.
+    // similarity 0.91, no timestamp_utc (recency_score 0), source agent (1.0):
+    // base = 0.6*0.91 + 0.3*0 + 0.1*1.0 = 0.646.
+    // #36: query "scope expansion" matches the "scope" tag (matched=1,
+    // total_query_terms=2) -> tag_boost = (1/2) * 0.05 = 0.025.
+    // final_score = min(1, 0.646 + 0.025) = 0.671 -> 67%, not 91%.
     expect(stdoutData).toContain('memo-cli');
-    expect(stdoutData).toContain('91%');
+    expect(stdoutData).toContain('67%');
+    expect(stdoutData).not.toContain('91%');
     expect(stdoutData).toContain('Use related scope to expand repo search coverage.');
   });
 });

@@ -50,20 +50,23 @@ All commands support `--json` for machine-readable output. Human mode uses color
 
 ### Libraries (`src/lib/`)
 
-| Module              | Purpose                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                          |
-| `facets.ts`         | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting |
-| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                    |
-| `config.ts`         | Load, write, and validate `memo.config.json`                                                                           |
-| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                                                   |
-| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                                       |
-| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                                                  |
-| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                                         |
-| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                                                  |
-| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                                       |
-| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                       |
-| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                |
+| Module              | Purpose                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                    |
+| `facets.ts`         | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting                           |
+| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                              |
+| `config.ts`         | Load, write, and validate `memo.config.json`                                                                                                     |
+| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                                                                             |
+| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                                                                 |
+| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                                                                            |
+| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                                                                   |
+| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                                                                            |
+| `ranking.ts`        | Pure composite ranking score for `memo search` — `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults` (issue #34) |
+| `staleness.ts`      | Pure staleness detection for `memo search` — `computeJaccardOverlap`, `detectStaleness` (issue #38)                                              |
+| `lexical.ts`        | Pure lexical identifier matching for `memo search` — `extractIdentifierTokens`, `tokenizeWord`, `cosine`, `computeLexicalBoost` (issue #62)      |
+| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                                                                 |
+| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                                                 |
+| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                                          |
 
 ### Adapters (`src/adapters/`)
 
@@ -112,11 +115,16 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 ### Search Flow
 
 1. Parse query string and filter flags (scope, tags, entry-type, source, limit)
-2. Load config, resolve related repos if `--scope related`
+2. Load config, resolve related repos if `--scope related`; an invalid config (including invalid `ranking` weights) fails fast with `CONFIG_INVALID` rather than falling back to defaults
 3. Build Qdrant pre-filters
 4. Embed query text (plus tag terms when present)
-5. Execute vector search with pre-filters
-6. Format and output results with similarity scores
+5. Compute the over-fetch limit `max(limit, min(limit * 3, 50))` and execute vector search with pre-filters against that many candidates
+   5a. Lexical identifier matching (issue #62): extract identifier-shaped tokens from the query via `src/lib/lexical.ts`'s `extractIdentifierTokens` (file paths, dotted names, kebab/snake_case, `#123`, `PROJ-45`, `--flag`, CamelCase). When at least one identifier is present and `ranking.lexical` is `true` (default), issue exactly one extra `scroll` against the `rationale`/`files_modified` text indexes (`should` per identifier, `min_should: 1`, same pre-filters, `limit 50`, `with_vector: true`), then union-dedupe its results into the candidate set by id: candidates already found by the dense search keep their Qdrant score; lexical-only candidates get a locally computed cosine similarity (`src/lib/lexical.ts`'s `cosine`) against the query vector. If the scroll fails, degrade to dense-only results (logged under `MEMO_DEBUG`, exit code unchanged) rather than failing the command. Every candidate then gets `lexical_boost = identifiers_matched / total_identifiers * ranking.lexical_boost_factor` (all-or-nothing per identifier), computed from the candidate's own payload regardless of which retrieval path found it.
+6. Rank candidates via `src/lib/ranking.ts`'s composite score (`final_score = w_similarity * similarity + w_recency * recency_score + w_source * source_score`, weights from `memo.config.json`'s `ranking` block or its defaults, plus `tag_boost` and `lexical_boost` added before the `1.0` cap), slice back down to `--limit`
+7. Attach `confidence_tier` to every ranked candidate via `computeConfidenceTier(final_score, thresholds)` (issue #35): thresholds come from `ranking.confidence_thresholds` or its defaults, and the tier is derived from the already-final `final_score` — it never feeds back into scoring or ordering
+8. Detect staleness (issue #38): when there is at least one ranked result, fetch the same-repo corpus once via `QdrantRepository.fetchByRepo` (a `scroll`, not `search`, bounded at 1,000 entries, ordered by `timestamp_utc` desc), cache it for the command, then run `src/lib/staleness.ts`'s pure `detectStaleness(results, corpus, config, now)` against the already-ranked, already-sliced results. A result is flagged when its age exceeds `ranking.staleness_threshold_days` (default 120) **and** a strictly newer same-repo entry has Jaccard tag overlap `>= ranking.staleness_tag_overlap_threshold` (default 0.5); the newest qualifying entry wins as `stale_by`. Detection never feeds back into `final_score` or ordering
+9. Format and output results: human mode prefixes each result with `[tier]`, no longer shows the stored `confidence` field, and renders an inline `⚠ STALE — superseded by <id>` warning under any flagged result; `--json` exposes `final_score`, `similarity`, `recency_score`, `source_score`, and `confidence_tier` on every result, with the stored `confidence` field dropped from the projection (it remains in `memo read`/`memo list`/`memo write` output and in the stored payload — search is the only place it is removed), plus `stale`/`stale_by` when flagged (omitted entirely, not `false`/`null`, when not stale)
+10. Attach a fresh `query_id` (UUID v4, `randomUUID`) to the envelope on every invocation (issue #63) — inert in Phase 1, nothing is persisted or read back; it only establishes the contract Phase 3 fills in. When `--explain` is set, project the full factor bag (`similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, and the Phase-2/3-neutral `retention: 1.0`, `use_ratio: 0`, `link_factor: 1.0`) onto every `--json` result as `factors`, and append an aligned factor table plus a `query_id: <uuid>` footer line in human mode. `--explain` never changes ordering, scores, or which results return, and issues no extra Qdrant or embeddings call.
 
 ### List Flow
 
