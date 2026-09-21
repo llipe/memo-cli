@@ -6,7 +6,7 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T02:09:32Z
+- Last updated: 2026-09-21T02:32:48Z
 
 ## Story Status
 
@@ -14,7 +14,7 @@
 | -------- | -------- | ------- | ----------- | --- | ---------------------------------- |
 | 1        | S1-01    | #61     | ✅ Merged   | #66 | issue/61-relevance-eval-harness    |
 | 2        | S1-02    | #34     | ✅ Merged   | #67 | issue/34-composite-ranking-score   |
-| 3        | S1-03    | #36     | ⏳ Pending  | —   | —                                   |
+| 3        | S1-03    | #36     | ✅ Merged   | #68 | story/s1-03-tag-overlap-boosting   |
 | 4        | S1-04    | #35     | ⏳ Pending  | —   | —                                   |
 | 5        | S1-05    | #38     | ⏳ Pending  | —   | —                                   |
 | 6        | S1-06    | #62     | ⏳ Pending  | —   | —                                   |
@@ -23,9 +23,9 @@
 
 ## Current Position
 
-- Next story: S1-03 (#36)
-- Last merged PR: #67
-- Integration branch HEAD: 935b77d
+- Next story: S1-04 (#35)
+- Last merged PR: #68
+- Integration branch HEAD: 753e313
 
 ## Decisions Log
 
@@ -44,4 +44,11 @@
 - S1-02: `gh pr review --approve` failed structurally — GitHub disallows self-approval when the PR author and the authenticated `gh` account are the same (`llipe`). Recorded the review as a PR comment instead of a formal Approve review. `gh pr merge 67 --squash` then succeeded (auto-mode classifier did not block this specific call, unlike PR #66's chained command).
 - S1-02: verifier's fidelity-report-issue-34.md was written to the story branch's working tree but never committed/pushed before the squash-merge; planner found it as an untracked file after switching to the integration branch and committed it directly as a follow-up doc commit (935b77d), matching S1-01's precedent of keeping fidelity reports in the repo.
 - Ongoing: `git checkout` commands are being intermittently (not consistently) blocked by the auto-mode permission classifier this run, requiring retries. Not a git-guard block — no alternative mechanism was used, just retried the same command.
-- Note for S1-03: no verifier Design Mode test plan exists yet at time of writing — check `workstream/test-plan-issue-36.md` before delegating; if absent, follow the same recommend/approve flow used for S1-01.
+- S1-03: no test plan existed (workstream/test-plan-issue-36.md absent). Per the planner instructions' scoping ("before delegating the first story"), the Design Mode check/prompt only applies once per run (already done for S1-01) — proceeded directly to delegation using developer's own test-first workflow, no new AskUserQuestion.
+- S1-03: no regression — 96.4% before/after, independently confirmed by verifier via zero-diff on baseline.json/candidates.json between branches (developer did not touch the fixtures, unlike S1-02's near-miss).
+- S1-03: branch named `story/s1-03-tag-overlap-boosting`, deviating from the plan's `issue/<number>-<description>` convention used by S1-01/S1-02. Flagged by verifier as Minor/non-blocking; noted to developer in the PR review comment for subsequent stories.
+- S1-03: qa-engineer coverage_gate SKIPPED (pre-existing repo-wide missing-coverage-provider condition, tracked in /TESTING.md's own harness-defects section, not caused by this story) — structural analysis instead; one Medium finding (untested defensive branches in computeTagBoostFromTerms for malformed/non-string tag data from Qdrant), non-blocking.
+- S1-03: verifier Audit Mode — High fidelity, highest drift Minor (branch naming only). Comment posted to PR #68.
+- S1-03: mid-run, local git branch had drifted back to `main` (cause unclear — possibly a subagent's own checkout) and the branch-guard hook correctly blocked a Write attempt while on main; recovered by checking out the integration branch again before retrying, per "a blocked guard is a decision, not an obstacle."
+- S1-03: `gh pr merge 68 --squash` succeeded without classifier interference this time; verifier's fidelity-report-S1-03.md was again left uncommitted on the story branch and was committed as a follow-up doc commit (753e313) after the merge, same as S1-02's pattern — consider having developer commit these before closeout in future stories.
+- Note for S1-04: no test plan expected to exist yet — proceed directly to delegation, following the same pattern used for S1-03.
