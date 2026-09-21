@@ -1,19 +1,19 @@
 /**
- * Composite ranking score for `memo search` results (issue #34).
+ * Composite ranking score for `memo search` results (issue #34, #36).
  *
  * Pure and side-effect free per the binding refinement's Architecture
  * constraint: no I/O, no clock reads inside the scoring functions. `now` is
  * always an injected parameter (defaulting to `Date.now()`) so callers and
  * tests stay deterministic without fake timers.
  *
- * Implements only the `similarity` / `recency` / `source` signals of the
- * PRD §8.2 unified ranking formula. `tag_boost`, `lexical_boost`, and the
- * multiplicative retention/use-ratio/link factors belong to later stories
- * (#36, FR-1.3, #54, #55, #56); this module exposes neutral defaults for
- * them (0 for additive boosts, 1 for multiplicative factors) so `rankResults`
- * already has the extension point those stories will fill in, per PRD §8.2:
- * "Factors not yet implemented ... evaluate to their neutral value so every
- * phase ships independently."
+ * Implements the `similarity` / `recency` / `source` signals of the PRD
+ * §8.2 unified ranking formula, plus the `tag_boost` additive signal (#36).
+ * `lexical_boost`, and the multiplicative retention/use-ratio/link factors
+ * belong to later stories (FR-1.3, #54, #55, #56); this module exposes
+ * neutral defaults for them (0 for additive boosts, 1 for multiplicative
+ * factors) so `rankResults` already has the extension point those stories
+ * will fill in, per PRD §8.2: "Factors not yet implemented ... evaluate to
+ * their neutral value so every phase ships independently."
  */
 
 export interface RankingWeights {
@@ -39,6 +39,97 @@ export const DEFAULT_RANKING_WEIGHTS: RankingWeights = {
  * were intentionally left untouched; see PR #67 for the full sweep results.
  */
 export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
+
+/**
+ * Default `tag_boost_factor` per AC1 (#36): `0.05`. `0` disables tag
+ * boosting entirely (AC2).
+ */
+export const DEFAULT_TAG_BOOST_FACTOR = 0.05;
+
+/**
+ * Fixed stopword list excluded from `total_query_terms` (AC3). Not
+ * configurable - the story's binding scope is a fixed list only.
+ */
+const TAG_BOOST_STOPWORDS = new Set(['a', 'the', 'is', 'for', 'of', 'in', 'to', 'with']);
+
+/**
+ * Strips leading/trailing punctuation/symbols (but not internal hyphens, so
+ * kebab-case tokens like `rate-limiting` stay intact) from a single term,
+ * unicode-aware so accented query terms (`café`) normalize correctly.
+ */
+function stripPunctuation(term: string): string {
+  return term.replace(/^[^\p{L}\p{N}-]+|[^\p{L}\p{N}-]+$/gu, '');
+}
+
+/**
+ * Tokenizes and normalizes a raw query string into its non-stopword terms,
+ * lowercased, with duplicates preserved (order does not matter to the
+ * caller; only length and membership do). Called once per `rankResults`
+ * invocation (#36 task 3.3), never per candidate.
+ *
+ * Missing/non-string/whitespace-only queries normalize to `[]` (AC6): no
+ * term list means `computeTagBoost`'s `total_query_terms` is `0`, which
+ * short-circuits to a `0` boost before any division happens.
+ */
+export function normalizeQueryTerms(query: string | null | undefined): string[] {
+  if (typeof query !== 'string') return [];
+  return query
+    .split(/\s+/)
+    .map((term) => stripPunctuation(term.toLowerCase()))
+    .filter((term) => term.length > 0 && !TAG_BOOST_STOPWORDS.has(term));
+}
+
+/**
+ * Core tag-boost computation given an already-normalized query term set
+ * (built once per `rankResults` invocation) and a candidate's raw tags.
+ *
+ * `matched_tags` counts distinct tags (case-insensitive) that appear as a
+ * whole query term; `total_query_terms` is the normalized query's length.
+ * Because every matched tag must appear in `queryTerms`, `matched_tags` can
+ * never exceed `queryTerms.size` - the resulting ratio is always `<= 1`, so
+ * `tag_boost` is always `<= factor` (D-analogous to AC5's cap, enforced
+ * again downstream by `computeCompositeScore`'s `min(1, ...)`).
+ */
+function computeTagBoostFromTerms(
+  queryTerms: ReadonlySet<string>,
+  totalQueryTerms: number,
+  tags: readonly unknown[] | null | undefined,
+  factor: number,
+): number {
+  if (!Number.isFinite(factor) || factor <= 0) return 0;
+  if (totalQueryTerms === 0) return 0;
+  if (!Array.isArray(tags) || tags.length === 0) return 0;
+
+  let matched = 0;
+  const seen = new Set<string>();
+  for (const rawTag of tags) {
+    if (typeof rawTag !== 'string') continue;
+    const tag = rawTag.toLowerCase();
+    if (seen.has(tag)) continue;
+    seen.add(tag);
+    if (queryTerms.has(tag)) matched += 1;
+  }
+
+  return (matched / totalQueryTerms) * factor;
+}
+
+/**
+ * `tag_boost = matched_tags / total_query_terms * boost_factor` (AC1).
+ *
+ * Convenience wrapper around `computeTagBoostFromTerms` that normalizes
+ * `query` itself; unit-tested directly, but `rankResults` calls
+ * `normalizeQueryTerms` once per invocation and reuses the result across
+ * every candidate instead of calling this function per entry (#36 task
+ * 3.3).
+ */
+export function computeTagBoost(
+  query: string | null | undefined,
+  tags: readonly unknown[] | null | undefined,
+  factor: number = DEFAULT_TAG_BOOST_FACTOR,
+): number {
+  const terms = normalizeQueryTerms(query);
+  return computeTagBoostFromTerms(new Set(terms), terms.length, tags, factor);
+}
 
 const KNOWN_SOURCE_SCORES: Record<string, number> = {
   agent: 1.0,
@@ -149,6 +240,8 @@ export interface RankableEntry {
   similarity: number;
   timestampUtc?: string | null;
   source?: unknown;
+  /** Raw tags used by the #36 tag-overlap boost when `tagBoost` is not pre-supplied. */
+  tags?: readonly unknown[];
   /** Additive boost from tag overlap (#36). Neutral default: `0`. */
   tagBoost?: number;
   /** Additive boost from lexical matching (FR-1.3). Neutral default: `0`. */
@@ -215,18 +308,34 @@ function compareRanked(a: RankedEntry, b: RankedEntry): number {
  * Pure: no I/O, no ambient clock reads. Returns a new array; the input is
  * never mutated. Ranking never drops entries - the output is always a
  * permutation of the input, same length, by `id` (RT-2).
+ *
+ * `query` and `tagBoostFactor` (#36) drive `computeTagBoost` for every
+ * candidate whose `tagBoost` is not explicitly pre-supplied; `query` is
+ * normalized exactly once per call, not per candidate (task 3.3). Passing
+ * no `query` (the default) keeps every entry's `tag_boost` at its neutral
+ * `0`, so existing callers that only pass the first four positional
+ * arguments are unaffected.
  */
 export function rankResults<T extends RankableEntry>(
   entries: readonly T[],
   weights: RankingWeights = DEFAULT_RANKING_WEIGHTS,
   recencyHalfLifeDays: number = DEFAULT_RECENCY_HALF_LIFE_DAYS,
   now: number = Date.now(),
+  query: string | null | undefined = '',
+  tagBoostFactor: number = DEFAULT_TAG_BOOST_FACTOR,
 ): RankedEntry<T>[] {
+  // Normalized once per invocation, not per candidate (#36 task 3.3).
+  const queryTermsList = normalizeQueryTerms(query);
+  const queryTerms = new Set(queryTermsList);
+  const totalQueryTerms = queryTermsList.length;
+
   const scored: RankedEntry<T>[] = entries.map((entry) => {
     const recency_score = computeRecencyScore(entry.timestampUtc, now, recencyHalfLifeDays);
     const source_score = computeSourceScore(entry.source);
     const factors: ResolvedFactors = {
-      tag_boost: entry.tagBoost ?? 0,
+      tag_boost:
+        entry.tagBoost ??
+        computeTagBoostFromTerms(queryTerms, totalQueryTerms, entry.tags, tagBoostFactor),
       lexical_boost: entry.lexicalBoost ?? 0,
       retention_factor: entry.retentionFactor ?? 1,
       use_ratio_factor: entry.useRatioFactor ?? 1,

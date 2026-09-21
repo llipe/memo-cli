@@ -126,9 +126,12 @@ describe('search integration', () => {
 
     // D6: the human-output percentage is now final_score, not raw similarity.
     // similarity 0.91, no timestamp_utc (recency_score 0), source agent (1.0):
-    // final_score = 0.6*0.91 + 0.3*0 + 0.1*1.0 = 0.646 -> 65%, not 91%.
+    // base = 0.6*0.91 + 0.3*0 + 0.1*1.0 = 0.646.
+    // #36: query "scope expansion" matches the "scope" tag (matched=1,
+    // total_query_terms=2) -> tag_boost = (1/2) * 0.05 = 0.025.
+    // final_score = min(1, 0.646 + 0.025) = 0.671 -> 67%, not 91%.
     expect(stdoutData).toContain('memo-cli');
-    expect(stdoutData).toContain('65%');
+    expect(stdoutData).toContain('67%');
     expect(stdoutData).not.toContain('91%');
     expect(stdoutData).toContain('Use related scope to expand repo search coverage.');
   });

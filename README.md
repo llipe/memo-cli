@@ -180,7 +180,8 @@ memo setup validate    # check config validity (exit 0 = valid)
     "w_similarity": 0.6,
     "w_recency": 0.3,
     "w_source": 0.1,
-    "recency_half_life_days": 365
+    "recency_half_life_days": 365,
+    "tag_boost_factor": 0.05
   }
 }
 ```
@@ -191,10 +192,13 @@ memo setup validate    # check config validity (exit 0 = valid)
 | `w_recency`              | `0.3`   | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                      |
 | `w_source`               | `0.1`   | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                         |
 | `recency_half_life_days` | `365`   | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection) |
+| `tag_boost_factor`       | `0.05`  | Additive boost for tag overlap between the query and a result's `tags` (issue #36): `tag_boost = matched_tags / total_query_terms * tag_boost_factor`, added to the base score before the `1.0` cap. `0` disables tag boosting entirely; must be a non-negative finite number     |
 
-**Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` is fine, since the untouched weights still sum to `1.0`.
+**Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` (or `tag_boost_factor`) is fine, since the untouched weights still sum to `1.0`.
 
-`final_score`, `recency_score`, and `source_score` are always present alongside the original `similarity` on every `--json` result (backward compatible — `similarity` keeps its original raw meaning).
+**Tag overlap boosting (#36):** matching is case-insensitive and whole-word. The query is normalized by splitting on whitespace, stripping leading/trailing punctuation from each term (keeping internal hyphens, so a kebab-case tag like `rate-limiting` only matches the whole query token `rate-limiting`, not the bare word `rate`), and excluding a fixed stopword list (`a, the, is, for, of, in, to, with`) from `total_query_terms`. A query with only stopwords, or no terms at all, yields `tag_boost: 0` and never divides by zero.
+
+`final_score`, `recency_score`, `source_score`, and `tag_boost` are always present alongside the original `similarity` on every `--json` result (backward compatible — `similarity` keeps its original raw meaning). Human-mode output is unaffected by tag boosting — it only shifts `final_score` ordering and percentage.
 
 ---
 
@@ -317,7 +321,7 @@ Results are ordered by a composite `final_score` — not raw similarity (see [Ra
       source: agent  confidence: high  2026-04-09T10:00:00Z
 ```
 
-JSON mode (`--json`) returns the full machine-readable payload, including all four score components on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by):
+JSON mode (`--json`) returns the full machine-readable payload, including all five score components on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by):
 
 ```json
 {
@@ -335,6 +339,7 @@ JSON mode (`--json`) returns the full machine-readable payload, including all fo
       "final_score": 0.87,
       "recency_score": 0.71,
       "source_score": 1.0,
+      "tag_boost": 0.025,
       ...
     }
   ],

@@ -21,6 +21,9 @@ export const DEFAULT_RANKING_WEIGHTS = {
 // at 90 days; see src/lib/ranking.ts's DEFAULT_RECENCY_HALF_LIFE_DAYS and
 // PR #67 for the full rationale and sweep results.
 export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
+// Default `tag_boost_factor` per issue #36's AC1: `0.05`. `0` disables tag
+// boosting entirely (AC2) - see src/lib/ranking.ts's DEFAULT_TAG_BOOST_FACTOR.
+export const DEFAULT_TAG_BOOST_FACTOR = 0.05;
 const WEIGHT_SUM_TOLERANCE = 0.001;
 
 const RankingConfigSchema = z
@@ -29,6 +32,10 @@ const RankingConfigSchema = z
     w_recency: z.number().finite().min(0).max(1).default(DEFAULT_RANKING_WEIGHTS.w_recency),
     w_source: z.number().finite().min(0).max(1).default(DEFAULT_RANKING_WEIGHTS.w_source),
     recency_half_life_days: z.number().finite().positive().default(DEFAULT_RECENCY_HALF_LIFE_DAYS),
+    // #36 AC1/AC2: additive tag-overlap boost factor. `0` is a valid,
+    // intentional "disable" value, so this is `min(0)` (non-negative), not
+    // `positive()` like recency_half_life_days.
+    tag_boost_factor: z.number().finite().min(0).default(DEFAULT_TAG_BOOST_FACTOR),
   })
   .passthrough()
   .superRefine((data, ctx) => {

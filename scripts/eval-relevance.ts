@@ -61,6 +61,7 @@ import {
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
   DEFAULT_RECENCY_HALF_LIFE_DAYS,
+  DEFAULT_TAG_BOOST_FACTOR,
 } from '../src/lib/ranking.js';
 
 // Resolved relative to the process cwd (repo root), consistent with
@@ -262,11 +263,13 @@ async function runAllQueries(
 
 /**
  * Ranks each query's raw Qdrant candidates through issue #34's composite
- * score before slicing top-3, using the documented default weights (the
- * harness has no per-repo `memo.config.json` to read `ranking` from). This
- * keeps the evaluation harness meaningful across every ranking-affecting
- * story in this plan (PRD §8.2 R6): if it only ever replayed raw similarity
- * order, it could never detect a ranking regression that #34-#38 introduce.
+ * score (plus #36's `tag_boost`, using the query's own text and each
+ * candidate's recorded `tags`) before slicing top-3, using the documented
+ * default weights and default `tag_boost_factor` (the harness has no
+ * per-repo `memo.config.json` to read `ranking` from). This keeps the
+ * evaluation harness meaningful across every ranking-affecting story in
+ * this plan (PRD §8.2 R6): if it only ever replayed raw similarity order,
+ * it could never detect a ranking regression that #34-#38 introduce.
  */
 function toQueryResults(
   queries: EvalQuery[],
@@ -281,9 +284,13 @@ function toQueryResults(
         timestampUtc:
           typeof c.payload?.['timestamp_utc'] === 'string' ? c.payload['timestamp_utc'] : undefined,
         source: c.payload?.['source'],
+        tags: Array.isArray(c.payload?.['tags']) ? c.payload['tags'] : undefined,
       })),
       DEFAULT_RANKING_WEIGHTS,
       DEFAULT_RECENCY_HALF_LIFE_DAYS,
+      Date.now(),
+      query.query,
+      DEFAULT_TAG_BOOST_FACTOR,
     );
     return {
       category: query.category,

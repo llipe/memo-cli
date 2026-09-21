@@ -34,6 +34,7 @@ import {
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
   DEFAULT_RECENCY_HALF_LIFE_DAYS,
+  DEFAULT_TAG_BOOST_FACTOR,
 } from '../../src/lib/ranking';
 
 const FIXTURES_DIR = join(__dirname, '..', 'fixtures', 'relevance');
@@ -74,8 +75,13 @@ function readJson<T>(name: string): T {
  * config file in the offline replay context) before slicing top-3, so this
  * replay stays a meaningful regression guard for every ranking-affecting
  * story in the plan, not just a replay of pre-#34 raw similarity order.
+ *
+ * #36: also passes the real query text and each candidate's recorded
+ * `tags` through to `rankResults` at the default `tag_boost_factor`, so
+ * this replay genuinely exercises tag-overlap boosting against the fixture
+ * set (AC7) instead of leaving it permanently neutral.
  */
-function rankTop3(candidates: CandidateEntry[]): (string | number)[] {
+function rankTop3(query: string, candidates: CandidateEntry[]): (string | number)[] {
   const ranked = rankResults(
     candidates.map((c) => ({
       id: c.id,
@@ -83,9 +89,13 @@ function rankTop3(candidates: CandidateEntry[]): (string | number)[] {
       timestampUtc:
         typeof c.payload?.['timestamp_utc'] === 'string' ? c.payload['timestamp_utc'] : undefined,
       source: c.payload?.['source'],
+      tags: Array.isArray(c.payload?.['tags']) ? c.payload['tags'] : undefined,
     })),
     DEFAULT_RANKING_WEIGHTS,
     DEFAULT_RECENCY_HALF_LIFE_DAYS,
+    Date.now(),
+    query,
+    DEFAULT_TAG_BOOST_FACTOR,
   );
   return ranked.slice(0, 3).map((c) => c.id);
 }
@@ -104,7 +114,7 @@ describe('relevance replay (offline, no network)', () => {
     const results: QueryResult[] = queries.map((q) => ({
       category: q.category,
       expectedIds: q.expected_ids,
-      top3Ids: rankTop3(candidatesByQueryId.get(q.id) ?? []),
+      top3Ids: rankTop3(q.query, candidatesByQueryId.get(q.id) ?? []),
     }));
     const report = computeTop3HitRate(results);
 
@@ -118,7 +128,7 @@ describe('relevance replay (offline, no network)', () => {
     const results: QueryResult[] = queries.map((q) => ({
       category: q.category,
       expectedIds: q.expected_ids,
-      top3Ids: rankTop3(candidatesByQueryId.get(q.id) ?? []),
+      top3Ids: rankTop3(q.query, candidatesByQueryId.get(q.id) ?? []),
     }));
 
     const report = computeTop3HitRate(results);
