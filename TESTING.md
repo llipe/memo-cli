@@ -1,102 +1,129 @@
 ---
-version: 1.0
+version: 2.0
 name: Testing Standard
-description: Canonical testing contract for dev-tasks — declares test layers, runners, commands, fixtures, and coverage policy.
+description: Canonical testing contract for memo-cli — declares test layers, runners, commands, fixtures, environment requirements, and coverage policy.
 status: filled
 owner: qa-engineer
 ---
 
+> **Correction (2026-09-21, issue #64/S1-08):** this file previously described a completely
+> different, unrelated project (`@llipe.com/dev-tasks`, Vitest, `test/unit/`+`test/integration/`
+> layout). That content never matched this repository. This revision describes memo-cli's actual
+> testing setup: package `@llipe.com/memo-cli`, Jest (via `scripts/run-jest.mjs`), and tests under
+> `tests/unit/`, `tests/integration/`, `tests/relevance/`.
+
 ## Test Layers
 
-| Layer    | Name                      | Scope                                                                                                                             | Status                                 |
-| -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 1        | Deterministic foundations | Unit tests and schema/contract assertions with no network, database, or wall-clock dependency.                                    | configured                             |
-| 2        | Constrained model/tool    | CLI, filesystem, subprocess, distribution, and fixture tests with external providers replaced by deterministic fixtures or stubs. | configured                             |
-| 2.5      | Integration               | Real database, migrations, RLS, and schema contracts without a mocked data layer.                                                 | not configured                         |
-| E2E      | End-to-end                | Playwright full-stack browser scenarios.                                                                                          | not configured                         |
-| Contract | Contract validation       | `dt verify` API-spec diff, impact, and drift checks.                                                                              | not configured; no repository API spec |
-| 3        | Product evaluation        | Semantic or groundedness evaluation for LLM features.                                                                             | not applicable                         |
-| 4        | Human evaluation          | Human review and safeguard gates.                                                                                                 | manual only                            |
+| Layer     | Name                      | Scope                                                                                                                                                                                                                                                                       | Status                                                                                                                                |
+| --------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1         | Deterministic foundations | Unit tests and schema/contract assertions with no network, database, or wall-clock dependency (`tests/unit/`).                                                                                                                                                              | configured                                                                                                                            |
+| 2         | Constrained model/tool    | CLI command and library integration tests with the Qdrant client and embeddings adapters mocked out (`tests/integration/`).                                                                                                                                                 | configured                                                                                                                            |
+| 2.5       | Integration               | Real database, migrations, RLS, and schema contracts without a mocked data layer.                                                                                                                                                                                           | not configured                                                                                                                        |
+| Relevance | Offline regression replay | Replays a recorded fixture (`tests/fixtures/relevance/candidates.json`) through the real ranking pipeline with no network access, asserting the top-3 hit rate never drops below the recorded `baseline.json` floor (`tests/relevance/replay.test.ts`).                     | configured                                                                                                                            |
+| E2E       | End-to-end                | Full CLI process execution against a live/browser environment.                                                                                                                                                                                                              | not configured                                                                                                                        |
+| Contract  | Contract validation       | API-spec diff, impact, and drift checks.                                                                                                                                                                                                                                    | not configured; memo-cli has no HTTP API surface of its own (it is a client of the Qdrant and embeddings-provider APIs, not a server) |
+| 3         | Product evaluation        | Semantic relevance evaluation for the retrieval/ranking feature (`scripts/eval-relevance.ts`, `pnpm run eval:relevance`). Requires live `QDRANT_URL` + an embeddings provider key; reports, does not gate by itself — `tests/relevance/replay.test.ts` is the gating layer. | configured (manual/live, not part of `pnpm test`)                                                                                     |
+| 4         | Human evaluation          | Human review and safeguard gates (PR review, `verifier` audit).                                                                                                                                                                                                             | manual only                                                                                                                           |
 
 ### Layer boundaries
 
-- **Layer 1 must not:** open sockets or database connections, invoke real external services, read the wall clock without injection, depend on test order, or assert internal call counts as a proxy for behavior.
-- **Layer 2 must not:** replace the system under test at its own public entry point, reimplement production filtering or persistence in a fake, or claim provider behavior that was only tested against a double.
-- **Layer 2.5 must not:** mock the data layer or use application-level filtering as evidence of database/RLS policy.
-- **E2E must not:** assert on internal state or implementation details; it must assert observable user-facing behavior.
-- **Contract validation must not:** test internal business logic; it checks the boundary/interface only.
-- **Escalation:** when a Layer 1 test needs a real dependency, move it to Layer 2 instead of growing a behavior-reimplementing double; when a Layer 2 test needs a real database, move it to Layer 2.5.
+- **Layer 1 must not:** open sockets or database connections, invoke real external services (Qdrant, OpenAI/other embeddings providers), read the wall clock without injection, depend on test order, or assert internal call counts as a proxy for behavior.
+- **Layer 2 must not:** replace the system under test at its own public entry point (command handlers are exercised directly); it mocks `@qdrant/js-client-rest` and the embeddings adapter at their boundary, not the command logic itself, and must not claim live-provider behavior that was only tested against a mock.
+- **Relevance replay must not:** open a network connection (`tests/relevance/replay.test.ts` asserts it works with `QDRANT_URL`/`EMBEDDINGS_API_KEY` unset — AC9) or silently pass on empty input (`candidates.json` emptied out is asserted to fail the floor check, not report a false 0/0 pass).
+- **Layer 3 (`eval:relevance`) must not:** be treated as a CI gate — it is a manual/live measurement tool invoked at story/gate boundaries (most recently task 8.0, the Phase 1 exit gate) and its `--record` output is what `tests/relevance/replay.test.ts` then guards offline.
+- **Escalation:** when a Layer 1 test needs real Qdrant/embeddings behavior, move it to Layer 2 with the client/adapter mocked at the boundary; when a ranking or relevance change needs to be judged against real retrieval quality, re-run `pnpm run eval:relevance --record` (Layer 3) and let the new `candidates.json`/`baseline.json` become the new Layer-Relevance floor.
 
 ## Packages
 
 This is a single-package TypeScript repository; no workspace manifest or additional package was detected.
 
-| Package                | Language       | Runner       | Test command    | Test environment             | Coverage tooling                                                                                         |
-| ---------------------- | -------------- | ------------ | --------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `@llipe.com/dev-tasks` | TypeScript/ESM | Vitest 3.2.6 | `pnpm run test` | Node (`environment: "node"`) | V8 provider declared in `vitest.config.ts`, but no usable coverage command/provider package is installed |
+| Package               | Language       | Runner                                                 | Test command    | Test environment                                   | Coverage tooling                                                              |
+| --------------------- | -------------- | ------------------------------------------------------ | --------------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `@llipe.com/memo-cli` | TypeScript/ESM | Jest 29 (`ts-jest` preset, via `scripts/run-jest.mjs`) | `pnpm run test` | Node (`testEnvironment: 'node'`, `jest.config.ts`) | `jest --coverage` (V8/Istanbul via `ts-jest`), thresholds in `jest.config.ts` |
 
-Tests live in `test/unit/` and `test/integration/` and use `*.test.ts`. `test/fixtures/` contains inert QA fixtures and is excluded from collection by `vitest.config.ts`.
+Tests live in `tests/unit/`, `tests/integration/`, and `tests/relevance/`, matched by `**/*.test.ts` (`jest.config.ts`'s `roots`/`testMatch`). `tests/fixtures/relevance/` holds the evaluation-harness fixtures (`entries.json`, `queries.json`, `candidates.json`, `baseline.json`) and is not itself collected as tests. `tests/__mocks__/` holds CommonJS stubs for the ESM-only `chalk`/`ora` packages (mapped via `jest.config.ts`'s `moduleNameMapper`, which also strips `.js` extensions from relative imports for CJS resolution).
 
 ### Test environment
 
-The package is a CLI and filesystem toolkit, so Node is the correct environment; no DOM/browser component package was detected. Tests use temporary directories, fixture repositories, and subprocesses where required. No real database integration harness is configured.
+The package is a CLI and Qdrant/embeddings client, so Node is the correct environment; no DOM/browser component was detected. `tests/unit/` and `tests/integration/` mock `@qdrant/js-client-rest` and the embeddings adapter at the module boundary — no real network call is made by `pnpm test`. `tests/relevance/replay.test.ts` is also fully offline: it replays a committed JSON fixture through the pure ranking functions, and one of its own test cases (`never reads QDRANT_URL or EMBEDDINGS_API_KEY`) actively unsets both env vars mid-test to prove it.
+
+Live credentials (`QDRANT_URL`, `QDRANT_API_KEY` for Qdrant Cloud, `EMBEDDINGS_API_KEY` plus `EMBEDDINGS_PROVIDER` for the embeddings provider — see `.env.example`) are **only** required for:
+
+- `pnpm run eval:relevance` and its `--seed`/`--record` modes (Layer 3, manual).
+- Manual smoke testing of the CLI itself (`memo search`, `memo write`, etc. against a real Qdrant instance).
+
+They are never required for `pnpm test`, `pnpm run test:coverage`, or CI.
 
 ### Runtime parity
 
-- Local validation observed Node `v26.7.0`.
-- CI workflow `publish-npm.yml` uses Node `24`.
-- The package declares production engine `>=24`.
-- The local major version differs from the pinned CI major and is a harness defect until local and CI validation use the same supported major (or CI is changed to a tested range).
+- Local validation observed Node `v26.7.0`; `.github/workflows/ci.yml` pins Node `24` (matrix `['24']`); `package.json` declares production engine `>=24.0.0`.
+- The local major (26) differs from the pinned CI major (24). This is a pre-existing harness-parity gap (not introduced by Phase 1) — local and CI validation do not currently run the same Node major. Treat CI (Node 24) as authoritative until this is reconciled.
 
 ## Commands
 
-| Script             | Purpose                                                                                               | Status                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `lint`             | ESLint static analysis                                                                                | present                                |
-| `lint:fix`         | ESLint auto-fix                                                                                       | present                                |
-| `format`           | Prettier write                                                                                        | present                                |
-| `format:check`     | Prettier verification                                                                                 | present                                |
-| `typecheck`        | TypeScript analysis                                                                                   | present                                |
-| `test`             | Aggregate Vitest run; reaches this package's unit and integration tests                               | present                                |
-| `test:unit`        | Unit tests                                                                                            | present                                |
-| `test:integration` | Integration-directory tests; these are CLI/filesystem integration tests, not Layer 2.5 database tests | present                                |
-| `test:e2e`         | Playwright tests                                                                                      | not configured; no Playwright setup    |
-| `test:contract`    | `dt verify` family                                                                                    | not configured; no repository API spec |
-| `test:coverage`    | Coverage measurement                                                                                  | missing; no usable provider configured |
-| `audit`            | Production dependency audit                                                                           | present                                |
-| `validate`         | `typecheck` → `lint` → `format:check` → aggregate `test`                                              | present                                |
+| Script           | Purpose                                                                                                                                                      | Status                                                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build`          | `tsc` compile to `dist/`                                                                                                                                     | present                                                                                                                                                               |
+| `typecheck`      | `tsc --noEmit`                                                                                                                                               | present                                                                                                                                                               |
+| `lint`           | ESLint (flat config, v9)                                                                                                                                     | present                                                                                                                                                               |
+| `lint:fix`       | ESLint auto-fix                                                                                                                                              | present                                                                                                                                                               |
+| `format`         | Prettier write                                                                                                                                               | present                                                                                                                                                               |
+| `format:check`   | Prettier verification                                                                                                                                        | present                                                                                                                                                               |
+| `test`           | Aggregate Jest run via `scripts/run-jest.mjs` (`tests/unit/` + `tests/integration/` + `tests/relevance/`)                                                    | present                                                                                                                                                               |
+| `test:watch`     | Jest watch mode                                                                                                                                              | present                                                                                                                                                               |
+| `test:coverage`  | `jest --coverage` (bypasses `run-jest.mjs`, invokes Jest directly)                                                                                           | present — see Coverage below for current numbers                                                                                                                      |
+| `eval:relevance` | Layer 3 relevance evaluation harness (`scripts/eval-relevance.ts`)                                                                                           | present; requires live credentials, see above                                                                                                                         |
+| `audit`          | `pnpm audit` (there is no separate `pnpm run audit` script — the `audit` quality gate is `pnpm audit`, a built-in pnpm command, not a `package.json` script) | present (pnpm built-in)                                                                                                                                               |
+| `validate`       | No `validate` script exists in `package.json`                                                                                                                | not configured; the quality gate is the explicit sequence `lint && format:check && typecheck && test && audit`, as run in this repo's CI and by `developer`/`planner` |
+
+There is no `test:unit`, `test:integration`, `test:e2e`, or `test:contract` script — `pnpm run test` reaches all configured Jest layers (`tests/unit/`, `tests/integration/`, `tests/relevance/`) in one aggregate run via `roots: ['<rootDir>/tests']` in `jest.config.ts`; there is currently no way to run only one subdirectory via an `npm`/`pnpm` script (use `pnpm run test -- --testPathPattern=<dir>` directly).
+
+### `test:coverage` harness note
+
+This file previously (incorrectly, describing the wrong project) asserted a "known flag-passthrough bug" in the coverage script wrapper. That does not reproduce in this repository: `test:coverage` is defined directly as `jest --coverage` in `package.json` (it does not go through `scripts/run-jest.mjs` at all), and both `pnpm run test:coverage` and `pnpm run test -- --coverage` (which does go through the wrapper) were re-verified during this gate (task 8.0) to produce identical, correct coverage reports with the correct exit code (`1` when a threshold is unmet). No harness defect exists here as of this revision; if a future change to `scripts/run-jest.mjs` breaks argument forwarding, `npx jest --coverage` (or `npx jest <args>`) remains available as a direct fallback that bypasses the wrapper entirely.
 
 ### Gate reachability
 
-- **Aggregate test command:** `pnpm run test` (`vitest run`), which includes `test/**/*.test.ts` and excludes `test/fixtures/**`; the single package is reached, including both `test/unit/` and `test/integration/`.
-- **CI gate:** `publish-npm.yml` invokes `pnpm run validate`, which reaches the aggregate test command, but only on its tag-triggered publish workflow. No general CI test workflow/job was detected.
-- **Deploy gate:** no deploy workflow was detected; deploy quality-gate status is not automatically enforced.
-- `release-bundle.yml` does not invoke `validate` or the aggregate test command.
+- **Aggregate test command:** `pnpm run test`, which reaches `tests/unit/`, `tests/integration/`, and `tests/relevance/`.
+- **CI gate:** `.github/workflows/ci.yml` runs on every push and PR to `main`: `typecheck` → `lint` → `test` → `build` → `pnpm audit --audit-level=high` (`continue-on-error: true`, so audit failures are visible but non-blocking). **CI does not run `format:check` or `test:coverage`** — both are part of the `developer`/`planner` quality-gate sequence but are not independently enforced by this workflow.
+- **Publish gate:** `.github/workflows/publish.yml` handles the tag-triggered npm publish; it was not re-audited line-by-line in this pass beyond confirming it exists.
+- **Deploy gate:** memo-cli has no deploy target beyond npm publish; there is no separate deploy workflow.
 
 ## Coverage
 
-### Thresholds and baseline policy
+### Thresholds and current numbers (measured 2026-09-21, task 8.0)
 
-- Measurement tool: V8 is declared in `vitest.config.ts`, but `test:coverage` is absent and the coverage provider is not available as a project dependency.
-- Threshold policy: no numeric threshold has been established.
-- Baseline: none recorded.
-- Regression policy: coverage must not be reported as measured until a provider and command are configured; structural gap analysis is mandatory meanwhile.
+`jest.config.ts` declares global thresholds: `lines: 80`, `functions: 80`, `branches: 75`, `statements: 80` (`collectCoverageFrom: ['src/**/*.ts', '!src/index.ts']`). A real `pnpm run test:coverage` run on this branch measured:
 
-When coverage cannot be measured, report `coverage_gate: SKIPPED(<non-empty reason>)` and enumerate untested or weakly tested surfaces, source-to-test ratios, exclusions, and limitations. Never infer zero coverage or a pass.
+| Scope                  | Statements | Branches | Functions | Lines  |
+| ---------------------- | ---------- | -------- | --------- | ------ |
+| **All files** (global) | 82.79%     | 74.69%   | 79.66%    | 83.59% |
+| **`src/lib/`**         | 89.9%      | 78.98%   | 93.1%     | 92.23% |
+
+**Result: the global `jest.config.ts` threshold gate FAILS** — branches (74.69% < 75%) and functions (79.66% < 80%) are both below their configured floor; statements and lines clear 80%. This is pre-existing debt across the whole repo (present since before Phase 1; the lowest-covered files are `setup.ts` (36.6% stmts), `write.ts` (63.56% stmts), `retry.ts` (18.75% stmts), and `embeddings.ts` (42.85% stmts) — none of these were touched by Phase 1 stories S1-01 through S1-08). `src/lib/` clears the 85% target on statements/functions/lines but not branches (78.98%).
+
+Do not silently treat this as a pass: `coverage_gate` must be recorded honestly as `FAIL` (global) with the specific numbers above, not skipped or fabricated as passing.
+
+### Regression policy
+
+- No coverage number may be reported without a fresh `pnpm run test:coverage` (or `npx jest --coverage`) run backing it — never infer or carry forward a stale number.
+- New code added to a low-coverage file (`setup.ts`, `write.ts`, `retry.ts`, `embeddings.ts`) should not further lower that file's coverage; closing the pre-existing gap itself is out of scope for a single story unless the story is explicitly a coverage remediation task.
 
 ## Fixtures and Mocking
 
-Tests primarily use deterministic fixture repositories under `test/fixtures/`, temporary directories rooted in the OS temp directory, and subprocess execution for CLI entry points. Fixture projects that intentionally model harness defects are excluded from Vitest collection. No duplicated token builders or client mocks were detected, and no global `fetch`/timer stubs were detected. Any future global stub must be restored explicitly.
-
-Gold or generated fixture files must record their source and regeneration path where applicable. Generated catalog outputs are test artifacts, not coverage evidence, and must not be used as durable validation without freshness and scope checks.
+- `tests/integration/` mocks `@qdrant/js-client-rest` (`jest.mock('@qdrant/js-client-rest', ...)`) and each command's injected `Deps` (`WriteDeps`, `ReadDeps`, `TagsListDeps`, etc.) at the constructor/interface boundary — no real Qdrant or embeddings network call happens in `pnpm test`.
+- `tests/unit/lib/` exercises pure functions (`ranking.ts`, `staleness.ts`, `lexical.ts`, `eval.ts`, `dedupe.ts`, etc.) with no mocking needed.
+- `tests/__mocks__/chalk.cjs` and `tests/__mocks__/ora.cjs` are CommonJS stubs for the ESM-only `chalk`/`ora` packages, wired via `jest.config.ts`'s `moduleNameMapper`.
+- `tests/fixtures/relevance/` (`entries.json`, `queries.json`, `candidates.json`, `baseline.json`) are the Layer 3/Relevance fixtures; `candidates.json`/`baseline.json` are regenerated by `pnpm run eval:relevance --record` against live Qdrant Cloud and committed — they are not hand-authored.
 
 ## Security-Negative Tests
 
-This package has no authentication or authorization implementation path in the analyzed scope. If one is added, tests are mandatory for invalid signature, expired credential, wrong issuer/audience, tampered claims, missing credential, insufficient permission, and cross-tenant access where applicable. Tests against a fake policy layer must state that production policy remains unverified.
+memo-cli has no authentication/authorization layer of its own (it is a client authenticating to Qdrant Cloud and an embeddings provider via API keys read from environment variables — `QDRANT_API_KEY`, `EMBEDDINGS_API_KEY`). If a future story adds its own auth surface, tests are mandatory for invalid/expired/missing credentials and cross-tenant (cross-`repo`/`org`/`bank`) access. Existing coverage worth noting: `search`/`list` filter tests assert `repo`/`org` pre-filters are always applied (cross-repo isolation at the query-filter level), and `tests/integration/commands/` cover missing/invalid config paths.
 
 ## Harness defects to track
 
-1. `vitest.config.ts`: `restoreMocks` is not enabled. Expected state: enable explicit mock restoration if mocks/stubs are introduced, and retain per-test cleanup for any global stubs.
-2. `package.json` and `vitest.config.ts`: V8 coverage is declared but no usable `test:coverage` command/provider is configured. Expected state: add the approved provider and canonical command in a separate approved change, then record thresholds and baseline; until then coverage is skipped.
-3. CI/deploy wiring: no general CI test job and no deploy workflow invoke the aggregate test command. Expected state: every CI test job and deploy quality gate must run `pnpm run test` or `pnpm run validate`.
-4. `publish-npm.yml` versus `package.json`: local Node 26 and CI Node 24 are not the same runtime major. Expected state: align the validation runtime or explicitly test the supported range.
+1. **Global coverage threshold failure (pre-existing, not Phase 1-introduced):** branches (74.69%) and functions (79.66%) are below `jest.config.ts`'s configured 75%/80% floors. Expected state: raise coverage in the lowest files (`setup.ts`, `write.ts`, `retry.ts`, `embeddings.ts`) or explicitly lower the configured threshold with a documented rationale — this file does not resolve which; it is recorded here as accurate current-state debt for `qa-engineer`/`housekeeping` to pick up.
+2. **CI does not run `format:check` or `test:coverage`:** `.github/workflows/ci.yml` runs `typecheck`/`lint`/`test`/`build`/`audit` but neither formatting verification nor coverage measurement. Expected state: add both to the CI job, or document why they are intentionally excluded.
+3. **Node major version drift:** local `v26.7.0` vs. CI-pinned `24`. Expected state: align local development environments to Node 24, or widen CI's tested matrix.
+4. **No `validate` script:** `package.json` has no aggregate `validate` script; the quality gate is run as an explicit `lint && format:check && typecheck && test && audit` sequence by `developer`/`planner` instead. Expected state (optional): add a `validate` script mirroring that sequence for convenience — not currently blocking.
+5. **`pnpm audit` is `continue-on-error: true` in CI:** audit failures are visible in CI logs but do not fail the workflow. Expected state: decide explicitly whether this should be blocking; currently unchanged from pre-Phase-1 behavior.
