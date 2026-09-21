@@ -1,6 +1,6 @@
 ---
 name: activity-generate-stories
-description: "Break a technical specification into user stories with coverage validation. Use after generate-spec."
+description: 'Break a technical specification into user stories with coverage validation. Use after generate-spec.'
 ---
 
 # Activity: Generate User Stories

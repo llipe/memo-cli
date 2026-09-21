@@ -791,18 +791,19 @@ cp .env.example .env   # configure credentials
 
 ### Scripts
 
-| Script                    | Description                                      |
-| ------------------------- | ------------------------------------------------ |
-| `pnpm run build`          | Compile TypeScript to `dist/`                    |
-| `pnpm run build:watch`    | Compile in watch mode                            |
-| `pnpm run typecheck`      | Type-check without emitting                      |
-| `pnpm run lint`           | ESLint (v9 flat config, strict type-checked)     |
-| `pnpm run lint:fix`       | ESLint with auto-fix                             |
-| `pnpm run format`         | Prettier format                                  |
-| `pnpm run format:check`   | Check formatting without writing                 |
-| `pnpm run test`           | Run Jest test suite                              |
-| `pnpm run test:coverage`  | Run Jest with coverage report                    |
-| `pnpm run eval:relevance` | Run the relevance evaluation harness (see below) |
+| Script                    | Description                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm run build`          | Compile TypeScript to `dist/`                                                |
+| `pnpm run build:watch`    | Compile in watch mode                                                        |
+| `pnpm run typecheck`      | Type-check without emitting                                                  |
+| `pnpm run lint`           | ESLint (v9 flat config, strict type-checked)                                 |
+| `pnpm run lint:fix`       | ESLint with auto-fix                                                         |
+| `pnpm run format`         | Prettier format                                                              |
+| `pnpm run format:check`   | Check formatting without writing                                             |
+| `pnpm run test`           | Run Jest test suite                                                          |
+| `pnpm run test:coverage`  | Run Jest with coverage report                                                |
+| `pnpm run validate`       | Run typecheck, lint, format:check, test, and audit in sequence, failing fast |
+| `pnpm run eval:relevance` | Run the relevance evaluation harness (see below)                             |
 
 ### Testing
 
@@ -892,35 +893,34 @@ nvm use
 
 # 2. Install deps and run the full local quality gate
 pnpm install
-pnpm run typecheck
-pnpm run lint
-pnpm run test
-pnpm run build
-pnpm audit
+pnpm run validate   # runs typecheck, lint, format:check, test, and audit in sequence
 
-# 3. Bump version and create matching git tag (example: v1.1.2)
+# 3. Build for distribution
+pnpm run build
+
+# 4. Bump version and create matching git tag (example: v1.1.2)
 npm version patch   # or: minor | major
 
-# 4. Push commit + tag
+# 5. Push commit + tag
 git push origin main --follow-tags
 ```
 
 Pushing the tag only updates git history — it does **not** publish to npm by itself. Publishing is a separate, manual step:
 
 ```bash
-# 5. Authenticate to npm (skip if npm whoami already succeeds)
+# 6. Authenticate to npm (skip if npm whoami already succeeds)
 npm login
 npm whoami   # confirm you're logged in as the expected account
 
-# 6. Sanity-check exactly what will be published
+# 7. Sanity-check exactly what will be published
 npm pack --dry-run
 # Confirm the tarball only contains dist/, README.md, LICENSE, package.json,
 # and that the version matches the tag you just pushed.
 
-# 7. Publish (runs the `prepublishOnly` build automatically)
+# 8. Publish (runs the `prepublishOnly` build automatically)
 npm publish
 
-# 8. Verify the release landed
+# 9. Verify the release landed
 npm view @llipe.com/memo-cli version
 npm install -g @llipe.com/memo-cli@latest
 memo --version

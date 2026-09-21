@@ -1,6 +1,6 @@
 ---
-description: "Plan and apply infrastructure changes one approved, reversible step at a time; record every result and hand off a draft PR."
-argument-hint: "<environment> [infra/changes/<ChangeId>] [plan or discovery request]"
+description: 'Plan and apply infrastructure changes one approved, reversible step at a time; record every result and hand off a draft PR.'
+argument-hint: '<environment> [infra/changes/<ChangeId>] [plan or discovery request]'
 ---
 
 # /infra-engineer — Infrastructure Change Controller

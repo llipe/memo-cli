@@ -1,6 +1,6 @@
 ---
 name: activity-e2e-test-implementation
-description: "Author Playwright end-to-end tests from verifier scenario tables. Covers auth, state reset, CI config, and scenario-to-spec traceability. Use when writing or backfilling E2E tests."
+description: 'Author Playwright end-to-end tests from verifier scenario tables. Covers auth, state reset, CI config, and scenario-to-spec traceability. Use when writing or backfilling E2E tests.'
 ---
 
 # Activity: E2E Test Implementation (Playwright)
@@ -88,7 +88,7 @@ Every Playwright spec **MUST** be traceable to a `verifier` Design Mode scenario
 
 ```typescript
 // @scenario SC-1
-test("SC-1: Successful login with valid credentials", async ({ page }) => {
+test('SC-1: Successful login with valid credentials', async ({ page }) => {
   // ...
 });
 ```
@@ -96,7 +96,7 @@ test("SC-1: Successful login with valid credentials", async ({ page }) => {
 Or in the test title directly:
 
 ```typescript
-test("[SC-1] User logs in with valid credentials", async ({ page }) => {
+test('[SC-1] User logs in with valid credentials', async ({ page }) => {
   // ...
 });
 ```

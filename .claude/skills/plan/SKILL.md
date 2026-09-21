@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Convert selected user stories or a refined GitHub Issue into an execution-ready tasks-*.md list and sync the GitHub Issue checklist. Use after stories/refinement, before implementation."
+description: 'Convert selected user stories or a refined GitHub Issue into an execution-ready tasks-*.md list and sync the GitHub Issue checklist. Use after stories/refinement, before implementation.'
 ---
 
 # Activity: Plan Implementation

@@ -1,6 +1,6 @@
 ---
-description: "Perform a grey-box fidelity audit of delivered work against requirements and PRD/spec intent (Audit Mode), via the verifier subagent."
-argument-hint: "<source spec/story> <workstream/tasks-*.md> #<issue> [PR/branch] (repo: owner/repo)"
+description: 'Perform a grey-box fidelity audit of delivered work against requirements and PRD/spec intent (Audit Mode), via the verifier subagent.'
+argument-hint: '<source spec/story> <workstream/tasks-*.md> #<issue> [PR/branch] (repo: owner/repo)'
 ---
 
 Delegate to the **`verifier` subagent** (via the Task tool) in **Audit Mode**.

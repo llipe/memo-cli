@@ -1,6 +1,6 @@
 ---
 name: memo-cli-usage
-description: "Read and write architectural decisions to the shared memo-cli knowledge base. Use when recording or restoring cross-session context."
+description: 'Read and write architectural decisions to the shared memo-cli knowledge base. Use when recording or restoring cross-session context.'
 ---
 
 # memo-cli Usage — Quick Reference

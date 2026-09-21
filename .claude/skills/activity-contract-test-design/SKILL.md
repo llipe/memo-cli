@@ -1,6 +1,6 @@
 ---
 name: activity-contract-test-design
-description: "Design consumer/provider contract and schema-compatibility tests from a spec or story. Use when deriving contract test strategy during black-box testing."
+description: 'Design consumer/provider contract and schema-compatibility tests from a spec or story. Use when deriving contract test strategy during black-box testing.'
 ---
 
 # Activity: Contract Test Design

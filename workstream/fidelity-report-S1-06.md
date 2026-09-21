@@ -5,7 +5,7 @@ Scope: Story S1-06, `issue/62-lexical-identifier-matching` vs `integration/prd-0
 
 ## Plain-language summary
 
-This story adds a second, targeted search pass that fires only when a query looks like it names a specific file/flag/ticket (e.g. `search-filters.ts`, `#123`, `--lexical`). Results from that pass are merged with the normal search and get a modest score boost, so file/ticket-naming queries can now surface the entry that actually names them, without weakening ordinary searches. If the extra pass fails, search silently falls back to the normal results — nothing breaks. The code genuinely does what was designed; the one soft spot is in how the improvement was *reported*, not in the mechanism itself.
+This story adds a second, targeted search pass that fires only when a query looks like it names a specific file/flag/ticket (e.g. `search-filters.ts`, `#123`, `--lexical`). Results from that pass are merged with the normal search and get a modest score boost, so file/ticket-naming queries can now surface the entry that actually names them, without weakening ordinary searches. If the extra pass fails, search silently falls back to the normal results — nothing breaks. The code genuinely does what was designed; the one soft spot is in how the improvement was _reported_, not in the mechanism itself.
 
 ## AC9 scrutiny (the flagged claim)
 

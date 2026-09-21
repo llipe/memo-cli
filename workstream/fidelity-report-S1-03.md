@@ -13,15 +13,15 @@ This story makes search results rank higher when the tags on an entry match word
 
 ## Per-AC Result Table
 
-| AC | Description | Codebase evidence | Workstream evidence | Test evidence | Result |
-|----|---|---|---|---|---|
-| AC1 | `tag_boost = matched/total * factor`, default 0.05, configurable | `computeTagBoost`/`computeTagBoostFromTerms` in `src/lib/ranking.ts` | Task 3.1-3.2 marked done | `ranking.test.ts` exact-ratio assertions | Pass |
-| AC2 | `tag_boost_factor: 0` disables boosting | `factor <= 0` short-circuit | Task 3.1 | `ranking.test.ts` "factor 0" test | Pass |
-| AC3 | Case-insensitive, whole-word, stopwords excluded | `TAG_BOOST_STOPWORDS`, `normalizeQueryTerms`, `stripPunctuation` | Task 3.2-3.3 | mixed-case, punctuation, hyphenated-tag, substring-no-match tests | Pass |
-| AC4 | `tag_boost` in JSON; human output unchanged | `toJsonResult` in `search.ts` adds `tag_boost` only | Task 3.5 | `search.test.ts` tag_boost presence/ranking tests | Pass |
-| AC5 | `min(1, base + tag_boost)` cap, composes with sibling slot | `Math.min(1, base + tagBoost + lexicalBoost)` in `computeCompositeScore` | Task 3.4 | "caps the boosted score at 1.0" test | Pass |
-| AC6 | Stopword-only query → 0, no div-by-zero | `totalQueryTerms === 0` guard | Task 3.2 | "never divides by zero" test | Pass |
-| AC7 | Replay hit rate ≥ baseline | `replay.test.ts` now passes real query+tags through `rankResults` | Task 3.11 (96.4%→96.4%) | `baseline.json`/`candidates.json` diff-confirmed unchanged | Pass (independently confirmed) |
+| AC  | Description                                                      | Codebase evidence                                                        | Workstream evidence      | Test evidence                                                     | Result                         |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------ | ----------------------------------------------------------------- | ------------------------------ |
+| AC1 | `tag_boost = matched/total * factor`, default 0.05, configurable | `computeTagBoost`/`computeTagBoostFromTerms` in `src/lib/ranking.ts`     | Task 3.1-3.2 marked done | `ranking.test.ts` exact-ratio assertions                          | Pass                           |
+| AC2 | `tag_boost_factor: 0` disables boosting                          | `factor <= 0` short-circuit                                              | Task 3.1                 | `ranking.test.ts` "factor 0" test                                 | Pass                           |
+| AC3 | Case-insensitive, whole-word, stopwords excluded                 | `TAG_BOOST_STOPWORDS`, `normalizeQueryTerms`, `stripPunctuation`         | Task 3.2-3.3             | mixed-case, punctuation, hyphenated-tag, substring-no-match tests | Pass                           |
+| AC4 | `tag_boost` in JSON; human output unchanged                      | `toJsonResult` in `search.ts` adds `tag_boost` only                      | Task 3.5                 | `search.test.ts` tag_boost presence/ranking tests                 | Pass                           |
+| AC5 | `min(1, base + tag_boost)` cap, composes with sibling slot       | `Math.min(1, base + tagBoost + lexicalBoost)` in `computeCompositeScore` | Task 3.4                 | "caps the boosted score at 1.0" test                              | Pass                           |
+| AC6 | Stopword-only query → 0, no div-by-zero                          | `totalQueryTerms === 0` guard                                            | Task 3.2                 | "never divides by zero" test                                      | Pass                           |
+| AC7 | Replay hit rate ≥ baseline                                       | `replay.test.ts` now passes real query+tags through `rankResults`        | Task 3.11 (96.4%→96.4%)  | `baseline.json`/`candidates.json` diff-confirmed unchanged        | Pass (independently confirmed) |
 
 ## Drift Catalog
 

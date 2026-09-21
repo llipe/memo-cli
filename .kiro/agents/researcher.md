@@ -1,5 +1,5 @@
 ---
-description: "Codebase research agent that performs bounded, delegated investigation and emits a structured research artifact. Use when downstream agents need grounded, file-level evidence without pulling the search transcript into their own context."
+description: 'Codebase research agent that performs bounded, delegated investigation and emits a structured research artifact. Use when downstream agents need grounded, file-level evidence without pulling the search transcript into their own context.'
 tools: [read, write, shell]
 resources:
   - file://AGENTS.md

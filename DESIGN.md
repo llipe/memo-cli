@@ -5,76 +5,76 @@ description: Canonical visual and technical contract for UI artifacts, mockups, 
 status: placeholder
 owner: ux-engineer
 # ─── Technical contract ───────────────────────────────────────────────────────
-platform: "<unfilled>" # web | mobile | both
-framework: "<unfilled>" # react | react-native | html
-css_approach: "<unfilled>" # tailwind | css-modules | styled-components | inline
-component_library: "<unfilled>" # shadcn | chakra | mui | custom | none
-primitive_base: "<unfilled>" # radix | base | aria — shadcn --base; only when component_library: shadcn
-component_library_version: "<unfilled>" # pin exactly, never ^ or latest
-theme_output: "<unfilled>" # where ux-theme-gen writes; default /mockups/.theme/
+platform: '<unfilled>' # web | mobile | both
+framework: '<unfilled>' # react | react-native | html
+css_approach: '<unfilled>' # tailwind | css-modules | styled-components | inline
+component_library: '<unfilled>' # shadcn | chakra | mui | custom | none
+primitive_base: '<unfilled>' # radix | base | aria — shadcn --base; only when component_library: shadcn
+component_library_version: '<unfilled>' # pin exactly, never ^ or latest
+theme_output: '<unfilled>' # where ux-theme-gen writes; default /mockups/.theme/
 responsive_breakpoints:
-  sm: "<unfilled>" # e.g. 640px
-  md: "<unfilled>" # e.g. 768px
-  lg: "<unfilled>" # e.g. 1024px
-  xl: "<unfilled>" # e.g. 1280px
+  sm: '<unfilled>' # e.g. 640px
+  md: '<unfilled>' # e.g. 768px
+  lg: '<unfilled>' # e.g. 1024px
+  xl: '<unfilled>' # e.g. 1280px
 # ─── Visual tokens ────────────────────────────────────────────────────────────
 # Semantic slot names below match shadcn/ui so generated themes can override
 # them directly. Add project-specific extras under `colors-extended`.
 colors:
-  background: "<unfilled>"
-  foreground: "<unfilled>"
-  card: "<unfilled>"
-  card-foreground: "<unfilled>"
-  primary: "<unfilled>"
-  primary-foreground: "<unfilled>"
-  secondary: "<unfilled>"
-  secondary-foreground: "<unfilled>"
-  muted: "<unfilled>"
-  muted-foreground: "<unfilled>"
-  accent: "<unfilled>"
-  accent-foreground: "<unfilled>"
-  destructive: "<unfilled>"
-  destructive-foreground: "<unfilled>"
-  border: "<unfilled>"
-  input: "<unfilled>"
-  ring: "<unfilled>"
+  background: '<unfilled>'
+  foreground: '<unfilled>'
+  card: '<unfilled>'
+  card-foreground: '<unfilled>'
+  primary: '<unfilled>'
+  primary-foreground: '<unfilled>'
+  secondary: '<unfilled>'
+  secondary-foreground: '<unfilled>'
+  muted: '<unfilled>'
+  muted-foreground: '<unfilled>'
+  accent: '<unfilled>'
+  accent-foreground: '<unfilled>'
+  destructive: '<unfilled>'
+  destructive-foreground: '<unfilled>'
+  border: '<unfilled>'
+  input: '<unfilled>'
+  ring: '<unfilled>'
 colors-extended: {} # project tokens with no shadcn slot; declare the mapping below
 typography:
   heading-xl:
-    fontFamily: "<unfilled>"
-    fontSize: "<unfilled>"
-    fontWeight: "<unfilled>"
-    lineHeight: "<unfilled>"
+    fontFamily: '<unfilled>'
+    fontSize: '<unfilled>'
+    fontWeight: '<unfilled>'
+    lineHeight: '<unfilled>'
   heading-md:
-    fontFamily: "<unfilled>"
-    fontSize: "<unfilled>"
-    fontWeight: "<unfilled>"
-    lineHeight: "<unfilled>"
+    fontFamily: '<unfilled>'
+    fontSize: '<unfilled>'
+    fontWeight: '<unfilled>'
+    lineHeight: '<unfilled>'
   body-md:
-    fontFamily: "<unfilled>"
-    fontSize: "<unfilled>"
-    fontWeight: "<unfilled>"
-    lineHeight: "<unfilled>"
+    fontFamily: '<unfilled>'
+    fontSize: '<unfilled>'
+    fontWeight: '<unfilled>'
+    lineHeight: '<unfilled>'
   body-sm:
-    fontFamily: "<unfilled>"
-    fontSize: "<unfilled>"
-    fontWeight: "<unfilled>"
-    lineHeight: "<unfilled>"
+    fontFamily: '<unfilled>'
+    fontSize: '<unfilled>'
+    fontWeight: '<unfilled>'
+    lineHeight: '<unfilled>'
   label-sm:
-    fontFamily: "<unfilled>"
-    fontSize: "<unfilled>"
-    fontWeight: "<unfilled>"
-    lineHeight: "<unfilled>"
+    fontFamily: '<unfilled>'
+    fontSize: '<unfilled>'
+    fontWeight: '<unfilled>'
+    lineHeight: '<unfilled>'
 rounded:
-  sm: "<unfilled>"
-  md: "<unfilled>"
-  lg: "<unfilled>"
+  sm: '<unfilled>'
+  md: '<unfilled>'
+  lg: '<unfilled>'
 spacing:
-  xs: "<unfilled>"
-  sm: "<unfilled>"
-  md: "<unfilled>"
-  lg: "<unfilled>"
-  xl: "<unfilled>"
+  xs: '<unfilled>'
+  sm: '<unfilled>'
+  md: '<unfilled>'
+  lg: '<unfilled>'
+  xl: '<unfilled>'
 components: {} # component token overrides; see Components section
 ---
 

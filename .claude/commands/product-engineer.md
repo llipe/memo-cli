@@ -1,6 +1,6 @@
 ---
-description: "Orchestrate the pre-coding chain (Init / Feature / Issue mode): PRD, spec, stories, GitHub publication, and task planning. Hands off to /developer or /planner."
-argument-hint: "[init | <feature description> | #<issue-number>] (repo: owner/repo)"
+description: 'Orchestrate the pre-coding chain (Init / Feature / Issue mode): PRD, spec, stories, GitHub publication, and task planning. Hands off to /developer or /planner.'
+argument-hint: '[init | <feature description> | #<issue-number>] (repo: owner/repo)'
 ---
 
 # /product-engineer — Preparation Orchestrator

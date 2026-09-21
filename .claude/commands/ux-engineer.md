@@ -1,6 +1,6 @@
 ---
-description: "Convert a PRD/SPEC into testable React mockups and a refinement handoff, via the ux-engineer subagent."
-argument-hint: "<docs/requirements/prd-*.md | workstream/specification-*.md> <feature-slug> [variants 1-3] [palette]"
+description: 'Convert a PRD/SPEC into testable React mockups and a refinement handoff, via the ux-engineer subagent.'
+argument-hint: '<docs/requirements/prd-*.md | workstream/specification-*.md> <feature-slug> [variants 1-3] [palette]'
 ---
 
 Delegate to the **`ux-engineer` subagent** (via the Task tool) to produce mockups for user testing.

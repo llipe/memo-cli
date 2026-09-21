@@ -1,6 +1,6 @@
 ---
 name: activity-codebase-research
-description: "Perform bounded, delegated codebase investigation and emit a structured research artifact. Use when downstream agents need grounded, file-level evidence without pulling the search transcript into their own context."
+description: 'Perform bounded, delegated codebase investigation and emit a structured research artifact. Use when downstream agents need grounded, file-level evidence without pulling the search transcript into their own context.'
 ---
 
 # Activity: Codebase Research

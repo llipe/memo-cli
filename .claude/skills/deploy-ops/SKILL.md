@@ -1,6 +1,6 @@
 ---
 name: deploy-ops
-description: "Deploy script contract, environment mapping, tag policy, deploy-target framing, and workflow scaffolding for infra-engineer. Use when planning or applying deploys, rollbacks, or releases."
+description: 'Deploy script contract, environment mapping, tag policy, deploy-target framing, and workflow scaffolding for infra-engineer. Use when planning or applying deploys, rollbacks, or releases.'
 ---
 
 # Deploy Operations (deploy-ops)

@@ -10,16 +10,16 @@
 
 ## Story Status
 
-| Sequence | Story ID | Issue # | Status      | PR  | Branch                              |
-| -------- | -------- | ------- | ----------- | --- | ------------------------------------ |
-| 1        | S1-01    | #61     | ✅ Merged   | #66 | issue/61-relevance-eval-harness      |
-| 2        | S1-02    | #34     | ✅ Merged   | #67 | issue/34-composite-ranking-score     |
-| 3        | S1-03    | #36     | ✅ Merged   | #68 | story/s1-03-tag-overlap-boosting     |
-| 4        | S1-04    | #35     | ✅ Merged   | #69 | issue/35-dynamic-confidence-tiers    |
-| 5        | S1-05    | #38     | ✅ Merged   | #70 | issue/38-staleness-detection         |
-| 6        | S1-06    | #62     | ✅ Merged   | #71 | issue/62-lexical-identifier-matching |
-| 7        | S1-07    | #63     | ✅ Merged   | #72 | issue/63-query-id-explain            |
-| 8        | S1-08    | #64     | ✅ Merged   | #73 | issue/64-phase-1-exit-gate           |
+| Sequence | Story ID | Issue # | Status    | PR  | Branch                               |
+| -------- | -------- | ------- | --------- | --- | ------------------------------------ |
+| 1        | S1-01    | #61     | ✅ Merged | #66 | issue/61-relevance-eval-harness      |
+| 2        | S1-02    | #34     | ✅ Merged | #67 | issue/34-composite-ranking-score     |
+| 3        | S1-03    | #36     | ✅ Merged | #68 | story/s1-03-tag-overlap-boosting     |
+| 4        | S1-04    | #35     | ✅ Merged | #69 | issue/35-dynamic-confidence-tiers    |
+| 5        | S1-05    | #38     | ✅ Merged | #70 | issue/38-staleness-detection         |
+| 6        | S1-06    | #62     | ✅ Merged | #71 | issue/62-lexical-identifier-matching |
+| 7        | S1-07    | #63     | ✅ Merged | #72 | issue/63-query-id-explain            |
+| 8        | S1-08    | #64     | ✅ Merged | #73 | issue/64-phase-1-exit-gate           |
 
 **ALL 8 STORIES MERGED. Consolidated PR #74 opened, awaiting user review/approval/merge.**
 

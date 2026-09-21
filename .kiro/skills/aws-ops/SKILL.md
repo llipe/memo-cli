@@ -1,6 +1,6 @@
 ---
 name: aws-ops
-description: "AWS CLI command sets, resource tiers, cost inputs, backup and revert sources, and log table for infra-engineer. Use when planning or applying AWS infrastructure changes."
+description: 'AWS CLI command sets, resource tiers, cost inputs, backup and revert sources, and log table for infra-engineer. Use when planning or applying AWS infrastructure changes.'
 ---
 
 # AWS Operations (aws-ops)
