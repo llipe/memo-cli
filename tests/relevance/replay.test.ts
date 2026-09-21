@@ -1,13 +1,29 @@
 /**
- * Offline replay guard (AC6, AC9, SC-7, CT-5).
+ * Offline replay guard (AC6, AC9, SC-7, CT-5) and AC21 regression gate
+ * (`workstream/user-stories-prd-004-phase-1.md:170`).
  *
- * Replays the committed `candidates.json` through `computeTop3HitRate` — the
- * same pure function `scripts/eval-relevance.ts` calls — with no network
- * access, and asserts the recomputed hit rate is >= the recorded
+ * Replays the committed `candidates.json` through issue #34's `rankResults`
+ * (see `rankTop3` below) and `computeTop3HitRate` — with no network access —
+ * and asserts the recomputed hit rate is >= the recorded
  * `baseline.json.overall_top3`. Must pass with no `QDRANT_URL` or
  * `EMBEDDINGS_API_KEY` set (AC9); this file imports no Qdrant client and no
  * embeddings adapter, so there is nothing here that could reach the network
  * even if those variables were present.
+ *
+ * KNOWN FAILING STATE (AC21, as of S1-02 / issue #34, intentionally NOT
+ * papered over): `baseline.json` is fixed at S1-01's recorded 92.9% floor —
+ * the pre-ranking identity/similarity ordering
+ * (`user-stories-prd-004-phase-1.md:96`) — and AC21 requires composite
+ * ranking to replay at >= that floor. At the shipped default weights
+ * (0.6/0.3/0.1, half-life 90) it does not: the composite score currently
+ * replays at ~85.7% overall (concept ~75%, identifier ~87.5%, cross-repo
+ * ~83.3%, recency 100%). This is the expected consequence of the
+ * refinement's own R1 risk ("recency weighting can bury a genuinely correct
+ * older decision"), not an implementation defect, and default-weight tuning
+ * is reserved for task 8.0's exit gate, not an earlier story. The two tests
+ * below are therefore EXPECTED TO FAIL until that gate resolves it — do not
+ * weaken, skip, or raise the floor to make them pass; see PR #67 and issue
+ * #34 for the routed decision to `product-engineer`.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
