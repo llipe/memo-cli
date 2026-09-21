@@ -13,6 +13,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { computeTop3HitRate } from '../../src/lib/eval';
 import type { QueryResult } from '../../src/lib/eval';
+import {
+  rankResults,
+  DEFAULT_RANKING_WEIGHTS,
+  DEFAULT_RECENCY_HALF_LIFE_DAYS,
+} from '../../src/lib/ranking';
 
 const FIXTURES_DIR = join(__dirname, '..', 'fixtures', 'relevance');
 
@@ -46,6 +51,28 @@ function readJson<T>(name: string): T {
   return JSON.parse(readFileSync(join(FIXTURES_DIR, name), 'utf-8')) as T;
 }
 
+/**
+ * Mirrors `scripts/eval-relevance.ts`'s `toQueryResults`: rank the recorded
+ * raw candidates through issue #34's composite score (default weights, no
+ * config file in the offline replay context) before slicing top-3, so this
+ * replay stays a meaningful regression guard for every ranking-affecting
+ * story in the plan, not just a replay of pre-#34 raw similarity order.
+ */
+function rankTop3(candidates: CandidateEntry[]): (string | number)[] {
+  const ranked = rankResults(
+    candidates.map((c) => ({
+      id: c.id,
+      similarity: c.score,
+      timestampUtc:
+        typeof c.payload?.['timestamp_utc'] === 'string' ? c.payload['timestamp_utc'] : undefined,
+      source: c.payload?.['source'],
+    })),
+    DEFAULT_RANKING_WEIGHTS,
+    DEFAULT_RECENCY_HALF_LIFE_DAYS,
+  );
+  return ranked.slice(0, 3).map((c) => c.id);
+}
+
 describe('relevance replay (offline, no network)', () => {
   const queries = readJson<EvalQuery[]>('queries.json');
   const candidates = readJson<QueryCandidates[]>('candidates.json');
@@ -60,7 +87,7 @@ describe('relevance replay (offline, no network)', () => {
     const results: QueryResult[] = queries.map((q) => ({
       category: q.category,
       expectedIds: q.expected_ids,
-      top3Ids: (candidatesByQueryId.get(q.id) ?? []).slice(0, 3).map((c) => c.id),
+      top3Ids: rankTop3(candidatesByQueryId.get(q.id) ?? []),
     }));
     const report = computeTop3HitRate(results);
 
@@ -74,7 +101,7 @@ describe('relevance replay (offline, no network)', () => {
     const results: QueryResult[] = queries.map((q) => ({
       category: q.category,
       expectedIds: q.expected_ids,
-      top3Ids: (candidatesByQueryId.get(q.id) ?? []).slice(0, 3).map((c) => c.id),
+      top3Ids: rankTop3(candidatesByQueryId.get(q.id) ?? []),
     }));
 
     const report = computeTop3HitRate(results);

@@ -57,6 +57,11 @@ import { createEmbeddingsAdapter } from '../src/lib/embeddings.js';
 import type { EmbeddingsAdapter } from '../src/lib/embeddings.js';
 import { MemoError } from '../src/lib/errors.js';
 import { QdrantRepository } from '../src/lib/qdrant.js';
+import {
+  rankResults,
+  DEFAULT_RANKING_WEIGHTS,
+  DEFAULT_RECENCY_HALF_LIFE_DAYS,
+} from '../src/lib/ranking.js';
 
 // Resolved relative to the process cwd (repo root), consistent with
 // src/lib/config.ts's CONFIG_FILENAME resolution. This script is always
@@ -255,15 +260,37 @@ async function runAllQueries(
   return byQueryId;
 }
 
+/**
+ * Ranks each query's raw Qdrant candidates through issue #34's composite
+ * score before slicing top-3, using the documented default weights (the
+ * harness has no per-repo `memo.config.json` to read `ranking` from). This
+ * keeps the evaluation harness meaningful across every ranking-affecting
+ * story in this plan (PRD §8.2 R6): if it only ever replayed raw similarity
+ * order, it could never detect a ranking regression that #34-#38 introduce.
+ */
 function toQueryResults(
   queries: EvalQuery[],
   candidatesByQueryId: Map<string, QueryCandidate[]>,
 ): QueryResult[] {
-  return queries.map((query) => ({
-    category: query.category,
-    expectedIds: query.expected_ids,
-    top3Ids: (candidatesByQueryId.get(query.id) ?? []).slice(0, 3).map((c) => c.id),
-  }));
+  return queries.map((query) => {
+    const candidates = candidatesByQueryId.get(query.id) ?? [];
+    const ranked = rankResults(
+      candidates.map((c) => ({
+        id: c.id,
+        similarity: c.score,
+        timestampUtc:
+          typeof c.payload?.['timestamp_utc'] === 'string' ? c.payload['timestamp_utc'] : undefined,
+        source: c.payload?.['source'],
+      })),
+      DEFAULT_RANKING_WEIGHTS,
+      DEFAULT_RECENCY_HALF_LIFE_DAYS,
+    );
+    return {
+      category: query.category,
+      expectedIds: query.expected_ids,
+      top3Ids: ranked.slice(0, 3).map((c) => c.id),
+    };
+  });
 }
 
 function printReport(report: { overall_top3: number; by_category: Record<string, number> }): void {
@@ -350,7 +377,9 @@ export async function runEval(args: string[], deps: EvalDeps = {}): Promise<Eval
     await writeFileFn(CANDIDATES_PATH, JSON.stringify(candidatesArtifact, null, 2) + '\n', 'utf-8');
 
     const baseline = buildBaselineArtifact(report, {
-      note: 'Pre-S1-02 identity ranking: results ordered by similarity descending.',
+      note: 'S1-02 composite ranking (issue #34): final_score = 0.6*similarity + 0.3*recency + 0.1*source, default weights.',
+      ...DEFAULT_RANKING_WEIGHTS,
+      recency_half_life_days: DEFAULT_RECENCY_HALF_LIFE_DAYS,
     });
     await writeFileFn(BASELINE_PATH, JSON.stringify(baseline, null, 2) + '\n', 'utf-8');
 

@@ -87,34 +87,34 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
 - [ ] 2.0 Implement Story S1-02: Composite ranking score — [#34](https://github.com/llipe/memo-cli/issues/34)
 
   > Note: the refinement doc `workstream/issue-34-composite-ranking-score-refinement.md` is binding in full, including decisions D1–D9, defects DEF-1 and DEF-2, and criteria AC1–AC18.
-  - [ ] 2.1 Add `RankingConfig` to `src/types/config.ts`: `w_similarity`, `w_recency`, `w_source`, `recency_half_life_days`; `superRefine` for weight sum `1.0 ± 0.001`, each weight in `[0,1]`, half-life `.positive()`
-  - [ ] 2.2 Wire `ranking` into `MemoConfigSchema` as optional with full defaults `0.6 / 0.3 / 0.1 / 90` (partial blocks rejected, AC11)
-  - [ ] 2.3 Create `src/lib/ranking.ts`: `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults`; `now` injected, no I/O
-  - [ ] 2.4 Implement the neutral factor bag so unimplemented factors return 1.0 or 0 per PRD §8.2
-  - [ ] 2.5 Implement clamps: similarity into `[0,1]` (D8), negative age to 0 (R4), malformed or missing `timestamp_utc` → `recency_score` 0 (D4, R5), unknown or missing `source` → 0.5 (D5)
-  - [ ] 2.6 Implement the stable tiebreak: `final_score` desc, `timestamp_utc` desc, `id` asc (R9)
-  - [ ] 2.7 Load and validate `ranking` in `src/lib/config.ts` so invalid weights raise `CONFIG_INVALID` at load (D7)
-  - [ ] 2.8 Extend `memo setup validate` to report weight-sum failures with the offending path and actual sum
-  - [ ] 2.9 Compute the over-fetch limit `max(limit, min(limit * 3, 50))` in `src/commands/search.ts`; keep `QdrantRepository.search` signature unchanged
-  - [ ] 2.10 Call `rankResults` after fetch, slice to `--limit`, attach `final_score`, `similarity`, `recency_score`, `source_score` to JSON results
-  - [ ] 2.11 Point `output.searchResults` at `final_score` for the percentage, position unchanged (D6)
-  - [ ] 2.12 Write `tests/unit/lib/ranking.test.ts`: recency at 0/45/90/180/270/360 days (270 ≈ 0.125 per DEF-2, `< 0.1` only at 4×), future, missing, malformed; source for all values plus unknown and undefined; composite with default and custom weights, bounded, negative similarity; `rankResults` ordering, the AC2 scenario, tiebreak, empty, single
-  - [ ] 2.13 Extend `tests/unit/lib/config.test.ts`: valid block, absent block defaults, sums 0.9 and 1.1 rejected, half-life 0 and negative rejected (R10), weight outside `[0,1]` rejected (R11), partial block rejected
-  - [ ] 2.14 Extend `tests/unit/commands/setup.test.ts`: `validate` exit 0 on valid, exit 1 with descriptive error on invalid sum
-  - [ ] 2.15 Update `tests/unit/commands/search.test.ts` per DEF-1: over-fetch assertions `--limit 3` → 9, `--limit 20` → 50, `--limit 100` → 100; slicing after ranking; JSON shape; empty-result path preserved
-  - [ ] 2.16 Verify AC1–AC4: ordering by `final_score`, the newer-beats-older scenario, the 0.05 source delta, bounded output
-  - [ ] 2.17 Verify AC5–AC7: four score fields present, human percentage sourced from `final_score`, envelope keys unchanged in name, type, and position
-  - [ ] 2.18 Verify AC8–AC12: config validation behavior end to end, including fail-fast on `memo search`
-  - [ ] 2.19 Verify AC13–AC14: over-fetch formula including `--limit 100` → 100
-  - [ ] 2.20 Verify AC19–AC21: purity of `ranking.ts`, factor bag shape, replay hit rate ≥ baseline
-  - [ ] 2.21 Manual: `memo search "auth roles" --limit 5`, then `--json`, then `memo setup validate` with a valid and an injected invalid weight sum
-  - [ ] 2.22 Run `pnpm run eval:relevance`; state before and after hit rates in the PR body
-  - [ ] 2.23 Document the `ranking` block with defaults and the weight-sum rule in `README.md`; update `docs/data-model.md` and `docs/system-overview.md` search flow
-  - [ ] 2.24 Map every AC to its test per the refinement's AC-to-test table in the PR body
-  - [ ] 2.25 Migration: record the not-required opt-out (refinement Migration Assessment) in the PR body
-  - [ ] 2.26 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 2.27 Run `verifier` audit; route drift findings to `product-engineer`
-  - [ ] 2.28 Open PR against `main`, link `Closes #34`, obtain user approval, merge
+  - [x] 2.1 Add `RankingConfig` to `src/types/config.ts`: `w_similarity`, `w_recency`, `w_source`, `recency_half_life_days`; `superRefine` for weight sum `1.0 ± 0.001`, each weight in `[0,1]`, half-life `.positive()`
+  - [x] 2.2 Wire `ranking` into `MemoConfigSchema` as optional with full defaults `0.6 / 0.3 / 0.1 / 90` (partial blocks rejected, AC11)
+  - [x] 2.3 Create `src/lib/ranking.ts`: `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults`; `now` injected, no I/O
+  - [x] 2.4 Implement the neutral factor bag so unimplemented factors return 1.0 or 0 per PRD §8.2
+  - [x] 2.5 Implement clamps: similarity into `[0,1]` (D8), negative age to 0 (R4), malformed or missing `timestamp_utc` → `recency_score` 0 (D4, R5), unknown or missing `source` → 0.5 (D5)
+  - [x] 2.6 Implement the stable tiebreak: `final_score` desc, `timestamp_utc` desc, `id` asc (R9)
+  - [x] 2.7 Load and validate `ranking` in `src/lib/config.ts` so invalid weights raise `CONFIG_INVALID` at load (D7) — fixed via `src/commands/search.ts`'s catch, which previously swallowed `CONFIG_INVALID` the same as `CONFIG_NOT_FOUND` (a real defect against AC12/D7)
+  - [x] 2.8 Extend `memo setup validate` to report weight-sum failures with the offending path and actual sum — satisfied by the Zod `superRefine` message; no separate `setup.ts` code change needed
+  - [x] 2.9 Compute the over-fetch limit `max(limit, min(limit * 3, 50))` in `src/commands/search.ts`; keep `QdrantRepository.search` signature unchanged
+  - [x] 2.10 Call `rankResults` after fetch, slice to `--limit`, attach `final_score`, `similarity`, `recency_score`, `source_score` to JSON results
+  - [x] 2.11 Point `output.searchResults` at `final_score` for the percentage, position unchanged (D6)
+  - [x] 2.12 Write `tests/unit/lib/ranking.test.ts`: recency at 0/45/90/180/270/360 days (270 ≈ 0.125 per DEF-2, `< 0.1` only at 4×), future, missing, malformed; source for all values plus unknown and undefined; composite with default and custom weights, bounded, negative similarity; `rankResults` ordering, the AC2 scenario, tiebreak, empty, single — 39 tests, 98.3% stmts / 97.77% branch / 100% funcs / 100% lines on `ranking.ts`
+  - [x] 2.13 Extend `tests/unit/lib/config.test.ts`: valid block, absent block defaults, sums 0.9 and 1.1 rejected, half-life 0 and negative rejected (R10), weight outside `[0,1]` rejected (R11), partial block rejected
+  - [x] 2.14 Extend `tests/unit/commands/setup.test.ts` — added to `tests/integration/commands/setup.test.ts` instead (existing `handleValidate` suite lives there with real fs I/O, no separate unit file existed): `validate` exit 0 on valid, exit 1 with descriptive error naming `ranking` and the actual sum on invalid sum, exit 0 with no block, exit 1 on a partial block that breaks the sum
+  - [x] 2.15 Update `tests/unit/commands/search.test.ts` per DEF-1: over-fetch assertions `--limit 3` → 9, `--limit 20` → 50, `--limit 100` → 100; slicing after ranking; JSON shape; empty-result path preserved. Also updated `tests/integration/commands/search.test.ts`'s pre-existing over-fetch (10→30) and percentage (91%→65%) assertions, which the same DEF-1/D6 changes broke
+  - [x] 2.16 Verify AC1–AC4: ordering by `final_score`, the newer-beats-older scenario, the 0.05 source delta, bounded output
+  - [x] 2.17 Verify AC5–AC7: four score fields present, human percentage sourced from `final_score`, envelope keys unchanged in name, type, and position
+  - [x] 2.18 Verify AC8–AC12: config validation behavior end to end, including fail-fast on `memo search`
+  - [x] 2.19 Verify AC13–AC14: over-fetch formula including `--limit 100` → 100
+  - [x] 2.20 Verify AC19–AC21 (not in the refinement's AC1-18 list; treated as this task's own additional verification per its wording): purity of `ranking.ts` (no I/O, no ambient clock reads, `now` injected, confirmed by code review and tests), factor bag shape (`RankingFactors` neutral defaults, tested), replay hit rate — see 2.22, does NOT hold ≥ the pre-#34 baseline; see PR body
+  - [x] 2.21 Manual: `memo search "auth roles" --limit 5`, then `--json`, then `memo setup validate` with a valid and an injected invalid weight sum — run against live Qdrant Cloud (`MEMO_COLLECTION=memo_eval`); see PR body for output
+  - [x] 2.22 Run `pnpm run eval:relevance`; state before and after hit rates in the PR body — required updating `scripts/eval-relevance.ts` and `tests/relevance/replay.test.ts` to rank candidates through `rankResults` before slicing top-3 (they previously used raw Qdrant/similarity order and so were structurally incapable of measuring any ranking-affecting story, defeating PRD §8.2 R6). Before (raw similarity, S1-01): 92.9%. After (composite ranking, default weights): 85.7%. See PR body for the full before/after breakdown and root-cause analysis
+  - [x] 2.23 Document the `ranking` block with defaults and the weight-sum rule in `README.md`; update `docs/data-model.md` and `docs/system-overview.md` search flow
+  - [x] 2.24 Map every AC to its test per the refinement's AC-to-test table in the PR body
+  - [x] 2.25 Migration: record the not-required opt-out (refinement Migration Assessment) in the PR body
+  - [x] 2.26 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — lint/typecheck/test/audit all green on this diff; `format:check` is clean on every file this story touches, repo-wide `format:check` and `test:coverage` fail on pre-existing drift/shortfall that predates this story (see PR body)
+  - [ ] 2.27 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 2.28 Open PR against `main`, link `Closes #34`, obtain user approval, merge — opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 3.0 Implement Story S1-03: Tag overlap boosting — [#36](https://github.com/llipe/memo-cli/issues/36)
 

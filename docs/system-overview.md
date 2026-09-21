@@ -50,20 +50,21 @@ All commands support `--json` for machine-readable output. Human mode uses color
 
 ### Libraries (`src/lib/`)
 
-| Module              | Purpose                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                          |
-| `facets.ts`         | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting |
-| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                    |
-| `config.ts`         | Load, write, and validate `memo.config.json`                                                                           |
-| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                                                   |
-| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                                       |
-| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                                                  |
-| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                                         |
-| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                                                  |
-| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                                       |
-| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                       |
-| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                |
+| Module              | Purpose                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                    |
+| `facets.ts`         | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting                           |
+| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                              |
+| `config.ts`         | Load, write, and validate `memo.config.json`                                                                                                     |
+| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                                                                             |
+| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                                                                 |
+| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                                                                            |
+| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                                                                   |
+| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                                                                            |
+| `ranking.ts`        | Pure composite ranking score for `memo search` — `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults` (issue #34) |
+| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                                                                 |
+| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                                                 |
+| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                                          |
 
 ### Adapters (`src/adapters/`)
 
@@ -112,11 +113,12 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 ### Search Flow
 
 1. Parse query string and filter flags (scope, tags, entry-type, source, limit)
-2. Load config, resolve related repos if `--scope related`
+2. Load config, resolve related repos if `--scope related`; an invalid config (including invalid `ranking` weights) fails fast with `CONFIG_INVALID` rather than falling back to defaults
 3. Build Qdrant pre-filters
 4. Embed query text (plus tag terms when present)
-5. Execute vector search with pre-filters
-6. Format and output results with similarity scores
+5. Compute the over-fetch limit `max(limit, min(limit * 3, 50))` and execute vector search with pre-filters against that many candidates
+6. Rank candidates via `src/lib/ranking.ts`'s composite score (`final_score = w_similarity * similarity + w_recency * recency_score + w_source * source_score`, weights from `memo.config.json`'s `ranking` block or its defaults), slice back down to `--limit`
+7. Format and output results: human mode shows `final_score` as the percentage; `--json` exposes `final_score`, `similarity`, `recency_score`, and `source_score` on every result
 
 ### List Flow
 

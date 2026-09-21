@@ -153,17 +153,23 @@ File: `memo.config.json` (per-repository, created by `memo setup init`)
 
 Validated via Zod (`MemoConfigSchema`):
 
-| Field                   | Type     | Required | Default | Constraints                      |
-| ----------------------- | -------- | -------- | ------- | -------------------------------- |
-| `schema_version`        | string   | Yes      | —       | Literal `"1"`                    |
-| `repo`                  | string   | Yes      | —       | kebab-case                       |
-| `org`                   | string   | Yes      | —       | kebab-case                       |
-| `domain`                | string   | Yes      | —       | kebab-case                       |
-| `relates_to`            | string[] | No       | `[]`    | No duplicates, no self-reference |
-| `defaults.source`       | enum     | No       | —       | `agent` \| `scan` \| `manual`    |
-| `defaults.search_scope` | enum     | No       | —       | `repo` \| `related`              |
+| Field                            | Type     | Required | Default | Constraints                      |
+| -------------------------------- | -------- | -------- | ------- | -------------------------------- |
+| `schema_version`                 | string   | Yes      | —       | Literal `"1"`                    |
+| `repo`                           | string   | Yes      | —       | kebab-case                       |
+| `org`                            | string   | Yes      | —       | kebab-case                       |
+| `domain`                         | string   | Yes      | —       | kebab-case                       |
+| `relates_to`                     | string[] | No       | `[]`    | No duplicates, no self-reference |
+| `defaults.source`                | enum     | No       | —       | `agent` \| `scan` \| `manual`    |
+| `defaults.search_scope`          | enum     | No       | —       | `repo` \| `related`              |
+| `ranking.w_similarity`           | number   | No       | `0.6`   | `[0, 1]`; weight-sum rule below  |
+| `ranking.w_recency`              | number   | No       | `0.3`   | `[0, 1]`; weight-sum rule below  |
+| `ranking.w_source`               | number   | No       | `0.1`   | `[0, 1]`; weight-sum rule below  |
+| `ranking.recency_half_life_days` | number   | No       | `90`    | Positive, finite                 |
 
 The schema uses `.passthrough()` to preserve unknown keys for forward compatibility.
+
+`ranking` (issue #34) is additive and fully optional: a v1 config without it, or with an empty `{}`, resolves every field to its default. `w_similarity + w_recency + w_source` must sum to `1.0` within `±0.001` (float tolerance) once defaults are resolved for any missing field — this rejects a partial override that breaks the sum (e.g. `{ "w_similarity": 0.5 }` alone), while a partial override that leaves all three weights untouched (e.g. only `recency_half_life_days`) still passes.
 
 ---
 

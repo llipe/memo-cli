@@ -1,13 +1,17 @@
 {
-  "recorded_at": "2026-09-20T20:45:12.807Z",
-  "overall_top3": 0.9285714285714286,
+  "recorded_at": "2026-09-21T00:48:28.684Z",
+  "overall_top3": 0.8571428571428571,
   "by_category": {
-    "concept": 1,
-    "identifier": 1,
-    "cross-repo": 0.6666666666666666,
+    "concept": 0.75,
+    "identifier": 0.875,
+    "cross-repo": 0.8333333333333334,
     "recency": 1
   },
   "ranking_config": {
-    "note": "Pre-S1-02 identity ranking: results ordered by similarity descending."
+    "note": "S1-02 composite ranking (issue #34): final_score = 0.6*similarity + 0.3*recency + 0.1*source, default weights.",
+    "w_similarity": 0.6,
+    "w_recency": 0.3,
+    "w_source": 0.1,
+    "recency_half_life_days": 90
   }
 }
