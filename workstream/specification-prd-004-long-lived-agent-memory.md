@@ -2,10 +2,12 @@
 
 ## Changelog
 
-| Version | Date       | Summary                                                                                                                   | Author           |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| 1.1     | 2026-09-19 | Phase 1 stories: staleness annotation renamed `stale_by`; eval collection isolated via `MEMO_COLLECTION`.                 | product-engineer |
-| 1.0     | 2026-09-19 | Initial specification for PRD-004 v1.3. Covers all five phases; Phases 1–3 at contract depth, Phases 4–5 at design depth. | product-engineer |
+| Version | Date       | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Author           |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1.2     | 2026-09-21 | Phase 2 implementation depth (new §18) grounded on the merged Phase 1 codebase (v1.2.0): schema v2 field-by-field with read-side normalization; config v2 `schema_version` widened to `'1' \| '2'`; `QdrantRepository` extensions with the `order_by`-vs-`offset` pagination constraint made explicit; bank-aware staleness corpus; write path v2 step list incl. `--supersedes` two-step failure semantics and the `self` soft cap; `timeline`, `recall`, `bank`, `migrate` command internals; `--rules` file shape; cross-repo partition for the dev-tasks consumer story; delivery slicing. Decisions A10–A14. Resolves PRD §18 Q1 (private episodic purge default stays **on**, 30 d) and Q5 (`self` soft cap **50**, configurable, warning-only), and spec §17 Q1/Q2. Query snapshots moved to Phase 3. `TESTING.md` reference updated (filled in Phase 1). | product-engineer |
+| 1.3     | 2026-09-21 | Drift reconciliation from the 11 Phase 2 `verifier` Design Mode test plans (#53, #81–#90): new §18.14 resolves every open question those plans raised — `normalizeEntry` timestamp handling, `--kind` case-insensitivity and `--as-of` date-only acceptance (both human-confirmed), soft-cap/`--supersedes` error codes, `bank init --set-default` idempotency, `bank`/`inspect` facet independence, migration rule/bank-preservation semantics, `recall`'s `bank=kb` JSON shape, and the S2-11 eval scope — so no story starts implementation against an ambiguous spec. Corrects an `aggregateField` call-order error in §18.10 against the shipped `(field, scroll)` signature. This is gap-filling on top of §18.1–§18.13, not a behavioral change.                                                                                                          | product-engineer |
+| 1.1     | 2026-09-19 | Phase 1 stories: staleness annotation renamed `stale_by`; eval collection isolated via `MEMO_COLLECTION`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | product-engineer |
+| 1.0     | 2026-09-19 | Initial specification for PRD-004 v1.3. Covers all five phases; Phases 1–3 at contract depth, Phases 4–5 at design depth.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | product-engineer |
 
 ## 1. Executive Summary
 
@@ -13,7 +15,9 @@ PRD-004 is implemented as an additive v2 of the existing single-collection desig
 
 ## 2. Reference Documents
 
-- PRD: [`docs/requirements/prd-004-long-lived-agent-memory.md`](../docs/requirements/prd-004-long-lived-agent-memory.md) v1.4. §2.4–§2.6 (banks, kinds, deletion contract) and §8.2 (ranking) are normative.
+- PRD: [`docs/requirements/prd-004-long-lived-agent-memory.md`](../docs/requirements/prd-004-long-lived-agent-memory.md) v1.12. §2.4–§2.6 (banks, kinds, deletion contract) and §8.2 (ranking) are normative.
+- Phase 1 delivery record: `workstream/user-stories-prd-004-phase-1.md`, `workstream/tasks-prd-004-phase-1-plan.md`, `workstream/fidelity-report-prd-004-phase-1-rollup.md` (merged as PR #74, released v1.2.0). §18 of this spec is written against that merged codebase.
+- Testing contract: `/TESTING.md` (filled in Phase 1 by S1-08).
 - Superseded PRD: `docs/requirements/prd-002-search-ranking-retrieval.md` (history only).
 - Ranking refinement: `workstream/issue-34-composite-ranking-score-refinement.md` (decisions D1–D9, defects DEF-1/DEF-2 still apply).
 - Technical guidelines: `docs/technical-guidelines.md` §3 (patterns, no global state), §4 (CLI/output/exit codes/error catalog), §7 (data), §8 (integration, retry), §11 (testing), §12 (quality).
@@ -70,17 +74,22 @@ flowchart TB
 
 ### Key architectural decisions
 
-| #   | Decision                                                                                                                                                                     | Rationale                                                                                                                                                 |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A1  | One collection; `bank` and `kind` are indexed payload keywords.                                                                                                              | Reuses `deleteByFilter`, facets, and filter builders; free-tier cost; PRD §12.                                                                            |
-| A2  | Boolean mirrors for state: `archived`, `superseded`, `consolidated`, `pinned` are indexed booleans; datetimes (`archived_at`, `valid_to`, `consolidated_at`) carry the when. | Qdrant filters on booleans are exact and index-backed; avoids `is_null` semantics on v1 points. `must_not archived=true` passes points lacking the field. |
-| A3  | Every rule is a pure function with injected `now` and returns a plan (`{ archive: [...], purge: [...] }`); commands execute plans.                                           | Deterministic, table-driven tests; `--dry-run` is "print the plan".                                                                                       |
-| A4  | Lexical matching is an additive boost in the unified formula, not reciprocal rank fusion.                                                                                    | Qdrant `text` indexes give boolean token matches, not BM25 scores; a second ranked list would be synthetic. Candidate union + boost keeps one formula.    |
-| A5  | Retention-based archive applies to `semantic` only; `episodic` archives on expiry or promotion.                                                                              | With `expires_at` already bounding episodes, a second clock adds no value and risks archiving "last session" before the next session.                     |
-| A6  | `stability_since` anchors the retention clock for entries never retrieved.                                                                                                   | Without it, migration would compute a year of decay for legacy decisions and archive them on the first `memo decay`.                                      |
-| A7  | Dedupe applies per kind: semantic keeps the story/commit key, episodic adds `seq`, `self` bypasses dedupe.                                                                   | A session writes many episodes with identical repo/story/source; the v1 key would flag every one as a duplicate.                                          |
-| A8  | Query snapshots and logs are local JSON lines, not Qdrant points.                                                                                                            | Cheap, append-only, replayable, and keeps Qdrant to memories only. Cross-machine `memo used` is out of scope.                                             |
-| A9  | The only LLM consumer is `memo consolidate` (and `memo ask` in Phase 5); both go through one `LLMAdapter`.                                                                   | PRD §7 cost discipline; adapter pattern from technical guidelines §8.                                                                                     |
+| #   | Decision                                                                                                                                                                     | Rationale                                                                                                                                                         |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | One collection; `bank` and `kind` are indexed payload keywords.                                                                                                              | Reuses `deleteByFilter`, facets, and filter builders; free-tier cost; PRD §12.                                                                                    |
+| A2  | Boolean mirrors for state: `archived`, `superseded`, `consolidated`, `pinned` are indexed booleans; datetimes (`archived_at`, `valid_to`, `consolidated_at`) carry the when. | Qdrant filters on booleans are exact and index-backed; avoids `is_null` semantics on v1 points. `must_not archived=true` passes points lacking the field.         |
+| A3  | Every rule is a pure function with injected `now` and returns a plan (`{ archive: [...], purge: [...] }`); commands execute plans.                                           | Deterministic, table-driven tests; `--dry-run` is "print the plan".                                                                                               |
+| A4  | Lexical matching is an additive boost in the unified formula, not reciprocal rank fusion.                                                                                    | Qdrant `text` indexes give boolean token matches, not BM25 scores; a second ranked list would be synthetic. Candidate union + boost keeps one formula.            |
+| A5  | Retention-based archive applies to `semantic` only; `episodic` archives on expiry or promotion.                                                                              | With `expires_at` already bounding episodes, a second clock adds no value and risks archiving "last session" before the next session.                             |
+| A6  | `stability_since` anchors the retention clock for entries never retrieved.                                                                                                   | Without it, migration would compute a year of decay for legacy decisions and archive them on the first `memo decay`.                                              |
+| A7  | Dedupe applies per kind: semantic keeps the story/commit key, episodic adds `seq`, `self` bypasses dedupe.                                                                   | A session writes many episodes with identical repo/story/source; the v1 key would flag every one as a duplicate.                                                  |
+| A8  | Query snapshots and logs are local JSON lines, not Qdrant points.                                                                                                            | Cheap, append-only, replayable, and keeps Qdrant to memories only. Cross-machine `memo used` is out of scope.                                                     |
+| A9  | The only LLM consumer is `memo consolidate` (and `memo ask` in Phase 5); both go through one `LLMAdapter`.                                                                   | PRD §7 cost discipline; adapter pattern from technical guidelines §8.                                                                                             |
+| A10 | Stored payloads are never Zod-parsed on read; a pure `normalizeEntry()` fills v1 gaps (`bank = kb`, `kind = semantic`, booleans `false`) at the read boundary.               | Matches the shipped read paths (`search`/`list`/`read` pass payloads through untyped); keeps v1 points and 1.2.x rollback working without a migration.            |
+| A11 | Two scroll modes on `QdrantRepository`: ordered (`order_by`, no `offset`) for bounded reads; unordered (`next_page_offset`) for `scrollAll`.                                 | Qdrant rejects `offset` together with `order_by`; the shipped `scroll()` hard-codes `order_by: timestamp_utc desc`, so full-collection passes need a second path. |
+| A12 | Staleness corpus becomes bank-aware (`fetchStalenessCorpus({ bank, repos })`).                                                                                               | The shipped `fetchByRepo` filters on `repo` only; unchanged, a private bank's results would be compared against `kb` entries and flagged stale by them.           |
+| A13 | `memo bank init` writes `config.bank.default` only with `--set-default`; otherwise it touches Qdrant only.                                                                   | An agent harness must be able to create its bank without mutating the repo's committed `memo.config.json`; `MEMO_BANK` (B3) is the harness-side default.          |
+| A14 | Query result snapshots (`~/.memo/queries/`) and `local-store.ts` ship in Phase 3, not Phase 2; Phase 2 `recall`/`search` emit `query_id` only.                               | PRD FR-1.4/FR-3.1 make `query_id` inert until `memo used` exists; keeps Phase 2 free of local-filesystem state and its `0600`/`MEMO_HOME` test surface.           |
 
 ## 5. Data Model & Database Design
 
@@ -176,8 +185,10 @@ The collection name resolves from `MEMO_COLLECTION` (default `decisions`) so the
 Additive blocks, all optional with defaults, `.passthrough()` preserved:
 
 ```ts
+schema_version: z.enum(['1', '2'])                             // was literal('1'); v1 files stay valid
 bank:          { default: KebabOrUuid.default('kb') }
-banks:         { kb: BankPolicy, private: BankPolicy }        // per-kind policy, see §8.4
+banks:         { kb: BankPolicy, private: BankPolicy }        // per-kind policy, see §8.4 and §18.2
+recall:        { max_tokens: int > 0, default 2000 }           // Phase 2
 ranking:       { w_similarity, w_recency, w_source, recency_half_life_days, tag_boost_factor,
                  lexical_boost_factor, lexical: boolean, confidence_thresholds,
                  staleness_threshold_days, staleness_tag_overlap_threshold, use_beta, link_alpha }
@@ -187,7 +198,7 @@ consolidation: { min_episodes, min_contexts, min_span_days, cluster_similarity,
                  duplicate_similarity, model, promote_to_kb }
 ```
 
-`superRefine` rules: weights sum to `1.0 ± 0.001`, each in `[0,1]`; thresholds strictly ordered `exact > high > medium`; half-life and stabilities `> 0`; `purge_after_days` on `banks.kb.*` must be explicit (no default). Invalid config fails `loadConfig` (fail fast, #34 D7) and `memo setup validate`.
+`superRefine` rules: weights sum to `1.0 ± 0.001`, each in `[0,1]`; thresholds strictly ordered `exact > high > medium`; half-life and stabilities `> 0`; `purge_after_days` on `banks.kb.*` must be explicit (no default). Invalid config fails `loadConfig` (fail fast, #34 D7) and `memo setup validate`. `ranking`'s Phase 1 block (`src/types/config.ts`) is already shipped with these rules; Phase 2 adds `schema_version`, `bank`, `banks`, `recall` only — `retention` and `consolidation` land with Phases 3 and 4.
 
 ### 5.5 Migration strategy
 
@@ -220,17 +231,17 @@ The CLI is the API. Every command supports `--json`; exit codes follow the catal
 
 **Phase 2**
 
-| Command                                                                             | Contract                                                                                                                                                                                                                                                                                                                     |
-| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `memo write`                                                                        | New flags `--bank`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance <csv>`, `--manual`, `--supersedes <id>`, `--pin`, `--expires-in <duration>`. Defaults per PRD K1. Auto-`seq` when `--session` given without `--seq` (one scroll ordered by `seq` desc, limit 1). JSON result adds all v2 fields. |
-| `memo search`, `memo list`, `memo tags list`                                        | New shared flags. Base filter from `buildBaseFilter` (§8.1) composed with existing builders.                                                                                                                                                                                                                                 |
-| `memo read --id`                                                                    | Prints v2 fields; provenance ids annotated `(deleted)` when `getById` misses.                                                                                                                                                                                                                                                |
-| `memo timeline --bank <id> [--session <id>] [--last <n>] [--since <date>] [--json]` | Scroll `kind = episodic` ordered by `seq` asc when `--session`, else by `timestamp_utc` desc grouped by session; never ranked. JSON: `{ bank, session_id?, entries: [...], count }`.                                                                                                                                         |
-| `memo recall "<task>" [--bank] [--scope] [--max-tokens <n>] [--json]`               | §8.5. JSON: `{ query_id, bank, budget: { max_tokens, used_tokens }, sections: { self: [], policies: [], shared: [], mine: [], last_session: { session_id, entries: [] }, conflicts: [] }, truncated: string[] }`.                                                                                                            |
-| `memo bank init --id <id> [--rationale <text>] [--tags <csv>] [--json]`             | Writes the first `self` entry (`entry_type = structure`, `source = manual`, tags default `bank,self`), sets `config.bank.default` if unset. Second run: prints existing, writes nothing.                                                                                                                                     |
-| `memo bank list [--json]`, `memo bank show --id <id> [--json]`                      | Facet scroll on `bank` (reuses `facets.ts`); `show` prints valid `self` entries newest first plus counts per kind and last `session_id`.                                                                                                                                                                                     |
-| `memo migrate --to-v2 [--dry-run] [--rules <file>] [--json]`                        | §5.5. JSON: `{ scanned, migrated, skipped, by_rule: { "1": n, "2": n }, dry_run }`.                                                                                                                                                                                                                                          |
-| `memo inspect`                                                                      | Adds a `banks` facet (counts only).                                                                                                                                                                                                                                                                                          |
+| Command                                                                                 | Contract                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `memo write`                                                                            | New flags `--bank`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance <csv>`, `--manual`, `--supersedes <id>`, `--pin`, `--expires-in <duration>`. Defaults per PRD K1. Auto-`seq` when `--session` given without `--seq` (one scroll ordered by `seq` desc, limit 1). JSON result adds all v2 fields. |
+| `memo search`, `memo list`, `memo tags list`                                            | New shared flags. Base filter from `buildBaseFilter` (§8.1) composed with existing builders.                                                                                                                                                                                                                                 |
+| `memo read --id`                                                                        | Prints v2 fields; provenance ids annotated `(deleted)` when `getById` misses.                                                                                                                                                                                                                                                |
+| `memo timeline --bank <id> [--session <id>] [--last <n>] [--since <date>] [--json]`     | Scroll `kind = episodic` ordered by `seq` asc when `--session`, else by `timestamp_utc` desc grouped by session; never ranked. JSON: `{ bank, session_id?, entries: [...], count }`.                                                                                                                                         |
+| `memo recall "<task>" [--bank] [--scope] [--max-tokens <n>] [--json]`                   | §8.5, §18.7. JSON: `{ query_id, bank, budget: { max_tokens, used_tokens }, sections: { self: [], policies: [], shared: [], mine: [], last_session: { session_id, entries: [] }, conflicts: [] }, truncated: string[] }`. `--max-tokens` defaults to `config.recall.max_tokens` (2000). No snapshot written in Phase 2 (A14). |
+| `memo bank init --id <id> [--rationale <text>] [--tags <csv>] [--set-default] [--json]` | Writes the first `self` entry (`entry_type = structure`, `source = manual`, tags default `bank,self`); `--set-default` additionally sets `config.bank.default` (A13). Second run: prints existing, writes nothing.                                                                                                           |
+| `memo bank list [--json]`, `memo bank show --id <id> [--json]`                          | Facet scroll on `bank` (reuses `facets.ts`); `show` prints valid `self` entries newest first plus counts per kind and last `session_id`.                                                                                                                                                                                     |
+| `memo migrate --to-v2 [--dry-run] [--rules <file>] [--json]`                            | §5.5. JSON: `{ scanned, migrated, skipped, by_rule: { "1": n, "2": n }, dry_run }`.                                                                                                                                                                                                                                          |
+| `memo inspect`                                                                          | Adds a `banks` facet (counts only).                                                                                                                                                                                                                                                                                          |
 
 **Phase 3**
 
@@ -316,6 +327,8 @@ The CLI is the API. Every command supports `--json`; exit codes follow the catal
 ```
 
 ### 6.3 Sequence: recall → used → decay
+
+Full three-phase flow. In Phase 2 only the `memo recall` leg exists, and per A14 the `queries/<query_id>.json` write and the retrieval-counter batch update are Phase 3 steps — Phase 2 `recall` ends at "JSON bundle + query_id".
 
 ```mermaid
 sequenceDiagram
@@ -561,7 +574,7 @@ Ranking is O(n) over ≤ 100 candidates. `ensureIndexes` adds one `getCollection
 
 ## 14. Testing Strategy
 
-`TESTING.md` is an unfilled placeholder; `qa-engineer` fills it in Phase 1. Until then the technical guidelines §11 pyramid applies.
+`/TESTING.md` was filled in Phase 1 (S1-08) and is the binding harness description (Jest, `tests/unit` / `tests/integration` / `tests/relevance`, credential requirements). The table below is the PRD-004 layer map on top of it. Phase 1 exit recorded `coverage_gate: FAIL` on branches/functions (pre-existing debt in `setup.ts`, `write.ts`, `retry.ts`, `embeddings.ts`); Phase 2 touches `write.ts` and `setup.ts` directly and **MUST** leave both at or above the `jest.config.ts` thresholds rather than carrying the debt forward.
 
 | Layer                             | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Mocks                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
@@ -605,7 +618,261 @@ Dependencies: `@qdrant/js-client-rest` (batch update, text index, `is_empty`), `
 
 ## 17. Open Questions
 
-1. `--max-tokens` default of 2000 for `recall`: confirm or set per bank in config.
-2. Qdrant `text` index on `files_modified` (array): confirmed supported by tokenizing each element; verify on the target Qdrant version during Phase 1 story 1.
-3. Should `memo search` counters update only in `--json` mode (agent use) to keep human exploration from inflating stability? Default: update in both modes.
-4. Consolidation cost table: keep `price_per_1k_tokens` in config (user-maintained) or report tokens only? Default: tokens always, cost when configured.
+1. ~~`--max-tokens` default of 2000 for `recall`: confirm or set per bank in config.~~ **Resolved (v1.2):** default 2000, one global key `recall.max_tokens`; per-bank budgets are not needed until a second long-lived agent exists.
+2. ~~Qdrant `text` index on `files_modified` (array).~~ **Resolved (S1-06, #62):** verified live on Qdrant 1.18.2 — array elements tokenize independently; both indexes shipped.
+3. Should `memo search` counters update only in `--json` mode (agent use) to keep human exploration from inflating stability? Default: update in both modes. (Phase 3.)
+4. Consolidation cost table: keep `price_per_1k_tokens` in config (user-maintained) or report tokens only? Default: tokens always, cost when configured. (Phase 4.)
+
+Resolved PRD §18 questions carried into this spec (v1.2):
+
+- **PRD Q1 — private episodic purge default:** stays **on** (`banks.private.episodic.purge_after_days = 30`). Short-term memory must end deleted or promoted (PRD §2.5); §8.4 table unchanged.
+- **PRD Q5 — `self` soft cap:** **50** per bank, warning only, configurable as `banks.private.self.soft_cap` (§18.2). A smaller cap tends to force more meaningful self-reflection (each `self` entry must earn its place); a larger cap risks the bank owner ignoring part of its own `SELF` section. Neither direction has been tuned against a real long-lived agent yet, so 50 is a starting point, not a measured optimum.
+
+## 18. Phase 2 — Implementation Detail
+
+Everything in this section is scoped to PRD §7.2 (FR-2.1–FR-2.10) and AC-2.1–AC-2.9, and is written against the merged v1.2.0 codebase. Where §5–§9 state the contract, this section states the concrete change per file so stories and task lists can cite it. Test-first applies: each sub-section ends with the tests that exist before the code.
+
+### 18.1 Starting point (what v1.2.0 actually has)
+
+| Area                  | Shipped state                                                                                                                                                                                                    | Phase 2 delta                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `src/types/entry.ts`  | Strict v1 `EntryPayloadSchema` (write-time only): `entry_type` 3 values, `source` `agent \| manual`, `dedupe_key_version: 'v1'`.                                                                                 | v2 superset with `superRefine` per kind (§18.3); `normalizeEntry()` for reads (A10).                                |
+| `src/types/config.ts` | `schema_version: literal('1')`; `defaults`; `ranking` block complete with refinements.                                                                                                                           | `schema_version` enum; `bank`, `banks`, `recall` blocks (§18.2).                                                    |
+| `src/lib/qdrant.ts`   | `ensureCollection`, `ensureIndexes` (10 indexes incl. 2 text), `search`, `scroll` (always `order_by: timestamp_utc desc`), `fetchByRepo`, `getByDedupeKey`, `getById`, `deleteById`, `deleteByFilter`, `upsert`. | +9 indexes; `scrollOrdered`, `scrollAll`, `count`, `setPayload`, `batchSetPayload`, `fetchStalenessCorpus` (§18.4). |
+| `src/lib/dedupe.ts`   | `buildDedupeKey` v1 (`v1\|repo\|commit\|story\|entry_type\|source`).                                                                                                                                             | `buildDedupeKeyV2` per kind (A7, §18.5).                                                                            |
+| `src/commands/*.ts`   | `setup`, `write`, `search`, `list`, `tags`, `inspect`, `delete`, `read`. Read paths pass payloads through untyped.                                                                                               | New flags on 5 commands; new `timeline`, `recall`, `bank`, `migrate` commands registered in `src/index.ts`.         |
+| `src/lib/facets.ts`   | `aggregateField(scroll, field)`, `aggregateMultipleFields`.                                                                                                                                                      | Reused for `bank list` and the `inspect` banks facet.                                                               |
+| Staleness             | `detectStaleness` over `fetchByRepo(repos)`.                                                                                                                                                                     | Corpus filter gains `bank` (A12).                                                                                   |
+
+### 18.2 Config v2 (`src/types/config.ts`, `src/lib/config.ts`)
+
+```ts
+const KindPolicySchema = z.object({
+  initial_stability_days: z.number().positive().optional(),
+  expires_in_days:        z.number().int().positive().optional(),
+  archive_threshold:      z.number().min(0).max(1).optional(),
+  archive_noisy:          z.boolean().optional(),
+  promoted_grace_days:    z.number().int().min(0).optional(),
+  superseded_grace_days:  z.number().int().min(0).optional(),
+  purge_after_days:       z.number().int().positive().nullable().optional(), // null = never
+}).strict();
+
+const SelfPolicySchema = z.object({ soft_cap: z.number().int().positive().default(50) }).strict();
+
+banks: z.object({
+  kb:      z.object({ episodic: KindPolicySchema, semantic: KindPolicySchema }).default({ ... }),
+  private: z.object({ self: SelfPolicySchema, episodic: KindPolicySchema, semantic: KindPolicySchema }).default({ ... }),
+}).default({})
+bank:   z.object({ default: KebabOrUuid.default('kb') }).default({})
+recall: z.object({ max_tokens: z.number().int().positive().default(2000) }).default({})
+```
+
+- Defaults are exactly the §8.4 table. `banks.kb.*.purge_after_days` has **no default** (absent = never) — the refinement rejects `banks.kb.*.purge_after_days: undefined` being _set to a number by default_ but accepts an explicit user value.
+- `KebabOrUuid = KebabString.or(z.string().uuid())`. The shipped `KebabString` regex is reused unchanged.
+- `schema_version: z.enum(['1', '2'])`. `memo setup init` keeps writing `'1'` until the user opts into v2 blocks (`memo setup init --v2` writes `'2'` plus the default `bank`/`banks`/`recall` blocks). `memo setup validate` prints the resolved bank default.
+- `policyFor(config, bank, kind)` (`src/lib/bank.ts`) returns the resolved `KindPolicy`; `self` returns `{ soft_cap }` only.
+
+Tests first: `tests/unit/lib/config.test.ts` gains a v2 block — v1 file unchanged still parses; `banks.kb.semantic.purge_after_days` absent → `undefined`; explicit `45` → `45`; `recall.max_tokens: 0` → `CONFIG_INVALID`; `soft_cap` default `50`.
+
+### 18.3 Schema v2 (`src/types/entry.ts`, `src/lib/entry-normalize.ts`)
+
+Write-time schema (`EntryPayloadV2Schema`), as a superset of v1 with these rules in one `superRefine`:
+
+| Rule                               | Check                                                                                                                            | Error path   |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| K1 `self` only in private banks    | `kind === 'self' && bank === 'kb'` → issue                                                                                       | `kind`       |
+| K2 scope required in `kb`          | `bank === 'kb' && !(repo && org && domain)` → issue (the command raises `REPO_CONTEXT_UNRESOLVED` first, schema is the backstop) | `repo`       |
+| episodic needs a session           | `kind === 'episodic' && !session_id` → issue                                                                                     | `session_id` |
+| K3 agent semantic needs provenance | `kind === 'semantic' && source === 'agent' && (provenance ?? []).length === 0` → issue                                           | `provenance` |
+| `self` carries no retention fields | `kind === 'self' && (stability ?? expires_at ?? retrieval_count) !== undefined` → issue                                          | `kind`       |
+| `seq` only on episodic             | `seq !== undefined && kind !== 'episodic'` → issue                                                                               | `seq`        |
+
+Field additions: `schema_version: literal('2')`, `bank: KebabOrUuid`, `kind: enum`, `session_id?: string (1–128)`, `seq?: int ≥ 0`, `contexts?: KebabString[]`, `provenance?: uuid[]`, `valid_from?: iso`, `valid_to?: iso`, `superseded: boolean default false`, `superseded_by?: uuid`, `consolidated: boolean default false`, `consolidated_at?: iso`, `pinned: boolean default false`, `archived: boolean default false`, `archived_reason?: enum`, `archived_at?: iso`, `expires_at?: iso`, `stability?: number`, `stability_since?: iso`, `last_retrieved_at?: iso`, `retrieval_count?: int`, `used_count?: int`, `pending_contradiction: boolean default false`, `dedupe_key_version: enum(['v1','v2'])`. `entry_type` gains `policy`, `observation`; `source` gains `scan`. `repo`/`org`/`domain` become optional at the schema level (K2 enforces them in `kb`).
+
+Read boundary (`normalizeEntry(payload: Record<string, unknown>): StoredEntry`, pure): `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, booleans `??= false`, `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. Every command that renders or ranks a payload calls it once; nothing else in the read path changes type.
+
+`sourceToConfidence` gains `scan → 'low'`.
+
+Tests first: `tests/unit/types/entry.test.ts` (new) — one case per rule row above, plus "v1 payload parses under v2 schema when `bank`/`kind` supplied"; `tests/unit/lib/entry-normalize.test.ts` — v1 point → `kb/semantic/false*`; v2 point untouched.
+
+### 18.4 `QdrantRepository` extensions (`src/lib/qdrant.ts`)
+
+Indexes appended to `PAYLOAD_INDEXES` (created by the shipped `ensureIndexes()` reconciliation, no new mechanism): `bank`, `kind`, `session_id`, `contexts` (keyword), `seq` (integer), `archived`, `superseded`, `consolidated`, `pinned` (bool), `valid_to`, `expires_at`, `archived_at` (datetime). Twelve new — `entry_type` is already indexed.
+
+New methods:
+
+```ts
+scrollOrdered(filter, { orderBy: { key, direction }, limit, withVector? })   // single page; order_by requires an index on key
+scrollAll(filter, { batch = 256, withVector = false }, onPage)             // unordered; loops on next_page_offset until null
+count(filter): Promise<number>                                              // client.count({ filter, exact: true })
+setPayload(id, payload)                                                     // client.setPayload({ points: [id], payload, wait: true })
+batchSetPayload(ops: { id, payload }[])                                     // client.batchUpdate({ operations: ops.map(set_payload), wait: true })
+fetchStalenessCorpus({ bank, repos }, limit = 1000)                         // replaces fetchByRepo: base filter (§8.1) + repo any-match when bank = kb
+```
+
+- **Pagination rule (A11):** the shipped `scroll()` keeps its `order_by: timestamp_utc desc`. `scrollAll` sends **no** `order_by` and pages with `offset: next_page_offset`. `scrollOrdered` sends `order_by` and never `offset`; callers that need "next page" of an ordered scan pass `order_by.start_from` — Phase 2 has no such caller (`timeline --last` is a single bounded page).
+- `getById` keeps its `has_id` scroll. `fetchByRepo` is removed once `search.ts` moves to `fetchStalenessCorpus` (single caller).
+- `batchSetPayload` chunks at 256 operations; `setPayload`/`batchSetPayload` map failures to `QDRANT_OPERATION_FAILED`.
+
+Tests first: `tests/unit/lib/qdrant.test.ts` — `scrollAll` follows `next_page_offset` across 3 mocked pages and never sends `order_by`; `scrollOrdered` sends `order_by` and no `offset`; `batchSetPayload` chunks 300 ops into 2 calls; `fetchStalenessCorpus` filter shape for `kb` vs private. `tests/integration/lib/qdrant.test.ts` — `ensureIndexes` creates exactly the 12 missing indexes on a v1.2.0-shaped `payload_schema` and none on a second run.
+
+### 18.5 Bank resolution, base filter, dedupe v2 (`src/lib/bank.ts`, `src/lib/filters.ts`, `src/lib/dedupe.ts`)
+
+`bank.ts` and `buildBaseFilter` exactly per §8.1. Composition with the shipped builders: `buildSearchFilters` / `buildListFilters` keep their signatures and gain one input `base: QdrantFilter`; they concatenate `must`, `must_not`, `should` arrays (never nest). The `repo` clause they add today becomes conditional on `bank === 'kb' || explicitRepo`. `search.ts`'s `buildLexicalScrollFilter` receives the same `base` so the lexical scroll never widens across banks.
+
+Dedupe (A7):
+
+```ts
+buildDedupeKeyV2({ bank, kind, repo, commit, story, session_id, seq, entry_type, source });
+// semantic: v2|bank|repo??na|commit??na|story??na|na|semantic|entry_type|source
+// episodic: v2|bank|repo??na|commit??na|story??na|session|seq|episodic|entry_type|source
+// self:     sha256('self|' + randomUUID())   → never matches
+```
+
+`getByDedupeKey` is unchanged; a v2 write also checks the v1 key when `bank === 'kb' && kind === 'semantic'` so a pre-migration duplicate is still caught (one extra scroll, `kb` semantic only).
+
+Tests first: `tests/unit/lib/bank.test.ts` (resolution order B3 with env/config/flag permutations; `defaultKind`; `policyFor` incl. `kb` purge absence), `tests/unit/lib/filters.test.ts` (`kb` `should`+`is_empty` shape; private exact; `all` excludes `self`; default exclusions; `asOf` shape; `session`), `tests/unit/lib/dedupe.test.ts` (v2 keys, `self` never collides, v1 fallback path).
+
+### 18.6 `memo write` v2 (`src/commands/write.ts`)
+
+Flags added: `--bank <id>`, `--kind <self|episodic|semantic>`, `--session <id>`, `--seq <n>`, `--context <kebab>` (repeatable, Commander `collect`), `--provenance <csv>`, `--manual`, `--supersedes <id>`, `--pin`, `--expires-in <duration>` (`\d+[dhm]`, days/hours/minutes). `--entry-type` help text lists all five values; `--source` accepts `scan`.
+
+Order of operations (replaces steps at `write.ts:103–180`):
+
+1. `bank = resolveBank(flags.bank, env, cfg)`; `kind = flags.kind ?? defaultKind(bank)`; `policy = policyFor(cfg, bank, kind)`.
+2. Scope: in `kb`, resolve `repo/org/domain` exactly as today (`REPO_CONTEXT_UNRESOLVED` on miss). In a private bank, use them if present, never require them.
+3. `--manual` forces `source = manual`. `entry_type` default: `observation` when `kind === 'episodic'`, else `decision`.
+4. Build payload: `schema_version: '2'`, `bank`, `kind`, `contexts`, `provenance`, `pinned`, `valid_from = now` (self, semantic), retention fields from policy (`stability = policy.initial_stability_days`, `stability_since = now`, counters `0`) except `self`; episodic: `session_id`, `expires_at = now + (expiresIn ?? policy.expires_in_days)`, `seq = flags.seq ?? nextSeq(bank, session)` where `nextSeq` = `scrollOrdered({ bank, kind: episodic, session_id }, { orderBy: seq desc, limit: 1 })` + 1, `0` when empty.
+5. Validate with `EntryPayloadV2Schema` (§18.3) → `VALIDATION_FAILED` with the same bullet formatting as today.
+6. `--supersedes <id>`: `getById`; missing → `ENTRY_NOT_FOUND`; `normalizeEntry(target)` must have the same `bank` and `kind` → else `VALIDATION_FAILED`; already `superseded` → `VALIDATION_FAILED` ("already superseded by <id>").
+7. `self` soft cap: `count({ bank, kind: self, superseded: false }) >= policy.soft_cap` → push warning `self entries in <bank>: <n> (soft cap <cap>)`; human mode prints it on stderr, JSON adds `warnings: string[]`. Never blocks.
+8. Dedupe per §18.5; duplicate handling unchanged (`--on-duplicate`, TTY prompt, JSON error).
+9. Embed and `upsert` as today.
+10. If step 6 applied: `setPayload(target.id, { valid_to: now, superseded: true, superseded_by: newId })`. **Not transactional:** if this call fails after the upsert succeeded, the command exits 2 with `QDRANT_OPERATION_FAILED` and the message names the new id and the target id so the operator can re-run `memo write --supersedes` (which now hits the "already superseded" guard if the payload did land) or repair by hand. The new entry is never rolled back.
+11. Result JSON: full v2 payload + `created`, `updated`, `duplicate_detected`, `superseded?: <id>`, `warnings?`.
+
+Tests first (`tests/unit/commands/write.test.ts`, `tests/integration/commands/write.test.ts`): AC-2.1 (`--kind self` in `kb` → exit 1 `VALIDATION_FAILED`; with `MEMO_BANK=jarvis-memory` → point carries `bank`, `kind`), AC-2.2 (default kind by bank), AC-2.8 (supersede sets `valid_to`/`superseded_by` on the target; different-kind target rejected), auto-`seq` increments, `--expires-in 2d` vs policy default, soft-cap warning at exactly `soft_cap`, step-10 failure message contains both ids, v1 duplicate still detected in `kb`.
+
+### 18.7 Read-side flags: `search`, `list`, `tags list`, `read`
+
+Shared flag parsing lives in `src/lib/read-flags.ts`: `parseReadFlags(opts, env, cfg) -> { bank, kind, session, includeArchived, includeSuperseded, asOf }`, with `--kind` validated against `self|episodic|semantic|all` and `--as-of` against ISO 8601 (`VALIDATION_FAILED` otherwise). `--as-of` implies `includeSuperseded`.
+
+- `search.ts`: base filter into `buildSearchFilters` and `buildLexicalScrollFilter`; staleness corpus via `fetchStalenessCorpus({ bank, repos })`; `responseFilters` adds `bank`, `kind`, `session?`, `as_of?`; per-result JSON adds `bank`, `kind`, `session_id?`, `seq?`, `valid_from?`, `valid_to?`, `superseded_by?`, `archived?`, `pinned?` (from `normalizeEntry`); human lines prefix `[archived]` / `[superseded]` when included. Ranking is untouched; `self` never enters `rankResults` (excluded by filter unless `--kind self`, and then returned newest-first unranked with `final_score` omitted).
+- `list.ts`, `tags.ts`: same base filter; `list` JSON rows add the same v2 fields.
+- `read.ts`: prints every v2 field present; `provenance` rendered via one `scroll({ has_id: provenance })` and each missing id suffixed `(deleted)`; JSON gives `provenance: [{ id, deleted: boolean }]`.
+- AC-2.3 guard: with no new flags and no migration run, the base filter for `kb`/`all` is `bank ∈ {kb, absent}`, `kind ≠ self`, `archived ≠ true`, `superseded ≠ true` — every v1 point passes, so result sets are identical to v1.2.0. This is asserted by a replay-style test: `candidates.json` fixture ids through the v2 filter path return the same top-N as the recorded Phase 1 run.
+
+Tests first: `tests/unit/lib/read-flags.test.ts`; `tests/unit/commands/search.test.ts` (AC-2.4 two-bank isolation on a mocked repo; filter shape passed to `search()`; `--kind self` path), `list`, `tags`, `read` (`(deleted)` marker) unit updates; `tests/relevance/replay.test.ts` gains the AC-2.3 identity assertion.
+
+### 18.8 `memo timeline` (`src/commands/timeline.ts`)
+
+Flags: `--bank <id>` (resolution B3), `--session <id>`, `--last <n>` (default 50, max 500), `--since <iso>`, `--json`. Two query shapes, both `kind = episodic`, default exclusions applied:
+
+- with `--session`: `scrollOrdered({ ...base, session_id }, { orderBy: { key: 'seq', direction: 'asc' }, limit: last })`; ties on `seq` (only possible with explicit `--seq`) are broken client-side by `timestamp_utc` asc.
+- without: `scroll(base, last)` (existing `timestamp_utc desc`), then group by `session_id` preserving order; JSON `sessions: [{ session_id, entries }]`, human prints a session header per group.
+
+`--since` adds `timestamp_utc >= since` to `must`. Never calls embeddings or `rankResults`. Empty bank → exit 0, `count: 0`.
+
+Tests first: `tests/unit/commands/timeline.test.ts` — AC-2.5 (mock returns points out of seq order → output in seq order; a high-similarity entry cannot move), grouping without session, `--last` cap, `--since` filter shape, no embeddings adapter constructed.
+
+### 18.9 `memo recall` (`src/commands/recall.ts`, `src/lib/recall.ts`)
+
+`assembleRecall` is pure per §8.5. Command-side gathering, in this order, with `vector = embed(task)` computed once:
+
+| Section        | Source                                                                                                                                                                  | Cap | Omitted when                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ----------------------------------------------------------- |
+| `SELF`         | `scroll({ bank, kind: self, superseded ≠ true }, soft_cap + 1)` newest first; warn on stderr if `> soft_cap`                                                            | all | `bank = kb`                                                 |
+| `POLICIES`     | `search(vector, base(kb, kind: semantic) + entry_type = policy, 8)` ranked                                                                                              | all | never (empty array in Phase 2 unless PRD-003 entries exist) |
+| `SHARED`       | `search(vector, base(kb, kind: semantic) + repo scope per `--scope`, overfetch)` + lexical scroll → `rankResults` → top 8; `stale` annotation computed with `kb` corpus | 8   | never                                                       |
+| `MINE`         | same pipeline against `base(bank, kind: semantic)`                                                                                                                      | 5   | `bank = kb`                                                 |
+| `LAST SESSION` | `scroll({ bank, kind: episodic }, 1)` → `session_id`; then `scrollOrdered({ bank, kind: episodic, session_id }, { seq asc, limit: 15 })`                                | 15  | `bank = kb`                                                 |
+| `CONFLICTS`    | `scroll({ bank, pending_contradiction: true }, 5)` (empty until Phase 4)                                                                                                | 5   | never                                                       |
+
+Calls: 1 embed, ≤3 dense queries, ≤2 lexical scrolls, ≤4 scrolls, 0 writes (A14) — inside the §11 `< 4 s` target. `query_id = randomUUID()` at envelope level exactly as `search` does today. Budget: `tokens(entry) = ceil(renderedLine.length / 4)`; trimming order `conflicts → last_session (oldest first) → mine → shared → policies`; `self` never trimmed even when it alone exceeds the budget (then `truncated` lists every other section and `budget.used_tokens > max_tokens` is reported honestly). Dedup: an id appearing in an earlier section is dropped from later ones before trimming.
+
+Human output per §10. `--scope` accepted values `repo|related` (default config `defaults.search_scope`), applied to `SHARED` only.
+
+Tests first: `tests/unit/lib/recall.test.ts` — AC-2.6 table: SELF complete and first; superseded `self` absent; SELF intact under a budget smaller than SELF; dedup across sections; trimming order; single `query_id`; `bank = kb` omits three sections. `tests/unit/commands/recall.test.ts` — call count/shape on the mocked repo; no `setPayload`/local write occurs.
+
+### 18.10 `memo bank` (`src/commands/bank.ts`)
+
+- `init --id <id> [--rationale] [--tags] [--set-default] [--json]`: validate id (`KebabOrUuid`, and `≠ 'kb'` → `VALIDATION_FAILED`); `count({ bank: id })` `> 0` → print existing summary, exit 0, write nothing; else delegate to the `write` handler with `{ bank: id, kind: 'self', source: 'manual', entryType: 'structure', rationale: flags.rationale ?? 'Bank <id> initialised.', tags: flags.tags ?? 'bank,self' }`; with `--set-default`, `writeConfig({ ...cfg, bank: { default: id } })` (A13). JSON: `{ bank, created: boolean, self_id, default_set: boolean }`.
+- `list [--json]`: `aggregateField('bank', scroll)` (the shipped signature is `(field, scroll, filter?)`, not `(scroll, field)`) with v1 points (no `bank`) folded into `kb`; per bank, three `count()` calls (one per kind, default exclusions). JSON `{ banks: [{ bank, counts: { self, episodic, semantic }, total }] }`. `list` and `show` are independent of `inspect`'s `--orgs`/`--repos`/`--domains` narrowing flags — banks are a separate axis and private-bank entries may have no `repo`/`org` at all, so narrowing by those would silently hide private banks; `bank list`/`show` never accept them.
+- `show --id <id> [--json]`: `SELF` scroll as in §18.9, counts per kind and per state (`active`, `archived`, `superseded`), and `last_session_id` from the `LAST SESSION` first scroll.
+- `inspect`: adds `banks` to `aggregateMultipleFields` output (counts only).
+
+Tests first: `tests/unit/commands/bank.test.ts` — `init` idempotency, `kb` rejected, `--set-default` is the only path that calls `writeConfig`; `list` folds absent `bank` into `kb`; `show` ordering newest-first.
+
+### 18.11 `memo migrate --to-v2` (`src/commands/migrate.ts`, `src/lib/migrate.ts`)
+
+`planMigration(points: StoredEntry[], now, rules: MigrationRule[], policies) -> { ops: { id, payload }[], byRule: Record<string, number>, skipped: number }` — pure; a point with `schema_version === '2'` is `skipped`. Default rules are FR-2.8; `--rules <file>` replaces them with a JSON array evaluated in order, first match wins:
+
+```json
+[
+  {
+    "name": "1",
+    "when": { "tags_any": ["intent", "outcome"] },
+    "set": { "kind": "episodic", "session_from": "story", "expires_in_days": 90 }
+  },
+  { "name": "2", "when": {}, "set": { "kind": "semantic" } }
+]
+```
+
+`when` supports `tags_any`, `tags_all`, `entry_type_in`, `source_in`, `repo_in`; `set.kind` is required; `session_from` (`story | legacy`) and `expires_in_days` apply to episodic only. A rules file that leaves any point unmatched fails validation before the scan (`VALIDATION_FAILED`, "rule set is not exhaustive: add a final rule with empty `when`"). Every op also sets the "all" row of FR-2.8 (`bank = kb`, `schema_version = '2'`, `consolidated/archived/superseded/pinned = false`, counters `0`, `stability` from `banks.kb.<kind>`, `stability_since = now`, `valid_from = timestamp_utc` for semantic).
+
+Command: `scrollAll(filterLacking('schema_version'), { batch: 256 }, page => batchSetPayload(planMigration(page).ops))`; `--dry-run` runs the planner and prints counts, writes nothing; progress on stderr unless `--json`. `filterLacking` = `must: [{ is_empty: { key: 'schema_version' } }]`. Nothing archived, nothing deleted, no vector touched. Second run: `scanned: 0`.
+
+Tests first: `tests/unit/lib/migrate.test.ts` — rule 1 vs rule 2 on fixture points; `story` → `session_id`, absent → `legacy`; `expires_at = timestamp_utc + 90 d`; v2 points skipped; exhaustiveness check; custom rules file. `tests/integration/commands/migrate.test.ts` — AC-2.7: dry-run issues zero `batchSetPayload`; real run issues one per page; second run scans zero; no `delete*` call ever (asserted on the mock).
+
+### 18.12 dev-tasks consumer (FR-2.10) — cross-repo partition
+
+Scope spans two `primary` components (`llipe/memo-cli`, `llipe/dev-tasks`), so per RF-63 this ships as **two stories in producer → consumer order**:
+
+1. memo-cli story set (S2-01…S2-09 below) delivers the CLI contract; the boundary contract is "memo-cli **1.3.0** `--json` envelopes for `write`, `recall`, `timeline`, `bank`, `migrate` as specified in §6.1 and §18.6–§18.11".
+2. dev-tasks story (consumer): `memo-cli-usage` SKILL.md/REFERENCE.md and the `developer`, `technical-writer`, `product-engineer`, `planner` definitions — each long-lived agent declares `MEMO_BANK`; session start `memo recall "<task>" --bank $MEMO_BANK --json`; intent/outcome writes become `memo write --kind episodic --session ISSUE-<n> …`; ADRs/decisions stay `kb` semantic; session close is a no-op until Phase 3 adds `used`/`decay`. Acceptance references the 1.3.0 contract, never memo-cli internals. The copy of the skill under this repo's `.claude/skills/memo-cli-usage/` is updated in the same story so both consumers agree.
+
+No `infra-engineer` pass: Phase 2 has no secrets, deploy, DNS, IAM, or shared-project migration scope (`memo migrate` is a user-run payload update on the user's own Qdrant, gated by `--dry-run`).
+
+### 18.13 Delivery slicing (input to `activity-generate-stories`)
+
+| Story | Scope                                                                                                                                                                          | Depends on   | PRD AC                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ | ---------------------- |
+| S2-01 | Config v2 + schema v2 + `normalizeEntry` (§18.2, §18.3)                                                                                                                        | —            | AC-2.1 (schema half)   |
+| S2-02 | `QdrantRepository` extensions + 12 indexes (§18.4)                                                                                                                             | —            | —                      |
+| S2-03 | `bank.ts`, `filters.ts`, dedupe v2 (§18.5)                                                                                                                                     | S2-01        | AC-2.4 (filter half)   |
+| S2-04 | `memo write` v2 incl. `--supersedes`, soft cap (§18.6)                                                                                                                         | S2-01–03     | AC-2.1, AC-2.2, AC-2.8 |
+| S2-05 | Read-side flags on `search`/`list`/`tags`/`read`, bank-aware staleness (§18.7)                                                                                                 | S2-02, S2-03 | AC-2.3, AC-2.4         |
+| S2-06 | `memo timeline` (§18.8)                                                                                                                                                        | S2-02, S2-03 | AC-2.5                 |
+| S2-07 | `memo recall` (§18.9)                                                                                                                                                          | S2-05, S2-06 | AC-2.6                 |
+| S2-08 | `memo bank init/list/show`, `inspect` banks facet (§18.10)                                                                                                                     | S2-04        | —                      |
+| S2-09 | `memo migrate --to-v2` (§18.11)                                                                                                                                                | S2-01, S2-02 | AC-2.7                 |
+| S2-10 | dev-tasks consumer (§18.12)                                                                                                                                                    | S2-04, S2-07 | AC-2.9                 |
+| S2-11 | Phase 2 exit gate: `eval:relevance` ≥ 96.4% floor with v2 filters, docs sweep (AC-0.2), coverage gate on touched files, release notes for 1.3.0 (tag/publish remain human-run) | all          | AC-0.1, AC-0.2         |
+
+S2-01, S2-02 are independent and can run first in parallel; S2-03 unblocks the rest.
+
+### 18.14 Design Mode clarifications (resolved before implementation)
+
+The 11 `verifier` Design Mode test plans for S2-01…S2-11 (issues #53, #81–#90) each surfaced open questions the sections above left implicit. None of these change any acceptance criterion; all are gap-fills so `developer` has one unambiguous answer per point instead of a "primary hypothesis." Two (marked ✅ human-confirmed) were explicit product decisions; the rest are direct readings of already-stated normative text or the shipped codebase, made explicit here.
+
+| #   | Story | Question raised                                                                           | Resolution                                                                                                                                                                                                                                                                                                                                                                         |
+| --- | ----- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | S2-01 | `normalizeEntry`'s behavior when `timestamp_utc` is absent                                | Not `normalizeEntry`'s concern: `timestamp_utc` is `z.string()` **required** on both `EntryPayloadSchema` (v1) and `EntryPayloadV2Schema` (v2) — no valid stored point can lack it. A point missing it fails schema validation on read, upstream of normalization, and is not a case `normalizeEntry` needs to handle.                                                             |
+| 2   | S2-04 | Exit code when a `--supersedes` target does not exist                                     | `ENTRY_NOT_FOUND`, exit `1` — per the existing error catalog (`docs/technical-guidelines.md` §4), unchanged for Phase 2.                                                                                                                                                                                                                                                           |
+| 3   | S2-04 | Exit code for the `--supersedes` self-reference guard (`target.id === id`)                | `VALIDATION_FAILED`, exit `1` — same code as every other §18.6 step-6 rejection (other bank, other kind, already superseded); a self-reference is one more shape of "invalid supersede target," not a distinct error class.                                                                                                                                                        |
+| 4   | S2-04 | Is the soft-cap warning's `<n>` the pre-write or post-write `self` count?                 | **Pre-write.** §18.6's step order has the soft-cap check (step 7) before dedupe/embed/upsert (steps 8–9); the count reflects the bank's state _before_ this write lands, so the warning reads "you already have `n`, this one makes `n+1`."                                                                                                                                        |
+| 5   | S2-05 | `--kind` case sensitivity                                                                 | **Case-insensitive** (human-confirmed): `--kind Self`, `--kind SELF`, `--kind self` all normalize to `self`. `read-flags.ts` lowercases before matching against `self \| episodic \| semantic \| all`.                                                                                                                                                                             |
+| 6   | S2-05 | Does `--as-of` accept a date-only value (`2026-01-01`)?                                   | **Yes** (human-confirmed): a date-only string is treated as `2026-01-01T00:00:00.000Z`; a full ISO-8601 datetime is also accepted. `read-flags.ts` validates with a regex covering both shapes before parsing.                                                                                                                                                                     |
+| 7   | S2-06 | Exit code for `--last 0`                                                                  | `VALIDATION_FAILED`, exit `1` — consistent with every other out-of-range flag value in the codebase (e.g. `write`'s `--on-duplicate`).                                                                                                                                                                                                                                             |
+| 8   | S2-06 | Where does the `--last 501` clamp-to-500 warning go?                                      | Stderr only (human and `--json` modes both clamp silently in the JSON envelope; the warning line is not a JSON field) — `timeline` has no `warnings` array in its envelope (unlike `write`'s v2 result), and adding one is out of scope for this story.                                                                                                                            |
+| 9   | S2-07 | `bank=kb` JSON shape: are `self`/`mine`/`last_session` omitted keys or empty arrays/null? | **Omitted keys** — FR-2.6 says "omitted," not "empty." `sections` for a `kb` recall contains only `policies`, `shared`, `conflicts`. `truncated` never names an omitted section, only a present-but-trimmed one.                                                                                                                                                                   |
+| 10  | S2-07 | Error code when one section's sub-query fails mid-gather (not the initial embed)          | No new code: the error propagates as whichever underlying call failed (`QDRANT_OPERATION_FAILED` or `EMBEDDING_API_ERROR`); `recall` does not catch and re-wrap per-section failures into a bundle with partial results — a failed section fails the whole command, consistent with A14 (recall does no best-effort degrading, unlike `search`'s lexical-scroll-failure fallback). |
+| 11  | S2-08 | Does a second `bank init --set-default` re-write `memo.config.json`?                      | Yes, unconditionally, whenever `--set-default` is passed — `writeConfig` is idempotent (same value in, same value out) and simplicity beats a needless read-compare-skip.                                                                                                                                                                                                          |
+| 12  | S2-08 | Do `bank show`'s per-kind counts include superseded/archived entries?                     | Already answered by §18.10: counts are reported **per kind and per state** (`active`, `archived`, `superseded`) — there is no single collapsed per-kind number to be ambiguous about.                                                                                                                                                                                              |
+| 13  | S2-08 | Does the `inspect` `banks` facet respect `--orgs`/`--repos`/`--domains`?                  | No — see the §18.10 edit above; banks are an orthogonal axis and private-bank entries may lack `repo`/`org` entirely.                                                                                                                                                                                                                                                              |
+| 14  | S2-09 | May a custom `--rules` entry set `kind: episodic`?                                        | Yes — §18.11 already documents `session_from`/`expires_in_days` as episodic-only rule fields, which presupposes a rule can target `episodic`; this only makes it explicit. The exhaustiveness and `set.kind`-required checks apply the same regardless of which kind a rule targets.                                                                                               |
+| 15  | S2-09 | Bank-preservation for a point that already has `bank` but no `schema_version`             | Already answered in the story's own edge-case list: the existing `bank` value is preserved, only `schema_version` and the other "all" fields are set. No change needed.                                                                                                                                                                                                            |
+| 16  | S2-11 | Does the eval category set change for Phase 2?                                            | No — the same four Phase 1 categories (`concept`, `identifier`, `cross-repo`, `recency`) apply; Phase 2 adds no new memory content types to `tests/fixtures/relevance/`.                                                                                                                                                                                                           |
+| 17  | S2-11 | Scope of "eval on an un-migrated `memo_eval` state must also pass"                        | This is S2-05's AC-2.3 identity assertion (default search results identical pre/post the read-side-flags change), not a separate S2-11 concern — S2-11's own eval run happens _after_ S2-09's migration, per task 11.1.                                                                                                                                                            |
+
+Traceability: items 1, 4, 12, 15, 17 resolve by re-reading already-stated text; items 2, 3, 7, 9, 11, 13, 14, 16 resolve by applying an existing repo-wide convention (error catalog, idempotent-write default, orthogonal-facet default); items 5 and 6 were explicit human decisions (2026-09-21).

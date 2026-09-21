@@ -1,0 +1,46 @@
+# Traceability Matrix — Issue #86, Story S2-07 `memo recall`
+
+## Changelog
+
+| Version | Date       | Change                                                 |
+| ------- | ---------- | ------------------------------------------------------ |
+| 1.0     | 2026-09-21 | Initial Design Mode traceability matrix for issue #86. |
+
+Companion artifact: `/workstream/test-plan-issue-86.md`. Every AC below maps to at least one positive and one negative/edge test per Non-Negotiable Operating Rule 4.
+
+## AC-ID → Test-Case-ID → Observed-Result → Pass/Fail/Drift
+
+| AC-ID | Description                                                                                                                                                         | Positive Test-Case(s)                                                     | Negative/Edge Test-Case(s)                                                                               | Observed Result                                | Status                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------- |
+| AC1   | Section order `SELF, POLICIES, SHARED, MINE, LAST SESSION, CONFLICTS`; SELF = every non-superseded self, newest first, superseded omitted.                          | E2E-01, E2E-02, CT-11 (lib order fixture)                                 | EC-03 (superseded exclusion), EC-20 (cross-bank leakage)                                                 | Not yet run — pre-implementation (Design Mode) | Pending implementation |
+| AC2   | `--max-tokens` < SELF alone → SELF intact, all other sections trimmed to empty and listed in `truncated`, `used_tokens > max_tokens` reported honestly.             | E2E-03                                                                    | EC-01, EC-02, EC-11 (`--max-tokens 0` boundary), EC-21 (extreme SELF size)                               | Not yet run                                    | Pending implementation |
+| AC3   | Trimming order `conflicts → last_session (oldest first) → mine → shared → policies`; stop at first fitting budget; token estimate `ceil(chars/4)`.                  | E2E-01 (baseline no-trim), property invariant #2 and #6 (§6 of test plan) | EC-13 (exact-boundary tie-break), EC-14 (oldest-first ordering within LAST SESSION)                      | Not yet run                                    | Pending implementation |
+| AC4   | Id in earlier section never repeats in later one; exactly one `query_id` (UUID v4) per bundle.                                                                      | E2E-02, CT-02, property invariant #3                                      | EC-04, EC-05, EC-17 (dedup-before-cap), EC-23 (idempotency of non-id fields)                             | Not yet run                                    | Pending implementation |
+| AC5   | Section caps: SHARED 8, MINE 5, LAST SESSION 15 (most recent by `seq`), CONFLICTS 5, POLICIES all, SELF all (stderr warn above `soft_cap`).                         | E2E-01, CT-03                                                             | EC-08 (self above soft_cap), EC-17 (cap accounting after dedup), EC-21                                   | Not yet run                                    | Pending implementation |
+| AC6   | SHARED/MINE ranked via `rankResults` with tiers and `stale`/`stale_by` identical to `memo search`; LAST SESSION `seq`-ordered; SELF carries no score/tier.          | E2E-01 (human render), CT-10                                              | EC-20 (bank-scoped ranking correctness), EC-14                                                           | Not yet run                                    | Pending implementation |
+| AC7   | `bank = kb` omits SELF, MINE, LAST SESSION from both JSON and human output.                                                                                         | E2E-06, CT-09                                                             | EC-06 (omission-vs-empty-array ambiguity — flagged for audit)                                            | Not yet run                                    | Pending implementation |
+| AC8   | One embeddings call per invocation; zero `setPayload`/`batchSetPayload`; zero filesystem writes.                                                                    | E2E-02 (baseline), CT-06, CT-07, CT-08                                    | EC-09, EC-10 (zero calls on validation rejection), EC-18 (zero wasted calls before embed failure), EC-23 | Not yet run                                    | Pending implementation |
+| AC9   | `--max-tokens` default `config.recall.max_tokens` (2000); `--scope repo\|related` applies to SHARED only; JSON envelope per §6.1; human output per §10 with footer. | E2E-04, E2E-05, CT-01                                                     | EC-22 (envelope stability across `--scope`)                                                              | Not yet run                                    | Pending implementation |
+| AC10  | POLICIES populated from `kb` semantic entries with `entry_type = policy` when present, else empty array.                                                            | E2E-02 (populated case), CT-10                                            | EC-15 (empty POLICIES, never omitted)                                                                    | Not yet run                                    | Pending implementation |
+
+## Cross-Cutting / Non-AC-Numbered Coverage
+
+| Coverage Item                                                           | Test-Case(s)                       | Rationale                                                                                                                                     |
+| ----------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zero-write negative assertion (replaces migration-apply tests, per A14) | CT-06                              | Story explicitly requires "not required — read-only" migration; this negative assertion is the mandated substitute per the task instructions. |
+| Latency target `< 4s` (spec §11)                                        | E2E-10 (manual)                    | Not an AC but a Technical Notes/Definition-of-Done requirement; recorded in PR body.                                                          |
+| Empty episodic history                                                  | EC-07                              | Testing Requirements edge-case matrix, not separately AC-numbered.                                                                            |
+| Embeddings/adapter failure modes                                        | EC-18, EC-19                       | Testing Requirements edge-case matrix + failure-mode category added by edge-case refinement.                                                  |
+| Randomized trimming-order property suite                                | §6 of test plan (invariants #1–#6) | `activity-random-test-tactics`; covers the full combinatorial space AC2/AC3/AC4/AC5 cannot enumerate by hand.                                 |
+
+## Coverage Summary
+
+- **AC coverage:** 10/10 acceptance criteria (AC1–AC10) mapped to at least one positive and one negative/edge test case. **Covered.**
+- **Skills invoked:** `activity-e2e-test-design` (10 scenarios), `activity-contract-test-design` (11 contract assertions), `activity-edge-case-refinement` (23 edge cases — highest weight per task instructions), `activity-random-test-tactics` (6 invariants + seed policy).
+- **Known ambiguity flagged for audit / `product-engineer` follow-up (non-blocking):**
+  1. EC-01/EC-06: whether `truncated` lists sections that were already empty pre-trim, and whether `bank=kb` omission means absent keys vs. empty arrays in the JSON envelope — spec §6.1's example schema lists all six section keys while §18.9 and the Business Rules describe omission. Implementation choice should be verified against both during Audit Mode.
+  2. EC-19: no explicit error code is named in the story/spec for a mid-gather repo failure on a single section (as opposed to the embeddings failure, which does name `EMBEDDING_API_ERROR`). Recommend `developer` pick a consistent error code and `verifier` Audit Mode confirm it matches whatever is chosen, with escalation to `product-engineer` only if the choice conflicts with an existing error-code convention elsewhere in the codebase.
+
+## Status
+
+**Design Mode complete.** No implementation exists yet against which to record actual Observed Results — all rows are `Pending implementation`. This matrix is handed off to `developer` for test-first implementation (tests before code, per `implement` skill and Non-Negotiable Operating Rule "Test-first design is the default") and will be re-validated by `verifier` Audit Mode after delivery.
