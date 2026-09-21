@@ -6,7 +6,7 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T02:54:26Z
+- Last updated: 2026-09-21T03:28:07Z
 
 ## Story Status
 
@@ -16,16 +16,16 @@
 | 2        | S1-02    | #34     | ✅ Merged   | #67 | issue/34-composite-ranking-score     |
 | 3        | S1-03    | #36     | ✅ Merged   | #68 | story/s1-03-tag-overlap-boosting     |
 | 4        | S1-04    | #35     | ✅ Merged   | #69 | issue/35-dynamic-confidence-tiers    |
-| 5        | S1-05    | #38     | ⏳ Pending  | —   | —                                   |
+| 5        | S1-05    | #38     | ✅ Merged   | #70 | issue/38-staleness-detection         |
 | 6        | S1-06    | #62     | ⏳ Pending  | —   | —                                   |
 | 7        | S1-07    | #63     | ⏳ Pending  | —   | —                                   |
 | 8        | S1-08    | #64     | ⏳ Pending  | —   | —                                   |
 
 ## Current Position
 
-- Next story: S1-05 (#38)
-- Last merged PR: #69
-- Integration branch HEAD: 922d368
+- Next story: S1-06 (#62)
+- Last merged PR: #70
+- Integration branch HEAD: 1785172
 
 ## Decisions Log
 
@@ -56,4 +56,7 @@
 - S1-04: correct `issue/35-<description>` branch naming used this time (explicitly instructed after S1-03's deviation).
 - S1-04: qa-engineer coverage_gate FAIL — but pre-existing global threshold debt (branches/functions), confirmed present on integration branch before this story too; every metric actually improved by this diff. Not a merge blocker per policy (self-reported/gate FAIL doesn't block, only omission does).
 - S1-04: verifier Audit Mode — High fidelity, highest drift Minor (non-TTY edge case under-tested, no functional defect). Comment posted to PR #69. No fidelity-report-*.md artifact was written this time (verifier used PR comment only) — no orphaned file to commit.
-- Note for S1-05: no test plan expected to exist yet — proceed directly to delegation, following the same pattern used for S1-03/S1-04.
+- S1-05: `stale_by` (not `superseded_by`) correctly used per binding decision D-1. All functional ACs verified by verifier: purity, single `scroll` call per invocation, keys genuinely omitted when not stale, staleness computed after ranking (no effect on final_score/ordering), Jaccard boundaries tested.
+- S1-05: qa-engineer coverage_gate FAIL — same pre-existing global threshold debt as S1-04, not caused by this story; no structural gaps in the diff itself.
+- S1-05: verifier flagged AC8 (latency target) as Major/non-blocking drift — developer's synthetic microbenchmark only covered pure-compute cost, not the new `fetchByRepo` network round-trip. Planner closed this gap directly: ran real `memo search` against the live Qdrant Cloud corpus (171 entries, largest single repo 92 — short of AC8's literal 1,000-entry scale) — warm latency 1.7-1.75s, well under 2.5s target. Did not seed 1,000 synthetic entries (would pollute production `decisions` data or cost real OpenAI embedding calls for a non-blocking check); tracked as a follow-up for S1-08's larger eval-seeding step.
+- Note for S1-06: no test plan expected to exist yet — proceed directly to delegation. This is the largest task in the phase (lexical identifier matching); budget for a longer-running delegation.
