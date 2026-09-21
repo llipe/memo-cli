@@ -1,5 +1,6 @@
 import { QdrantRepository } from '../../../src/lib/qdrant';
 import { MemoError } from '../../../src/lib/errors';
+import { buildBaseFilter, mergeFilters } from '../../../src/lib/filters';
 
 // Mock withRetry to avoid delays in tests
 jest.mock('../../../src/lib/retry', () => ({
@@ -922,75 +923,59 @@ describe('QdrantRepository', () => {
     });
   });
 
-  describe('fetchStalenessCorpus() (#81 AC6)', () => {
-    it('CT-5a: applies the §8.1 kb base-filter shape plus a repo any-match when bank = kb', async () => {
+  describe('fetchStalenessCorpus() (#81 AC6, refactored per D-2 drift fix / #82)', () => {
+    it('D-2 parity: forwards the caller-built base filter to scroll() unmodified, for kb + repos', async () => {
       mockScroll.mockResolvedValueOnce({ points: [] });
 
+      const base = mergeFilters(buildBaseFilter({ bank: 'kb', kind: 'all' }), {
+        must: [{ key: 'repo', match: { any: ['repo-a', 'repo-b'] } }],
+      });
+
       const repo = new QdrantRepository('http://localhost:6333');
-      await repo.fetchStalenessCorpus({ bank: 'kb', repos: ['repo-a', 'repo-b'] }, 1000);
+      await repo.fetchStalenessCorpus(base, 1000);
 
       expect(mockScroll).toHaveBeenCalledWith(
         'decisions',
-        expect.objectContaining({
-          filter: {
-            must: [
-              {
-                should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }],
-              },
-              { key: 'repo', match: { any: ['repo-a', 'repo-b'] } },
-            ],
-          },
-          limit: 1000,
-        }),
+        expect.objectContaining({ filter: base, limit: 1000 }),
       );
     });
 
-    it('CT-5b: applies an exact bank match with no repo clause for a private bank', async () => {
+    it('D-2 parity: forwards the caller-built base filter to scroll() unmodified, for a private bank', async () => {
       mockScroll.mockResolvedValueOnce({ points: [] });
 
+      const base = buildBaseFilter({ bank: 'private-jarvis', kind: 'all' });
+
       const repo = new QdrantRepository('http://localhost:6333');
-      await repo.fetchStalenessCorpus({ bank: 'private-jarvis', repos: ['repo-a'] }, 1000);
+      await repo.fetchStalenessCorpus(base, 1000);
 
       expect(mockScroll).toHaveBeenCalledWith(
         'decisions',
-        expect.objectContaining({
-          filter: { must: [{ key: 'bank', match: { value: 'private-jarvis' } }] },
-          limit: 1000,
-        }),
+        expect.objectContaining({ filter: base, limit: 1000 }),
       );
     });
 
-    it('EC-14: an empty repos array in kb still adds the repo any-match clause (not silently omitted)', async () => {
+    it('D-2 parity: fetchStalenessCorpus never builds its own bank/repo filter internally — the exact base object reaches scroll() byte-identical to buildBaseFilter output', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
       mockScroll.mockResolvedValueOnce({ points: [] });
 
+      const kbBase = buildBaseFilter({ bank: 'kb', kind: 'all' });
       const repo = new QdrantRepository('http://localhost:6333');
-      await repo.fetchStalenessCorpus({ bank: 'kb', repos: [] }, 1000);
+      await repo.fetchStalenessCorpus(kbBase, 1000);
 
-      const [, request] = mockScroll.mock.calls[0] as [string, { filter: { must: unknown[] } }];
-      expect(request.filter.must).toContainEqual({ key: 'repo', match: { any: [] } });
-    });
+      const [, request] = mockScroll.mock.calls[0] as [string, { filter: unknown }];
+      expect(request.filter).toEqual(kbBase);
 
-    it('EC-15: ignores a non-empty repos array entirely for a private bank', async () => {
-      mockScroll.mockResolvedValueOnce({ points: [] });
-
-      const repo = new QdrantRepository('http://localhost:6333');
-      await repo.fetchStalenessCorpus({ bank: 'private-x', repos: ['repo-a', 'repo-b'] }, 1000);
-
-      const [, request] = mockScroll.mock.calls[0] as [
-        string,
-        { filter: { must: Record<string, unknown>[] } },
-      ];
-      const hasRepoClause = request.filter.must.some(
-        (clause) => 'key' in clause && clause['key'] === 'repo',
-      );
-      expect(hasRepoClause).toBe(false);
+      const privateBase = buildBaseFilter({ bank: 'private-x', kind: 'all' });
+      await repo.fetchStalenessCorpus(privateBase, 1000);
+      const [, secondRequest] = mockScroll.mock.calls[1] as [string, { filter: unknown }];
+      expect(secondRequest.filter).toEqual(privateBase);
     });
 
     it('defaults limit to 1000 when omitted', async () => {
       mockScroll.mockResolvedValueOnce({ points: [] });
 
       const repo = new QdrantRepository('http://localhost:6333');
-      await repo.fetchStalenessCorpus({ bank: 'kb', repos: [] });
+      await repo.fetchStalenessCorpus(buildBaseFilter({ bank: 'kb', kind: 'all' }));
 
       expect(mockScroll).toHaveBeenCalledWith(
         'decisions',

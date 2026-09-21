@@ -1,4 +1,5 @@
 import { MemoError } from './errors.js';
+import { mergeFilters } from './filters.js';
 import type { QdrantFilter } from './qdrant.js';
 
 export interface BuildListFiltersInput {
@@ -11,6 +12,13 @@ export interface BuildListFiltersInput {
   sources?: string[];
   from?: string;
   to?: string;
+  /**
+   * Bank this list targets (spec §18.5, AC5). Defaults to `'kb'` when
+   * omitted, preserving Phase 1 behavior.
+   */
+  bank?: string;
+  /** Set when the caller passed an explicit `--repo` flag (AC5). */
+  explicitRepo?: boolean;
 }
 
 interface MatchCondition {
@@ -69,16 +77,23 @@ export function normalizeListDateRange(input: { from?: string; to?: string }): {
   };
 }
 
-export function buildListFilters(input: BuildListFiltersInput): QdrantFilter {
+export function buildListFilters(
+  input: BuildListFiltersInput,
+  base: QdrantFilter = {},
+): QdrantFilter {
   const must: (MatchCondition | RangeCondition)[] = [];
   const should: MatchCondition[] = [];
 
-  if (input.scope === 'related') {
-    for (const repo of unique([input.repo, ...(input.relatedRepos ?? [])])) {
-      should.push({ key: 'repo', match: { value: repo } });
+  const repoClauseAllowed = (input.bank ?? 'kb') === 'kb' || input.explicitRepo === true;
+
+  if (repoClauseAllowed) {
+    if (input.scope === 'related') {
+      for (const repo of unique([input.repo, ...(input.relatedRepos ?? [])])) {
+        should.push({ key: 'repo', match: { value: repo } });
+      }
+    } else {
+      must.push({ key: 'repo', match: { value: input.repo } });
     }
-  } else {
-    must.push({ key: 'repo', match: { value: input.repo } });
   }
 
   if (input.org) {
@@ -121,8 +136,10 @@ export function buildListFilters(input: BuildListFiltersInput): QdrantFilter {
     });
   }
 
-  return {
+  const builderFilter: QdrantFilter = {
     ...(must.length > 0 ? { must } : {}),
     ...(should.length > 0 ? { should } : {}),
   };
+
+  return mergeFilters(base, builderFilter);
 }

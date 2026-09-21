@@ -91,14 +91,17 @@ lib/
   ├── registry.ts          → Related-repo resolution for cross-repo scope
   ├── output.ts            → Human/JSON output formatter (chalk, ora)
   ├── errors.ts            → Typed MemoError hierarchy + exit codes
-  ├── dedupe.ts            → Deduplication key generation + merge strategies
-  ├── search-filters.ts    → Qdrant pre-filter builder for search
-  ├── list-filters.ts      → Qdrant pre-filter builder for list (with date range)
+  ├── dedupe.ts            → Deduplication key generation + merge strategies (v1 + v2, issue #82)
+  ├── search-filters.ts    → Qdrant pre-filter builder for search (extended with a `base` input, issue #82)
+  ├── list-filters.ts      → Qdrant pre-filter builder for list (with date range; extended with a `base` input, issue #82)
   ├── retry.ts             → Generic exponential backoff retry wrapper
   ├── eval.ts              → Pure top-3 hit-rate computation (eval harness, issue #61)
   ├── ranking.ts           → Composite ranking score, confidence tiers, tag boost (issues #34, #35, #36)
   ├── staleness.ts         → Pure staleness detection for `memo search` (issue #38)
   ├── lexical.ts           → Pure lexical identifier matching for `memo search` (issue #62)
+  ├── entry-normalize.ts   → `normalizeEntry`: read-side v1→v2 defaulting boundary (PRD-004 Phase 2, issue #79)
+  ├── bank.ts              → Bank resolution, kind defaults, policy lookup (PRD-004 Phase 2, issue #82)
+  ├── filters.ts           → `buildBaseFilter` (bank/kind/state) + `mergeFilters` (PRD-004 Phase 2, issue #82)
   └── debug.ts             → Conditional debug logging to stderr
 
 adapters/
@@ -358,7 +361,7 @@ If rationale exceeds 512 tokens (~2000 characters), embed a compressed summary (
   - `scrollAll(filter, { batch?, withVector? }, onPage)` — unordered full-collection scan; sends no `order_by`, pages via `offset: next_page_offset` until `null`; streams pages through `onPage` rather than accumulating a return value.
   - `count(filter?)` — exact point count (`exact: true`).
   - `setPayload(id, payload)` / `batchSetPayload(ops)` — payload overwrite, single point or many (chunked at 256 operations per `batchUpdate` call).
-  - `fetchStalenessCorpus({ bank, repos }, limit?)` — bank-scoped staleness corpus; supersedes `fetchByRepo` (retained until its last caller, `search.ts`, moves off it — tracked to the Phase 2 exit gate, S2-11).
+  - `fetchStalenessCorpus(base, limit?)` — staleness corpus scoped by a caller-built `base: QdrantFilter` (from `lib/filters.ts`'s `buildBaseFilter`, plus a `repo` any-match clause the caller merges in for `bank = 'kb'`); refactored in issue #82 (drift fix D-2) to compose the shared base filter instead of deriving its own private copy, so it can never silently diverge from every other read path's bank/kind/state filter. Supersedes `fetchByRepo` (retained until its last caller, `search.ts`, moves off it — tracked to the Phase 2 exit gate, S2-11).
 
 ### Search and List Semantics
 
@@ -443,14 +446,17 @@ memo-cli/
 │   │   ├── registry.ts           ← Related-repo resolution
 │   │   ├── output.ts             ← Human/JSON output formatter
 │   │   ├── errors.ts             ← MemoError hierarchy + exit codes
-│   │   ├── dedupe.ts             ← Deduplication key generation + merge strategies
-│   │   ├── search-filters.ts     ← Qdrant pre-filter builder (search)
-│   │   ├── list-filters.ts       ← Qdrant pre-filter builder (list, date range)
+│   │   ├── dedupe.ts             ← Deduplication key generation + merge strategies (v1 + v2)
+│   │   ├── search-filters.ts     ← Qdrant pre-filter builder (search; accepts a `base` input)
+│   │   ├── list-filters.ts       ← Qdrant pre-filter builder (list, date range; accepts a `base` input)
 │   │   ├── retry.ts              ← Exponential backoff retry wrapper
 │   │   ├── eval.ts               ← Pure top-3 hit-rate computation (eval harness)
 │   │   ├── ranking.ts            ← Composite ranking score, confidence tiers, tag boost
 │   │   ├── staleness.ts          ← Pure staleness detection (issue #38)
 │   │   ├── lexical.ts            ← Pure lexical identifier matching (issue #62)
+│   │   ├── entry-normalize.ts    ← `normalizeEntry`: read-side v1→v2 defaulting boundary
+│   │   ├── bank.ts               ← Bank resolution, kind defaults, policy lookup
+│   │   ├── filters.ts            ← `buildBaseFilter` (bank/kind/state) + `mergeFilters`
 │   │   └── debug.ts              ← Conditional debug logging (MEMO_DEBUG)
 │   ├── adapters/
 │   │   └── openai-embeddings.ts  ← OpenAI text-embedding-3-small

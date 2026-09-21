@@ -111,30 +111,30 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [ ] 2.17 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — **not run in this execution context** (no-delegation default, see closeout payload); caller (`planner`) invokes `verifier` directly
   - [ ] 2.18 Open PR against the integration branch (`integration/prd-004-phase-2-banks-kinds-sessions-recall`, per this run's base-branch override), link `Closes #81`, obtain approval, merge — PR [#93](https://github.com/llipe/memo-cli/pull/93) opened as draft; approval/merge pending
 
-- [ ] 3.0 Implement Story S2-03: Bank resolution, base filter, and dedupe v2 — [#82](https://github.com/llipe/memo-cli/issues/82)
+- [x] 3.0 Implement Story S2-03: Bank resolution, base filter, and dedupe v2 — [#82](https://github.com/llipe/memo-cli/issues/82)
 
   > Note: depends on tasks 1.0 and 2.0 (needs `KindPolicySchema`/`bank`/`banks` config and the new indexes). Unblocks every remaining task.
   > Drift follow-up (from `verifier`'s Audit Mode pass on PR #93/S2-02, D-2, Major/Intended): `fetchStalenessCorpus` (`src/lib/qdrant.ts`, S2-02) currently builds its own private copy of the §8.1 base-filter rule instead of composing `buildBaseFilter`. Sub-task 3.7 below closes that gap so S2-05 (task 5.0, AC4) can wire one shared filter through dense/lexical/staleness without a second, silently-divergent implementation surviving in the codebase.
-  - [ ] 3.1 Write `tests/unit/lib/bank.test.ts`: every resolution permutation of flag/env/config/default; invalid-value error naming its source; `defaultKind`; `policyFor` incl. the `kb`/`self` throw
-  - [ ] 3.2 Write `tests/unit/lib/filters.test.ts`: filter shape per combination of bank type × kind × exclusions × session × as-of
-  - [ ] 3.3 Write `tests/unit/lib/search-filters.test.ts`, `tests/unit/lib/list-filters.test.ts` cases for `base` merge semantics and the conditional `repo` clause
-  - [ ] 3.4 Write `tests/unit/lib/dedupe.test.ts` cases: v2 keys per kind; `self` uniqueness across 1,000 calls; `seq` sensitivity
-  - [ ] 3.5 Create `src/lib/bank.ts` (`resolveBank`, `isPrivateBank`, `policyFor`, `defaultKind`)
-  - [ ] 3.6 Create `src/lib/filters.ts` (`buildBaseFilter`)
-  - [ ] 3.7 **Drift fix (D-2):** refactor `fetchStalenessCorpus` (`src/lib/qdrant.ts`) to accept the caller-built `base: QdrantFilter` (from `buildBaseFilter`) instead of constructing its own private `bank`/`repos` filter internally; add a parity test asserting `fetchStalenessCorpus`'s effective filter is byte-identical to `buildBaseFilter`'s output for the same inputs. Write this test first (it should fail against S2-02's shipped private-helper version), then make the change.
-  - [ ] 3.8 Extend `src/lib/search-filters.ts` and `src/lib/list-filters.ts` to accept and merge `base`
-  - [ ] 3.9 Add `buildDedupeKeyV2` to `src/lib/dedupe.ts`
-  - [ ] 3.10 Verify AC1–AC3: bank resolution and policy lookup test matrix
-  - [ ] 3.11 Verify AC4–AC5: filter shape and builder-merge test matrix
-  - [ ] 3.12 Verify AC6–AC7: dedupe key test matrix
-  - [ ] 3.13 Verify the D-2 drift fix: `fetchStalenessCorpus` and `buildBaseFilter` produce identical filter shapes for `kb` and for a private bank, with and without `repos`
-  - [ ] 3.14 Edge cases: `MEMO_BANK=""` treated as unset; `MEMO_BANK=KB` invalid; `asOf` boundary inclusivity/exclusivity; `--kind self --include-superseded`
-  - [ ] 3.15 Map every AC to its test in the PR body, including the D-2 parity test as evidence the drift is closed
-  - [ ] 3.16 Migration: not required — pure functions, no data change; record opt-out rationale in the PR body
-  - [ ] 3.17 Update `docs/technical-guidelines.md` architecture tree with both new modules
-  - [ ] 3.18 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 3.19 Run `verifier` audit (mandatory, pre-PR-ready), explicitly re-checking D-2 is closed; route any remaining drift findings to `product-engineer`
-  - [ ] 3.20 Open PR against `main`, link `Closes #82`, obtain user approval, merge
+  - [x] 3.1 Write `tests/unit/lib/bank.test.ts`: every resolution permutation of flag/env/config/default; invalid-value error naming its source; `defaultKind`; `policyFor` incl. the `kb`/`self` throw
+  - [x] 3.2 Write `tests/unit/lib/filters.test.ts`: filter shape per combination of bank type × kind × exclusions × session × as-of
+  - [x] 3.3 Write `tests/unit/lib/search-filters.test.ts`, `tests/unit/lib/list-filters.test.ts` cases for `base` merge semantics and the conditional `repo` clause
+  - [x] 3.4 Write `tests/unit/lib/dedupe.test.ts` cases: v2 keys per kind; `self` uniqueness across 1,000 calls; `seq` sensitivity
+  - [x] 3.5 Create `src/lib/bank.ts` (`resolveBank`, `isPrivateBank`, `policyFor`, `defaultKind`)
+  - [x] 3.6 Create `src/lib/filters.ts` (`buildBaseFilter`)
+  - [x] 3.7 **Drift fix (D-2):** refactor `fetchStalenessCorpus` (`src/lib/qdrant.ts`) to accept the caller-built `base: QdrantFilter` (from `buildBaseFilter`) instead of constructing its own private `bank`/`repos` filter internally; add a parity test asserting `fetchStalenessCorpus`'s effective filter is byte-identical to `buildBaseFilter`'s output for the same inputs. Write this test first (it should fail against S2-02's shipped private-helper version), then make the change. — done: `fetchStalenessCorpus` now takes `base: QdrantFilter` and forwards it verbatim to `scroll()`; the private `buildStalenessCorpusFilter` helper is removed
+  - [x] 3.8 Extend `src/lib/search-filters.ts` and `src/lib/list-filters.ts` to accept and merge `base`
+  - [x] 3.9 Add `buildDedupeKeyV2` to `src/lib/dedupe.ts`
+  - [x] 3.10 Verify AC1–AC3: bank resolution and policy lookup test matrix — `tests/unit/lib/bank.test.ts` (28 cases)
+  - [x] 3.11 Verify AC4–AC5: filter shape and builder-merge test matrix — `tests/unit/lib/filters.test.ts`, `tests/unit/lib/search-filters.test.ts`, `tests/unit/lib/list-filters.test.ts`
+  - [x] 3.12 Verify AC6–AC7: dedupe key test matrix — `tests/unit/lib/dedupe.test.ts` `buildDedupeKeyV2` describe block, incl. the 1,000-call `self` uniqueness property
+  - [x] 3.13 Verify the D-2 drift fix: `fetchStalenessCorpus` and `buildBaseFilter` produce identical filter shapes for `kb` and for a private bank, with and without `repos` — `tests/unit/lib/qdrant.test.ts` `fetchStalenessCorpus()` describe block, 3 parity tests
+  - [x] 3.14 Edge cases: `MEMO_BANK=""` treated as unset; `MEMO_BANK=KB` invalid; `asOf` boundary inclusivity/exclusivity; `--kind self --include-superseded` — EC-5/EC-6, EC-7, EC-29/EC-30/EC-31, EC-24
+  - [x] 3.15 Map every AC to its test in the PR body, including the D-2 parity test as evidence the drift is closed
+  - [x] 3.16 Migration: not required — pure functions, no data change; record opt-out rationale in the PR body
+  - [x] 3.17 Update `docs/technical-guidelines.md` architecture tree with both new modules
+  - [x] 3.18 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — all pass (`pnpm run validate`: 722/722 tests, lint clean, format clean, typecheck clean, audit clean)
+  - [ ] 3.19 Run `verifier` audit (mandatory, pre-PR-ready), explicitly re-checking D-2 is closed; route any remaining drift findings to `product-engineer` — **not run in this execution context** (no-delegation default, see closeout payload); caller (`planner`) invokes `verifier` directly
+  - [ ] 3.20 Open PR against `main`, link `Closes #82`, obtain user approval, merge — opened against the integration branch (`integration/prd-004-phase-2-banks-kinds-sessions-recall`, per this run's base-branch override) instead; approval/merge pending
 
 - [ ] 4.0 Implement Story S2-04: `memo write` v2 — banks, kinds, sessions, supersede — [#83](https://github.com/llipe/memo-cli/issues/83)
 
