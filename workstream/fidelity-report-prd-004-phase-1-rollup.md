@@ -1,0 +1,35 @@
+# Fidelity Report — PRD-004 Phase 1, PRD-level rollup
+
+**Fidelity: High**
+**Highest drift impact present: Minor**
+**Scope:** PRD-004 "Long-Lived Agent Memory," Phase 1 (stories S1-01–S1-08, issues #61/#34/#36/#35/#38/#62/#63/#64), branch `integration/prd-004-phase-1-trustworthy-retrieval`.
+
+## Human-readable summary
+
+Phase 1 makes `memo search` rank results by more than raw similarity: it now favors recent, trustworthy, tag-relevant, and identifier-matching entries, flags results that look superseded, and (under `--explain`) shows the math behind every ranking. All eight stories are merged, and this rollup re-verified the combined result live rather than trusting each story's own report. Everything checked out: the search command composes all seven ranking signals correctly on the same result with no interaction bugs, all five PRD acceptance criteria are genuinely met, the project's own relevance benchmark reproduced the same 96.4% score the team recorded, the PRD's change history tells a consistent story (including an early miss where new ranking briefly scored worse than the old system, and how it was fixed), and the documentation was already brought in line with what shipped. The only things worth a second look are small, already-known, non-blocking gaps: one category of test query (cross-repo search) still scores a bit lower than the rest, and the project's automated test-coverage gate is failing on branch/function coverage in files nobody touched this phase.
+
+## Per-AC result table
+
+| AC-ID | Description | Codebase evidence | Workstream evidence | Test evidence | Result |
+|---|---|---|---|---|---|
+| AC-1.1 | Eval set ≥20 labeled queries, baseline recorded | `tests/fixtures/relevance/` (28 queries, 44 entries) | changelog 1.1–1.11 | `tests/relevance/replay.test.ts` | Pass |
+| AC-1.2 | Fresh mid-similarity beats stale high-similarity under defaults | `src/lib/ranking.ts` composite formula, live in `search.ts` | S1-02/#34 story | ranking unit tests | Pass |
+| AC-1.3 | Exact file-name query returns entry in top 3; `--lexical off` may not | `extractIdentifierTokens`/`computeLexicalBoost` in `src/lib/lexical.ts`, wired in `search.ts:374-419` | S1-06/#62 story | lexical unit + relevance tests | Pass |
+| AC-1.4 | JSON carries `query_id`, `final_score`, `similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, `confidence_tier`, `stale`/`stale_by` | `toJsonResult`/`buildExplainFactors` in `search.ts:233-272`; live `--json --explain` smoke test confirms all fields present together | S1-07/#63 story | output/unit tests | Pass |
+| AC-1.5 | Top-3 hit rate ≥80% or ≥baseline+15, never below baseline | — | changelog 1.11 claims 96.4% | **Independently re-run live** (`MEMO_COLLECTION=memo_eval pnpm run eval:relevance`) against current merged `integration/prd-004-phase-1-trustworthy-retrieval` HEAD: concept 100%, identifier 100%, cross-repo 83.3%, recency 100%, **overall 96.4%** — exact match to the recorded figure | Pass |
+
+## Drift catalog
+
+1. **Cross-repo category persistent gap** — Impact: Minor. Intent: Intended (explicitly tracked, not silently ignored). Evidence: PRD §18 Q3 discussion + changelog 1.11; independently reproduced live at 83.3% (one of six cross-repo queries misses top-3). Non-blocking to this rollup's completion; already routed as a Phase 3 tuning input.
+2. **Coverage gate FAIL on branches/functions** — Impact: Minor. Intent: Unintended but pre-existing (not introduced by Phase 1; lowest files — `setup.ts`, `write.ts`, `retry.ts`, `embeddings.ts` — are untouched by S1-01–S1-08). Evidence: changelog 1.11's honest self-report; `src/lib/` alone clears 85% on 3 of 4 metrics. Non-blocking to this rollup's completion.
+
+No Critical or Major findings. No feature-interaction bug found in `search.ts`'s composition of over-fetch/ranking, tag_boost, confidence_tier, staleness, lexical matching, and query_id/`--explain` — a live `--explain --json` query confirmed `tag_boost`, `lexical_boost`, `recency_score`, `source_score`, and stale annotation all present together on the same result with correct values.
+
+## Edge-case / randomized outcomes
+
+Not applicable at this rollup layer — covered by the 8 prior per-story audits (all High fidelity).
+
+## Recommendations
+
+- No action needed for AC-1.1–AC-1.5 or search composition — confirmed sound at merged scope.
+- `cross-repo` gap and coverage-gate `FAIL`: no action needed now; both are already correctly captured as Phase 3 / follow-up input via existing PRD §18 and changelog entries — `product-engineer` may fold them into Phase 3 planning via `activity-drift-reconciliation` if desired, but neither blocks Phase 1 sign-off.
