@@ -6,7 +6,7 @@
 - Integration branch: integration/prd-004-phase-1-trustworthy-retrieval
 - Repository: llipe/memo-cli
 - Started: 2026-09-19T00:00:00Z
-- Last updated: 2026-09-21T03:55:08Z
+- Last updated: 2026-09-21T04:07:05Z
 
 ## Story Status
 
@@ -18,14 +18,14 @@
 | 4        | S1-04    | #35     | ✅ Merged   | #69 | issue/35-dynamic-confidence-tiers    |
 | 5        | S1-05    | #38     | ✅ Merged   | #70 | issue/38-staleness-detection         |
 | 6        | S1-06    | #62     | ✅ Merged   | #71 | issue/62-lexical-identifier-matching |
-| 7        | S1-07    | #63     | ⏳ Pending  | —   | —                                   |
+| 7        | S1-07    | #63     | ✅ Merged   | #72 | issue/63-query-id-explain            |
 | 8        | S1-08    | #64     | ⏳ Pending  | —   | —                                   |
 
 ## Current Position
 
-- Next story: S1-07 (#63)
-- Last merged PR: #71
-- Integration branch HEAD: 488f5e5
+- Next story: S1-08 (#64) — Phase 1 exit gate
+- Last merged PR: #72
+- Integration branch HEAD: 4dad2dc
 
 ## Decisions Log
 
@@ -63,4 +63,7 @@
 - S1-06: developer's closeout narrative claimed "no eval query where dense-only fails an identifier query" — verifier caught this was WRONG per the developer's own evidence: q-identifier-01 genuinely benefits from lexical boost (second expected id drops out of top-3 without it). AC9 was actually satisfied; only the narrative was inaccurate. Lesson: closeout self-reports need independent verification even when they sound like honest limitations, not just when they look like optimistic claims.
 - S1-06: qa-engineer coverage_gate PASS — all three specifically-flagged risks (failure injection for graceful degradation, ensureIndexes idempotency, union/dedupe on overlapping ids) confirmed genuinely tested. Two minor non-blocking gaps: untested `--lexical <invalid>` validation branch; a test title over-claiming what it asserts (doesn't check debugLog call).
 - S1-06: verifier Audit Mode — High fidelity, highest drift Minor. fidelity-report-S1-06.md again left uncommitted on the story branch; committed as a follow-up doc commit (488f5e5) after merge — same recurring pattern as S1-02/S1-03.
-- Note for S1-07: no test plan expected to exist yet — proceed directly to delegation. This story adds query_id/--explain and surfaces the internal factor bag (including lexical_boost, not yet exposed per S1-06's known limitation).
+- S1-07: developer's sandbox had no live Qdrant credentials this time (unlike prior stories); planner ran manual live validation directly against Qdrant Cloud (query_id in envelope, factors object with correct neutral literals, human --explain table + footer) — all correct.
+- S1-07: qa-engineer coverage_gate FAIL on one real, specific, non-blocking gap — the envelope key-order test uses a sorted-array comparison, which can't prove order (only set membership). Verifier independently confirmed the actual runtime order is correct (matches planner's live JSON) via diff reading, so this is a test-rigor gap, not a functional defect. Flagged for follow-up fix, not blocking.
+- S1-07: verifier Audit Mode — High fidelity, no Critical/Major drift. query_id confirmed genuinely inert (no caching/dedup wiring), envelope additive-only, neutral-factor semantics correctly distinguished from S1-02's separate ranking.ts factor bag.
+- Note for S1-08: this is the Phase 1 EXIT GATE — a gate, not a feature. Per Execution Notes, if the gate fails and tuning cannot close it, stop and escalate (PRD revision needed, not a code change). This is also where /TESTING.md's stale/mismatched-project content (flagged repeatedly by qa-engineer across S1-01 through S1-07) must finally be corrected, and where a true 1,000-entry-scale latency measurement (deferred from S1-05's AC8) should be captured if feasible.
