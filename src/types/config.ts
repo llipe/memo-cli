@@ -31,6 +31,10 @@ export const DEFAULT_CONFIDENCE_THRESHOLDS = {
   high: 0.75,
   medium: 0.6,
 } as const;
+// Staleness defaults per issue #38's AC1 - see src/lib/staleness.ts's
+// DEFAULT_STALENESS_THRESHOLD_DAYS and DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD.
+export const DEFAULT_STALENESS_THRESHOLD_DAYS = 120;
+export const DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD = 0.5;
 const WEIGHT_SUM_TOLERANCE = 0.001;
 
 // #35 AC2: `exact > high > medium` must hold strictly - equal values are
@@ -63,6 +67,19 @@ const RankingConfigSchema = z
     tag_boost_factor: z.number().finite().min(0).default(DEFAULT_TAG_BOOST_FACTOR),
     // #35 AC1/AC2: confidence tier band boundaries.
     confidence_thresholds: ConfidenceThresholdsSchema.default({}),
+    // #38 AC1: age (in days) beyond which a result becomes eligible to be
+    // flagged stale. `0` is a valid (if extreme) value - non-negative, not
+    // `positive()`, since a threshold of `0` means "every result older than
+    // now is eligible", which is a legitimate (if aggressive) configuration.
+    staleness_threshold_days: z.number().finite().min(0).default(DEFAULT_STALENESS_THRESHOLD_DAYS),
+    // #38 AC1: minimum Jaccard tag overlap with a newer same-repo entry
+    // required to flag a result stale.
+    staleness_tag_overlap_threshold: z
+      .number()
+      .finite()
+      .min(0)
+      .max(1)
+      .default(DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD),
   })
   .passthrough()
   .superRefine((data, ctx) => {

@@ -205,6 +205,59 @@ describe('QdrantRepository', () => {
     });
   });
 
+  describe('fetchByRepo()', () => {
+    it('scrolls with an any-match repo filter, descending timestamp order, and the default 1000 bound (#38 AC5, AC6)', async () => {
+      mockScroll.mockResolvedValueOnce({
+        points: [{ id: '1', payload: { repo: 'memo-cli' } }],
+      });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      const results = await repo.fetchByRepo(['memo-cli']);
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          filter: { must: [{ key: 'repo', match: { any: ['memo-cli'] } }] },
+          limit: 1000,
+          order_by: { key: 'timestamp_utc', direction: 'desc' },
+        }),
+      );
+      expect(results).toHaveLength(1);
+    });
+
+    it('matches any repo in the provided set (--scope related, AC6)', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.fetchByRepo(['memo-cli', 'platform-docs']);
+
+      expect(mockScroll).toHaveBeenCalledWith(
+        'decisions',
+        expect.objectContaining({
+          filter: { must: [{ key: 'repo', match: { any: ['memo-cli', 'platform-docs'] } }] },
+        }),
+      );
+    });
+
+    it('accepts a custom limit override', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.fetchByRepo(['memo-cli'], 50);
+
+      expect(mockScroll).toHaveBeenCalledWith('decisions', expect.objectContaining({ limit: 50 }));
+    });
+
+    it('calls scroll exactly once per invocation', async () => {
+      mockScroll.mockResolvedValueOnce({ points: [] });
+
+      const repo = new QdrantRepository('http://localhost:6333');
+      await repo.fetchByRepo(['memo-cli']);
+
+      expect(mockScroll).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getByDedupeKey()', () => {
     it('returns null when no results', async () => {
       mockScroll.mockResolvedValueOnce({ points: [] });

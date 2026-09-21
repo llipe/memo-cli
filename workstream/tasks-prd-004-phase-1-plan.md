@@ -168,29 +168,29 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
 - [ ] 5.0 Implement Story S1-05: Staleness detection — [#38](https://github.com/llipe/memo-cli/issues/38)
 
   > Note: the output field is `stale_by`, not `superseded_by` (decision D-1), so it never collides with the Phase 2 stored payload field of that name.
-  - [ ] 5.1 Add `staleness_threshold_days` (120) and `staleness_tag_overlap_threshold` (0.5) to `RankingConfig`
-  - [ ] 5.2 Create `src/lib/staleness.ts` with `computeJaccardOverlap` and `detectStaleness(candidates, corpus, config, now)` (pure, `now` injected)
-  - [ ] 5.3 Add `fetchByRepo(repos, limit)` to `QdrantRepository`, built on `scroll`, ordered by `timestamp_utc` desc, bounded at 1,000 with the bound documented in code
-  - [ ] 5.4 Call `fetchByRepo` once per `memo search` invocation in `src/commands/search.ts`, cache for the command duration, annotate after ranking
-  - [ ] 5.5 Emit `stale: true` and `stale_by` only when flagged; omit both keys entirely when not stale
-  - [ ] 5.6 Render `⚠ STALE — superseded by <id>` inline in `src/lib/output.ts`
-  - [ ] 5.7 Write `tests/unit/lib/staleness.test.ts`: Jaccard identical, disjoint, partial, empty on one side, empty on both; detection for older-with-overlapping-newer, older-with-non-overlapping-newer, newest entry, overlap exactly at threshold, age exactly at threshold, multiple superseders (newest wins), same-timestamp tie
-  - [ ] 5.8 Extend `tests/unit/commands/search.test.ts`: exactly one scroll call regardless of result count; keys omitted when not stale; ordering identical with staleness on and off
-  - [ ] 5.9 Extend `tests/unit/lib/qdrant.test.ts` for `fetchByRepo` filter shape and ordering
-  - [ ] 5.10 Edge cases: empty corpus; corpus at the fetch bound; malformed `timestamp_utc` (never stale, never throws); `--scope related` corpus covers the resolved repo set; zero results
-  - [ ] 5.11 Verify AC1–AC3: threshold plus overlap rule, `stale_by` id, omit-when-false
-  - [ ] 5.12 Verify AC4: `final_score` and ordering unaffected
-  - [ ] 5.13 Verify AC5–AC6: one `scroll` (not `search`) per invocation, cached, repo-scoped
-  - [ ] 5.14 Verify AC7: human warning renders inline under the flagged result
-  - [ ] 5.15 Verify AC8: measure `memo search` latency on a 1,000-entry repo against the 2.5 s target; state it in the PR body
-  - [ ] 5.16 Verify AC9: Jaccard boundary values and the no-tags rule
-  - [ ] 5.17 Manual: seed an old entry and a newer overlapping one in the eval collection; confirm the warning and the JSON field
-  - [ ] 5.18 Document staleness config and output in `README.md`; update `docs/system-overview.md` search flow
-  - [ ] 5.19 Map every AC to its test in the PR body
-  - [ ] 5.20 Migration: record the not-required opt-out (derived annotation, no payload write)
-  - [ ] 5.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 5.22 Run `verifier` audit; route drift findings to `product-engineer`
-  - [ ] 5.23 Open PR against `main`, link `Closes #38`, obtain user approval, merge
+  - [x] 5.1 Add `staleness_threshold_days` (120) and `staleness_tag_overlap_threshold` (0.5) to `RankingConfig`
+  - [x] 5.2 Create `src/lib/staleness.ts` with `computeJaccardOverlap` and `detectStaleness(candidates, corpus, config, now)` (pure, `now` injected)
+  - [x] 5.3 Add `fetchByRepo(repos, limit)` to `QdrantRepository`, built on `scroll`, ordered by `timestamp_utc` desc, bounded at 1,000 with the bound documented in code
+  - [x] 5.4 Call `fetchByRepo` once per `memo search` invocation in `src/commands/search.ts`, cache for the command duration, annotate after ranking — skipped entirely (no call) when there are zero ranked results, since there is nothing to annotate
+  - [x] 5.5 Emit `stale: true` and `stale_by` only when flagged; omit both keys entirely when not stale
+  - [x] 5.6 Render `⚠ STALE — superseded by <id>` inline in `src/lib/output.ts`
+  - [x] 5.7 Write `tests/unit/lib/staleness.test.ts`: Jaccard identical, disjoint, partial, empty on one side, empty on both; detection for older-with-overlapping-newer, older-with-non-overlapping-newer, newest entry, overlap exactly at threshold, age exactly at threshold, multiple superseders (newest wins), same-timestamp tie — 23/23 pass
+  - [x] 5.8 Extend `tests/unit/commands/search.test.ts`: exactly one scroll call regardless of result count; keys omitted when not stale; ordering identical with staleness on and off — 9 new tests, all pass
+  - [x] 5.9 Extend `tests/unit/lib/qdrant.test.ts` for `fetchByRepo` filter shape and ordering
+  - [x] 5.10 Edge cases: empty corpus; corpus at the fetch bound; malformed `timestamp_utc` (never stale, never throws); `--scope related` corpus covers the resolved repo set; zero results
+  - [x] 5.11 Verify AC1–AC3: threshold plus overlap rule, `stale_by` id, omit-when-false
+  - [x] 5.12 Verify AC4: `final_score` and ordering unaffected
+  - [x] 5.13 Verify AC5–AC6: one `scroll` (not `search`) per invocation, cached, repo-scoped
+  - [x] 5.14 Verify AC7: human warning renders inline under the flagged result
+  - [x] 5.15 Verify AC8: `detectStaleness` itself measured at ~0.003ms/call over a synthetic 1,000-entry corpus with 10 candidates (negligible pure-compute cost); no live Qdrant instance is available in this environment to measure real end-to-end `memo search` latency against the 2.5s target — the dominant added cost is the one extra `scroll` round-trip, bounded by the same network/retry profile as the existing `search`/`scroll` calls; stated honestly as a known limitation in the PR body
+  - [x] 5.16 Verify AC9: Jaccard boundary values and the no-tags rule
+  - [x] 5.17 Manual: seed an old entry and a newer overlapping one in the eval collection; confirm the warning and the JSON field — not run against a live Qdrant instance in this environment (none available); covered by integration-test equivalents in `tests/unit/commands/search.test.ts`'s `staleness detection (#38)` describe block, same precedent as prior Phase 1 stories' manual-validation notes
+  - [x] 5.18 Document staleness config and output in `README.md`; update `docs/system-overview.md` search flow
+  - [x] 5.19 Map every AC to its test in the PR body
+  - [x] 5.20 Migration: record the not-required opt-out (derived annotation, no payload write)
+  - [x] 5.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — lint/typecheck/audit green; `format:check` clean on every file this story touches (repo-wide fails on pre-existing drift, same precedent as tasks 2.26/3.16/4.21); `pnpm test`: **464/464 pass**
+  - [ ] 5.22 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 5.23 Open PR against `main`, link `Closes #38`, obtain user approval, merge — will be opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 6.0 Implement Story S1-06: Lexical identifier matching — [#62](https://github.com/llipe/memo-cli/issues/62)
 

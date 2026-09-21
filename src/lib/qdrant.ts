@@ -176,6 +176,20 @@ export class QdrantRepository {
     }
   }
 
+  /**
+   * Fetches the corpus used for staleness detection (#38 AC5/AC6): one
+   * `scroll` call per `memo search` invocation, filtered to `repos` (the
+   * resolved repo scope - a single repo, or the full `--scope related` set),
+   * ordered by `timestamp_utc` desc via the underlying `scroll()`.
+   *
+   * Bounded at `limit` (default `1,000`) - a config-free constant, not
+   * user-configurable, documented here rather than exposed as a setting;
+   * revisit if a single repo's corpus regularly exceeds this bound.
+   */
+  async fetchByRepo(repos: string[], limit = 1000): Promise<ScrollResult[]> {
+    return this.scroll({ must: [{ key: 'repo', match: { any: repos } }] }, limit);
+  }
+
   async getByDedupeKey(dedupeKeySha256: string): Promise<ScrollResult | null> {
     const results = await this.scroll(
       { must: [{ key: 'dedupe_key_sha256', match: { value: dedupeKeySha256 } }] },

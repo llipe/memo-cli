@@ -23,6 +23,14 @@ export interface SearchHumanResult {
    * same output with no `[tier]` prefix at all.
    */
   confidenceTier?: ConfidenceTierLabel;
+  /**
+   * Staleness annotation (#38 AC7). Optional so callers that never detect
+   * staleness (or that pre-date this story) keep the exact same output with
+   * no warning line at all. `staleBy` is only meaningful when `stale` is
+   * `true`.
+   */
+  stale?: boolean;
+  staleBy?: string | number;
 }
 
 /**
@@ -40,6 +48,16 @@ const TIER_COLOR: Record<ConfidenceTierLabel, (text: string) => string> = {
 function renderTierPrefix(tier: ConfidenceTierLabel | undefined): string {
   if (!tier) return '';
   return `${TIER_COLOR[tier](`[${tier}]`)} `;
+}
+
+/**
+ * `⚠ STALE — superseded by <id>` (#38 AC7). Returns `null` (not rendered)
+ * when `stale` is falsy or `staleBy` is missing, so the warning line is
+ * omitted entirely rather than shown empty.
+ */
+function renderStaleWarning(result: SearchHumanResult): string | null {
+  if (!result.stale || result.staleBy === undefined) return null;
+  return `${chalk.yellow.bold('⚠ STALE')} — superseded by ${String(result.staleBy)}`;
 }
 
 export interface ListHumanResult {
@@ -132,6 +150,11 @@ export const output = {
 
       if (metadata.length > 0) {
         process.stdout.write(`${chalk.gray(metadata)}\n`);
+      }
+
+      const staleWarning = renderStaleWarning(result);
+      if (staleWarning) {
+        process.stdout.write(`${staleWarning}\n`);
       }
 
       process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
