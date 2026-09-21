@@ -306,6 +306,33 @@ describe('rankResults', () => {
     expect(Number.isFinite(ranked[0]?.final_score)).toBe(true);
   });
 
+  it('attaches a resolved neutral factor bag to every entry (AC19)', () => {
+    const ranked = rankResults(
+      [{ id: 'x', similarity: 0.5, source: 'agent' }],
+      DEFAULT_RANKING_WEIGHTS,
+      90,
+      NOW,
+    );
+    expect(ranked[0]?.factors).toEqual({
+      tag_boost: 0,
+      lexical_boost: 0,
+      retention_factor: 1,
+      use_ratio_factor: 1,
+      link_factor: 1,
+    });
+  });
+
+  it('passes through non-neutral factors when the entry supplies them', () => {
+    const ranked = rankResults(
+      [{ id: 'x', similarity: 0.5, source: 'agent', tagBoost: 0.05, retentionFactor: 0.9 }],
+      DEFAULT_RANKING_WEIGHTS,
+      90,
+      NOW,
+    );
+    expect(ranked[0]?.factors.tag_boost).toBe(0.05);
+    expect(ranked[0]?.factors.retention_factor).toBe(0.9);
+  });
+
   it('treats two entries with the same id as fully tied (defensive; ids are expected unique)', () => {
     const entries: RankableEntry[] = [
       { id: 'dup', similarity: 0.5, source: 'agent' },

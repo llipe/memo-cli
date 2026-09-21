@@ -139,12 +139,38 @@ export interface RankableEntry {
   similarity: number;
   timestampUtc?: string | null;
   source?: unknown;
+  /** Additive boost from tag overlap (#36). Neutral default: `0`. */
+  tagBoost?: number;
+  /** Additive boost from lexical matching (FR-1.3). Neutral default: `0`. */
+  lexicalBoost?: number;
+  /** Multiplicative retention factor (#54). Neutral default: `1`. */
+  retentionFactor?: number;
+  /** Multiplicative use-ratio factor (#55). Neutral default: `1`. */
+  useRatioFactor?: number;
+  /** Multiplicative link factor (#56). Neutral default: `1`. */
+  linkFactor?: number;
+}
+
+/**
+ * The resolved factor bag attached to every ranked entry (issue #34's
+ * "Added acceptance criteria" AC19). Every factor this story does not
+ * implement resolves to its documented neutral value (`0` for additive
+ * boosts, `1` for multiplicative factors) so `rankResults`'s output shape
+ * never changes again once #36/#54/#55/#56 start supplying real values.
+ */
+export interface ResolvedFactors {
+  tag_boost: number;
+  lexical_boost: number;
+  retention_factor: number;
+  use_ratio_factor: number;
+  link_factor: number;
 }
 
 export type RankedEntry<T extends RankableEntry = RankableEntry> = T & {
   final_score: number;
   recency_score: number;
   source_score: number;
+  factors: ResolvedFactors;
 };
 
 function compareIds(a: string | number, b: string | number): number {
@@ -189,11 +215,27 @@ export function rankResults<T extends RankableEntry>(
   const scored: RankedEntry<T>[] = entries.map((entry) => {
     const recency_score = computeRecencyScore(entry.timestampUtc, now, recencyHalfLifeDays);
     const source_score = computeSourceScore(entry.source);
+    const factors: ResolvedFactors = {
+      tag_boost: entry.tagBoost ?? 0,
+      lexical_boost: entry.lexicalBoost ?? 0,
+      retention_factor: entry.retentionFactor ?? 1,
+      use_ratio_factor: entry.useRatioFactor ?? 1,
+      link_factor: entry.linkFactor ?? 1,
+    };
     const final_score = computeCompositeScore(
-      { similarity: entry.similarity, recencyScore: recency_score, sourceScore: source_score },
+      {
+        similarity: entry.similarity,
+        recencyScore: recency_score,
+        sourceScore: source_score,
+        tagBoost: factors.tag_boost,
+        lexicalBoost: factors.lexical_boost,
+        retentionFactor: factors.retention_factor,
+        useRatioFactor: factors.use_ratio_factor,
+        linkFactor: factors.link_factor,
+      },
       weights,
     );
-    return { ...entry, final_score, recency_score, source_score };
+    return { ...entry, final_score, recency_score, source_score, factors };
   });
 
   return scored.sort(compareRanked);
