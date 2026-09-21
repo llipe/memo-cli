@@ -118,7 +118,8 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 4. Embed query text (plus tag terms when present)
 5. Compute the over-fetch limit `max(limit, min(limit * 3, 50))` and execute vector search with pre-filters against that many candidates
 6. Rank candidates via `src/lib/ranking.ts`'s composite score (`final_score = w_similarity * similarity + w_recency * recency_score + w_source * source_score`, weights from `memo.config.json`'s `ranking` block or its defaults), slice back down to `--limit`
-7. Format and output results: human mode shows `final_score` as the percentage; `--json` exposes `final_score`, `similarity`, `recency_score`, and `source_score` on every result
+7. Attach `confidence_tier` to every ranked candidate via `computeConfidenceTier(final_score, thresholds)` (issue #35): thresholds come from `ranking.confidence_thresholds` or its defaults, and the tier is derived from the already-final `final_score` — it never feeds back into scoring or ordering
+8. Format and output results: human mode prefixes each result with `[tier]` and no longer shows the stored `confidence` field; `--json` exposes `final_score`, `similarity`, `recency_score`, `source_score`, and `confidence_tier` on every result, with the stored `confidence` field dropped from the projection (it remains in `memo read`/`memo list`/`memo write` output and in the stored payload — search is the only place it is removed)
 
 ### List Flow
 

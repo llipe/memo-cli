@@ -321,4 +321,100 @@ describe('setup validate', () => {
       }
     });
   });
+
+  // Issue #35 - `ranking.confidence_thresholds` (AC2).
+  describe('confidence_thresholds block', () => {
+    it('exits 0 for a config with a valid confidence_thresholds block', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify(
+          {
+            ...VALID_CONFIG,
+            ranking: { confidence_thresholds: { exact: 0.9, high: 0.8, medium: 0.5 } },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      try {
+        await handleValidate(tmpDir);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(0)');
+      } finally {
+        mockExit.mockRestore();
+      }
+    });
+
+    it('exits 1 and names the confidence_thresholds path for inverted ordering (AC2, task 4.17)', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify(
+          {
+            ...VALID_CONFIG,
+            ranking: { confidence_thresholds: { exact: 0.5, high: 0.8, medium: 0.6 } },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+      const stderrChunks: string[] = [];
+      const stderrSpy = jest
+        .spyOn(process.stderr, 'write')
+        .mockImplementation((chunk: string | Uint8Array) => {
+          stderrChunks.push(String(chunk));
+          return true;
+        });
+
+      try {
+        await handleValidate(tmpDir);
+        fail('Expected process.exit to be called');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(1)');
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('confidence_thresholds');
+      } finally {
+        mockExit.mockRestore();
+        stderrSpy.mockRestore();
+      }
+    });
+
+    it('exits 1 for equal confidence threshold values', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify(
+          {
+            ...VALID_CONFIG,
+            ranking: { confidence_thresholds: { exact: 0.8, high: 0.8, medium: 0.5 } },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      try {
+        await handleValidate(tmpDir);
+        fail('Expected process.exit to be called');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(1)');
+      } finally {
+        mockExit.mockRestore();
+      }
+    });
+  });
 });

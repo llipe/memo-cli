@@ -93,4 +93,37 @@ describe('handleRead', () => {
       rationale: 'Machine-readable response',
     });
   });
+
+  // #35 AC4: the write-path `confidence` field stays on `memo read` output
+  // (only `memo search` drops it).
+  it('still includes the stored confidence field in human output (#35 AC4)', async () => {
+    mockQdrant.getById.mockResolvedValueOnce({
+      id: 'entry-321',
+      payload: {
+        repo: 'memo-cli',
+        rationale: 'Confidence stays on read',
+        confidence: 'high',
+      },
+    });
+
+    await handleRead({ id: 'entry-321' }, deps());
+
+    expect(stdoutData).toContain('confidence: high');
+  });
+
+  it('still includes the stored confidence field in --json output (#35 AC4)', async () => {
+    mockQdrant.getById.mockResolvedValueOnce({
+      id: 'entry-322',
+      payload: {
+        repo: 'memo-cli',
+        rationale: 'Confidence stays on read',
+        confidence: 'medium',
+      },
+    });
+
+    await handleRead({ id: 'entry-322', json: true }, deps());
+
+    const result = JSON.parse(stdoutData) as Record<string, unknown>;
+    expect(result['confidence']).toBe('medium');
+  });
 });

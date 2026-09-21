@@ -47,6 +47,45 @@ export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
 export const DEFAULT_TAG_BOOST_FACTOR = 0.05;
 
 /**
+ * Confidence tier band thresholds (issue #35's AC1/AC2). `low` has no
+ * explicit lower bound - it is whatever falls below `medium`.
+ */
+export interface ConfidenceThresholds {
+  exact: number;
+  high: number;
+  medium: number;
+}
+
+/**
+ * Default `confidence_thresholds` per AC1/AC6: `exact >= 0.88`,
+ * `high [0.75, 0.88)`, `medium [0.60, 0.75)`, `low < 0.60`.
+ */
+export const DEFAULT_CONFIDENCE_THRESHOLDS: ConfidenceThresholds = {
+  exact: 0.88,
+  high: 0.75,
+  medium: 0.6,
+};
+
+export type ConfidenceTier = 'exact' | 'high' | 'medium' | 'low';
+
+/**
+ * Maps a composite `final_score` to its confidence tier (AC1, AC6): each
+ * band boundary is inclusive on its lower edge (`>=`), so a score exactly
+ * equal to a threshold lands in that threshold's tier, not the one below
+ * it. Never throws - an out-of-range score (e.g. clamp underflow) simply
+ * falls through to `low`.
+ */
+export function computeConfidenceTier(
+  finalScore: number,
+  thresholds: ConfidenceThresholds = DEFAULT_CONFIDENCE_THRESHOLDS,
+): ConfidenceTier {
+  if (finalScore >= thresholds.exact) return 'exact';
+  if (finalScore >= thresholds.high) return 'high';
+  if (finalScore >= thresholds.medium) return 'medium';
+  return 'low';
+}
+
+/**
  * Fixed stopword list excluded from `total_query_terms` (AC3). Not
  * configurable - the story's binding scope is a fixed list only.
  */
@@ -274,6 +313,8 @@ export type RankedEntry<T extends RankableEntry = RankableEntry> = T & {
   recency_score: number;
   source_score: number;
   factors: ResolvedFactors;
+  /** Confidence tier derived from `final_score` (#35). Never stored. */
+  confidence_tier: ConfidenceTier;
 };
 
 function compareIds(a: string | number, b: string | number): number {
@@ -315,6 +356,11 @@ function compareRanked(a: RankedEntry, b: RankedEntry): number {
  * no `query` (the default) keeps every entry's `tag_boost` at its neutral
  * `0`, so existing callers that only pass the first four positional
  * arguments are unaffected.
+ *
+ * `confidenceThresholds` (#35) drives `computeConfidenceTier` for every
+ * candidate's `confidence_tier`, computed from the already-final
+ * `final_score` - it never feeds back into scoring or ordering (AC7), so
+ * passing a non-default value changes only the attached label.
  */
 export function rankResults<T extends RankableEntry>(
   entries: readonly T[],
@@ -323,6 +369,7 @@ export function rankResults<T extends RankableEntry>(
   now: number = Date.now(),
   query: string | null | undefined = '',
   tagBoostFactor: number = DEFAULT_TAG_BOOST_FACTOR,
+  confidenceThresholds: ConfidenceThresholds = DEFAULT_CONFIDENCE_THRESHOLDS,
 ): RankedEntry<T>[] {
   // Normalized once per invocation, not per candidate (#36 task 3.3).
   const queryTermsList = normalizeQueryTerms(query);
@@ -354,7 +401,8 @@ export function rankResults<T extends RankableEntry>(
       },
       weights,
     );
-    return { ...entry, final_score, recency_score, source_score, factors };
+    const confidence_tier = computeConfidenceTier(final_score, confidenceThresholds);
+    return { ...entry, final_score, recency_score, source_score, factors, confidence_tier };
   });
 
   return scored.sort(compareRanked);

@@ -3,9 +3,11 @@ import {
   computeSourceScore,
   computeCompositeScore,
   computeTagBoost,
+  computeConfidenceTier,
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
   DEFAULT_TAG_BOOST_FACTOR,
+  DEFAULT_CONFIDENCE_THRESHOLDS,
 } from '../../../src/lib/ranking';
 import type { RankableEntry } from '../../../src/lib/ranking';
 
@@ -494,5 +496,99 @@ describe('rankResults tag boost integration (#36)', () => {
       0.05,
     );
     expect(ranked[0]?.factors.tag_boost).toBe(0.05);
+  });
+});
+
+describe('computeConfidenceTier (#35)', () => {
+  it('returns "exact" at and above the exact threshold (AC1)', () => {
+    expect(computeConfidenceTier(0.95, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('exact');
+    expect(computeConfidenceTier(1, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('exact');
+  });
+
+  it('returns "high" in the [0.75, 0.88) band (AC1)', () => {
+    expect(computeConfidenceTier(0.8, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('high');
+  });
+
+  it('returns "medium" in the [0.60, 0.75) band (AC1)', () => {
+    expect(computeConfidenceTier(0.65, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('medium');
+  });
+
+  it('returns "low" below the medium threshold (AC1)', () => {
+    expect(computeConfidenceTier(0.1, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('low');
+    expect(computeConfidenceTier(0, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('low');
+  });
+
+  it('lands exactly on "exact" at score 0.88 (AC6)', () => {
+    expect(computeConfidenceTier(0.88, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('exact');
+  });
+
+  it('lands exactly on "high" at score 0.75 (AC6)', () => {
+    expect(computeConfidenceTier(0.75, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('high');
+  });
+
+  it('lands exactly on "medium" at score 0.60 (AC6)', () => {
+    expect(computeConfidenceTier(0.6, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('medium');
+  });
+
+  it('lands on "low" just below the medium threshold (AC6)', () => {
+    expect(computeConfidenceTier(0.5999, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('low');
+  });
+
+  it('supports custom thresholds', () => {
+    const thresholds = { exact: 0.95, high: 0.8, medium: 0.5 };
+    expect(computeConfidenceTier(0.9, thresholds)).toBe('high');
+    expect(computeConfidenceTier(0.96, thresholds)).toBe('exact');
+    expect(computeConfidenceTier(0.5, thresholds)).toBe('medium');
+    expect(computeConfidenceTier(0.49, thresholds)).toBe('low');
+  });
+
+  it('handles score 0 and score 1 at the default thresholds', () => {
+    expect(computeConfidenceTier(0, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('low');
+    expect(computeConfidenceTier(1, DEFAULT_CONFIDENCE_THRESHOLDS)).toBe('exact');
+  });
+
+  it('defaults to DEFAULT_CONFIDENCE_THRESHOLDS when omitted', () => {
+    expect(computeConfidenceTier(0.88)).toBe('exact');
+    expect(computeConfidenceTier(0.5999)).toBe('low');
+  });
+});
+
+describe('rankResults confidence tier integration (#35)', () => {
+  it('attaches confidence_tier to every ranked entry using the default thresholds', () => {
+    const entries: RankableEntry[] = [
+      { id: 'x', similarity: 1, source: 'agent', timestampUtc: isoAgeDays(0) },
+    ];
+    // final_score = 0.6*1 + 0.3*1 + 0.1*1 = 1.0 -> "exact".
+    const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW);
+    expect(ranked[0]?.confidence_tier).toBe('exact');
+  });
+
+  it('honors custom confidence thresholds passed through rankResults', () => {
+    const entries: RankableEntry[] = [{ id: 'x', similarity: 0.5, source: 'agent' }];
+    // final_score for similarity=0.5, recency=0 (no timestamp), source=1.0 (agent):
+    // 0.6*0.5 + 0.3*0 + 0.1*1.0 = 0.4
+    const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW, '', 0.05, {
+      exact: 0.9,
+      high: 0.6,
+      medium: 0.3,
+    });
+    expect(ranked[0]?.confidence_tier).toBe('medium');
+  });
+
+  it('does not change ordering or final_score based on confidence tiers (AC7)', () => {
+    const entries: RankableEntry[] = [
+      { id: 'a', similarity: 0.9, source: 'agent' },
+      { id: 'b', similarity: 0.3, source: 'agent' },
+    ];
+    const withDefaultThresholds = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW);
+    const withCustomThresholds = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW, '', 0.05, {
+      exact: 0.99,
+      high: 0.98,
+      medium: 0.97,
+    });
+    expect(withDefaultThresholds.map((r) => r.id)).toEqual(withCustomThresholds.map((r) => r.id));
+    expect(withDefaultThresholds.map((r) => r.final_score)).toEqual(
+      withCustomThresholds.map((r) => r.final_score),
+    );
   });
 });

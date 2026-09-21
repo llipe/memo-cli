@@ -181,22 +181,30 @@ memo setup validate    # check config validity (exit 0 = valid)
     "w_recency": 0.3,
     "w_source": 0.1,
     "recency_half_life_days": 365,
-    "tag_boost_factor": 0.05
+    "tag_boost_factor": 0.05,
+    "confidence_thresholds": {
+      "exact": 0.88,
+      "high": 0.75,
+      "medium": 0.6
+    }
   }
 }
 ```
 
-| Field                    | Default | Meaning                                                                                                                                                                                                                                                                           |
-| ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `w_similarity`           | `0.6`   | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                           |
-| `w_recency`              | `0.3`   | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                      |
-| `w_source`               | `0.1`   | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                         |
-| `recency_half_life_days` | `365`   | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection) |
-| `tag_boost_factor`       | `0.05`  | Additive boost for tag overlap between the query and a result's `tags` (issue #36): `tag_boost = matched_tags / total_query_terms * tag_boost_factor`, added to the base score before the `1.0` cap. `0` disables tag boosting entirely; must be a non-negative finite number     |
+| Field                    | Default                                    | Meaning                                                                                                                                                                                                                                                                           |
+| ------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `w_similarity`           | `0.6`                                      | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                           |
+| `w_recency`              | `0.3`                                      | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                      |
+| `w_source`               | `0.1`                                      | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                         |
+| `recency_half_life_days` | `365`                                      | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection) |
+| `tag_boost_factor`       | `0.05`                                     | Additive boost for tag overlap between the query and a result's `tags` (issue #36): `tag_boost = matched_tags / total_query_terms * tag_boost_factor`, added to the base score before the `1.0` cap. `0` disables tag boosting entirely; must be a non-negative finite number     |
+| `confidence_thresholds`  | `{ exact: 0.88, high: 0.75, medium: 0.6 }` | Band boundaries (issue #35) for the `confidence_tier` attached to every `memo search` result: `exact` at/above the `exact` threshold, `high` in `[high, exact)`, `medium` in `[medium, high)`, `low` below `medium`. Each threshold is a number in `[0, 1]`.                      |
 
 **Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` (or `tag_boost_factor`) is fine, since the untouched weights still sum to `1.0`.
 
 **Tag overlap boosting (#36):** matching is case-insensitive and whole-word. The query is normalized by splitting on whitespace, stripping leading/trailing punctuation from each term (keeping internal hyphens, so a kebab-case tag like `rate-limiting` only matches the whole query token `rate-limiting`, not the bare word `rate`), and excluding a fixed stopword list (`a, the, is, for, of, in, to, with`) from `total_query_terms`. A query with only stopwords, or no terms at all, yields `tag_boost: 0` and never divides by zero.
+
+**Confidence threshold ordering (#35):** `confidence_thresholds` must be strictly descending (`exact > high > medium`); equal values are rejected too, since a zero-width band would make that tier unreachable. Like the weight-sum rule, an invalid ordering — including a partial override that breaks it — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`), naming the offending `ranking.confidence_thresholds` path.
 
 `final_score`, `recency_score`, `source_score`, and `tag_boost` are always present alongside the original `similarity` on every `--json` result (backward compatible — `similarity` keeps its original raw meaning). Human-mode output is unaffected by tag boosting — it only shifts `final_score` ordering and percentage.
 
@@ -309,19 +317,19 @@ memo search "event publishing" \
 
 #### Reading search results
 
-Results are ordered by a composite `final_score` — not raw similarity (see [Ranking configuration](#ranking-configuration-optional) above). Human mode output shows the `final_score` percentage in the same position raw similarity used to occupy:
+Results are ordered by a composite `final_score` — not raw similarity (see [Ranking configuration](#ranking-configuration-optional) above). Human mode output shows the `final_score` percentage in the same position raw similarity used to occupy, prefixed with a `[tier]` confidence-tier label (issue #35; `exact`/`high` render green, `medium` yellow, `low` gray — the text label is always present regardless of color support):
 
 ```
-  1.  (94%) Adopted JWT with RS256 for service-to-service auth...
+  [exact] my-service  94%  Adopted JWT with RS256 for service-to-service auth...
       repo: my-service  tags: auth, jwt, security  type: decision
-      source: agent  confidence: high  2026-04-10T15:30:00Z
+      source: agent  2026-04-10T15:30:00Z
 
-  2.  (87%) Auth service exposes /validate endpoint for token...
+  [high] auth-service  87%  Auth service exposes /validate endpoint for token...
       repo: auth-service  tags: auth, api, validation  type: integration_point
-      source: agent  confidence: high  2026-04-09T10:00:00Z
+      source: agent  2026-04-09T10:00:00Z
 ```
 
-JSON mode (`--json`) returns the full machine-readable payload, including all five score components on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by):
+JSON mode (`--json`) returns the full machine-readable payload, including all five score components plus `confidence_tier` on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by):
 
 ```json
 {
@@ -340,6 +348,7 @@ JSON mode (`--json`) returns the full machine-readable payload, including all fi
       "recency_score": 0.71,
       "source_score": 1.0,
       "tag_boost": 0.025,
+      "confidence_tier": "high",
       ...
     }
   ],
@@ -348,6 +357,8 @@ JSON mode (`--json`) returns the full machine-readable payload, including all fi
 ```
 
 > **Note for existing `--json` consumers:** if you previously sorted or filtered on `results[].similarity`, that field's raw meaning is unchanged, but the array's own order now follows `final_score`, not `similarity` — switch to `final_score` if you rely on result order.
+
+> **Breaking change (#35, the one output removal in Phase 1):** the static `confidence` field (`high`/`medium`/`low`, inherited from the entry's write-time `source`) is **removed from `memo search` output only** — both `--json` and human mode. It is replaced by `confidence_tier`, a per-query signal computed from `final_score` (`exact ≥ 0.88`, `high` `[0.75, 0.88)`, `medium` `[0.60, 0.75)`, `low` below `0.60`; thresholds are configurable under `ranking.confidence_thresholds` above). `confidence` is unaffected everywhere else — it remains on `memo read`, `memo list`, and `memo write` output, and in the stored payload. If your integration reads `confidence` from `memo search --json`, switch to `confidence_tier`.
 
 ---
 

@@ -280,4 +280,43 @@ describe('handleSearch', () => {
       expect(stdoutData).not.toContain('tag_boost');
     });
   });
+
+  describe('confidence tiers (#35)', () => {
+    const confidenceDeps: SearchDeps = {
+      loadCfg: jest.fn().mockResolvedValue(mockConfig),
+      createRepo: () => mockQdrant as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      createEmbeddings: () => mockEmbeddings as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+
+    beforeEach(() => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'has-confidence',
+          score: 1,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'Stored confidence should not leak into search',
+            source: 'agent',
+            confidence: 'high',
+            timestamp_utc: new Date().toISOString(),
+          },
+        },
+      ]);
+    });
+
+    it('exposes confidence_tier and drops confidence on every --json result (AC3, AC4)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, confidenceDeps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      expect(parsed.results).toHaveLength(1);
+      const result = parsed.results[0];
+      expect(typeof result?.['confidence_tier']).toBe('string');
+      expect(result).not.toHaveProperty('confidence');
+    });
+
+    it('renders the [tier] prefix and never the raw confidence value in human output (AC5)', async () => {
+      await handleSearch({ query: 'q', limit: '5' }, confidenceDeps);
+      expect(stdoutData).toContain('[exact]');
+      expect(stdoutData).not.toContain('confidence: high');
+    });
+  });
 });

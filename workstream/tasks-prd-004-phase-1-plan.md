@@ -141,29 +141,29 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
 - [ ] 4.0 Implement Story S1-04: Dynamic confidence tiers — [#35](https://github.com/llipe/memo-cli/issues/35)
 
   > Note: this is the only output removal in Phase 1. The payload `confidence` field stays in storage, `memo write`, and `memo read`; only `memo search` output drops it.
-  - [ ] 4.1 Add `confidence_thresholds` (`exact` 0.88, `high` 0.75, `medium` 0.60) to `RankingConfig` with a strict descending-order `superRefine`
-  - [ ] 4.2 Implement `computeConfidenceTier(finalScore, thresholds)` in `src/lib/ranking.ts`
-  - [ ] 4.3 Attach `confidence_tier` to each result in `rankResults`
-  - [ ] 4.4 Remove `confidence` from the search result projection in `src/commands/search.ts`
-  - [ ] 4.5 Extend `memo setup validate` to reject invalid threshold ordering with the offending path
-  - [ ] 4.6 Add the `[tier]` prefix in `src/lib/output.ts` with the semantic color policy and an always-present text label
-  - [ ] 4.7 Extend `tests/unit/lib/ranking.test.ts`: each band, all three exact boundaries, custom thresholds, score 0 and 1
-  - [ ] 4.8 Extend `tests/unit/lib/config.test.ts` and `setup.test.ts`: valid, equal, and inverted threshold ordering
-  - [ ] 4.9 Update `tests/unit/commands/search.test.ts` to assert `confidence_tier` present and `confidence` absent
-  - [ ] 4.10 Add `tests/unit/commands/read.test.ts` assertion that `confidence` is still present in `memo read`
-  - [ ] 4.11 Extend `tests/unit/lib/output.test.ts` for the `[tier]` prefix
-  - [ ] 4.12 Edge cases: missing thresholds object (defaults), partial thresholds, `NO_COLOR` set, non-TTY output
-  - [ ] 4.13 Verify AC1, AC6: tier per band and at every boundary exactly
-  - [ ] 4.14 Verify AC2: invalid ordering fails `memo setup validate` and `loadConfig`
-  - [ ] 4.15 Verify AC3–AC5: `confidence_tier` in JSON, `confidence` removed from search only, `[tier]` in human output
-  - [ ] 4.16 Verify AC7: replay hit rate ≥ baseline and unchanged (tiers annotate, they do not reorder)
-  - [ ] 4.17 Manual: `memo search "auth" --limit 5`; `memo setup validate` with `exact: 0.5, high: 0.8` exits 1
-  - [ ] 4.18 Document the tier contract and the `confidence` removal in `README.md`; update `docs/system-overview.md`
-  - [ ] 4.19 Map every AC to its test in the PR body; call out the output removal explicitly
-  - [ ] 4.20 Migration: record the not-required opt-out; note the consumer impact of the `confidence` removal
-  - [ ] 4.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 4.22 Run `verifier` audit; route drift findings to `product-engineer`
-  - [ ] 4.23 Open PR against `main`, link `Closes #35`, obtain user approval, merge
+  - [x] 4.1 Add `confidence_thresholds` (`exact` 0.88, `high` 0.75, `medium` 0.60) to `RankingConfig` with a strict descending-order `superRefine`
+  - [x] 4.2 Implement `computeConfidenceTier(finalScore, thresholds)` in `src/lib/ranking.ts`
+  - [x] 4.3 Attach `confidence_tier` to each result in `rankResults`
+  - [x] 4.4 Remove `confidence` from the search result projection in `src/commands/search.ts`
+  - [x] 4.5 Extend `memo setup validate` to reject invalid threshold ordering with the offending path
+  - [x] 4.6 Add the `[tier]` prefix in `src/lib/output.ts` with the semantic color policy and an always-present text label
+  - [x] 4.7 Extend `tests/unit/lib/ranking.test.ts`: each band, all three exact boundaries, custom thresholds, score 0 and 1
+  - [x] 4.8 Extend `tests/unit/lib/config.test.ts` and `setup.test.ts`: valid, equal, and inverted threshold ordering
+  - [x] 4.9 Update `tests/unit/commands/search.test.ts` to assert `confidence_tier` present and `confidence` absent
+  - [x] 4.10 Add `tests/unit/commands/read.test.ts` assertion that `confidence` is still present in `memo read`
+  - [x] 4.11 Extend `tests/unit/lib/output.test.ts` for the `[tier]` prefix
+  - [x] 4.12 Edge cases: missing thresholds object (defaults), partial thresholds, `NO_COLOR` set, non-TTY output
+  - [x] 4.13 Verify AC1, AC6: tier per band and at every boundary exactly
+  - [x] 4.14 Verify AC2: invalid ordering fails `memo setup validate` and `loadConfig`
+  - [x] 4.15 Verify AC3–AC5: `confidence_tier` in JSON, `confidence` removed from search only, `[tier]` in human output
+  - [x] 4.16 Verify AC7: replay hit rate ≥ baseline and unchanged (tiers annotate, they do not reorder) — replay unmodified, still passes at the recorded 96.4% floor
+  - [x] 4.17 Manual: `memo search "auth" --limit 5`; `memo setup validate` with `exact: 0.5, high: 0.8` exits 1 — verified via integration-test equivalents in `tests/integration/commands/setup.test.ts`'s `confidence_thresholds block`; live CLI run documented in the PR body's Manual validation section
+  - [x] 4.18 Document the tier contract and the `confidence` removal in `README.md`; update `docs/system-overview.md`
+  - [x] 4.19 Map every AC to its test in the PR body; call out the output removal explicitly
+  - [x] 4.20 Migration: record the not-required opt-out; note the consumer impact of the `confidence` removal
+  - [x] 4.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — lint/typecheck/audit green; `format:check` clean on every file this story touches (repo-wide fails on pre-existing drift, same precedent as tasks 2.26/3.16); `pnpm test`: **413/413 pass**
+  - [ ] 4.22 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 4.23 Open PR against `main`, link `Closes #35`, obtain user approval, merge — PR [#69](https://github.com/llipe/memo-cli/pull/69) opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 5.0 Implement Story S1-05: Staleness detection — [#38](https://github.com/llipe/memo-cli/issues/38)
 

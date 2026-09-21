@@ -24,7 +24,32 @@ export const DEFAULT_RECENCY_HALF_LIFE_DAYS = 365;
 // Default `tag_boost_factor` per issue #36's AC1: `0.05`. `0` disables tag
 // boosting entirely (AC2) - see src/lib/ranking.ts's DEFAULT_TAG_BOOST_FACTOR.
 export const DEFAULT_TAG_BOOST_FACTOR = 0.05;
+// Default `confidence_thresholds` per issue #35's AC1/AC6 - see
+// src/lib/ranking.ts's DEFAULT_CONFIDENCE_THRESHOLDS.
+export const DEFAULT_CONFIDENCE_THRESHOLDS = {
+  exact: 0.88,
+  high: 0.75,
+  medium: 0.6,
+} as const;
 const WEIGHT_SUM_TOLERANCE = 0.001;
+
+// #35 AC2: `exact > high > medium` must hold strictly - equal values are
+// rejected too, since a zero-width band would make that tier unreachable.
+const ConfidenceThresholdsSchema = z
+  .object({
+    exact: z.number().finite().min(0).max(1).default(DEFAULT_CONFIDENCE_THRESHOLDS.exact),
+    high: z.number().finite().min(0).max(1).default(DEFAULT_CONFIDENCE_THRESHOLDS.high),
+    medium: z.number().finite().min(0).max(1).default(DEFAULT_CONFIDENCE_THRESHOLDS.medium),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (!(data.exact > data.high && data.high > data.medium)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `ranking.confidence_thresholds must be strictly descending (exact > high > medium); actual: exact=${String(data.exact)}, high=${String(data.high)}, medium=${String(data.medium)}`,
+      });
+    }
+  });
 
 const RankingConfigSchema = z
   .object({
@@ -36,6 +61,8 @@ const RankingConfigSchema = z
     // intentional "disable" value, so this is `min(0)` (non-negative), not
     // `positive()` like recency_half_life_days.
     tag_boost_factor: z.number().finite().min(0).default(DEFAULT_TAG_BOOST_FACTOR),
+    // #35 AC1/AC2: confidence tier band boundaries.
+    confidence_thresholds: ConfidenceThresholdsSchema.default({}),
   })
   .passthrough()
   .superRefine((data, ctx) => {
