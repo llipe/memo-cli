@@ -21,13 +21,13 @@
 | 7        | S1-07    | #63     | ✅ Merged   | #72 | issue/63-query-id-explain            |
 | 8        | S1-08    | #64     | ✅ Merged   | #73 | issue/64-phase-1-exit-gate           |
 
-**ALL 8 STORIES MERGED.** Proceeding to Phase 5 (consolidated PR to main).
+**ALL 8 STORIES MERGED. Consolidated PR #74 opened, awaiting user review/approval/merge.**
 
 ## Current Position
 
-- Next: Phase 5 — PRD-level rollup verifier audit, consolidated PR to main, user approval/merge
-- Last merged PR: #73
-- Integration branch HEAD: fa5b98b
+- Next: USER ACTION — review, approve, and merge consolidated PR #74 into `main`
+- Consolidated PR: https://github.com/llipe/memo-cli/pull/74
+- Integration branch HEAD: 5ddc351 (CI green, mergeable, CLEAN)
 
 ## Decisions Log
 
@@ -75,3 +75,8 @@
 - S1-08: sub-task 8.25 (tag/publish v1.2.0) deliberately NOT performed per planner's explicit instruction — confirmed by both gates (unchanged package.json version, empty diff). Release is a separate decision after the consolidated PR is reviewed.
 - S1-08: verifier treated this as functionally the Phase 1 rollup audit too (posted summary to both PR #73 and issue #64). High fidelity, Minor-only (self-disclosed) drift, no Critical.
 - Not yet addressed, tracked for follow-up beyond this run: the 1,000-entry-scale latency measurement deferred from S1-05's AC8 was not revisited in S1-08 (developer's scope was gate/docs/coverage, not latency); the S1-07 test-rigor gap (sorted-array key-order assertion) also remains unfixed. Neither blocks Phase 1 completion.
+- Phase 5: PRD-level qa-engineer coverage rollup PASS (Phase 1-scoped files: 92.09%/77.55%/94.73%/94.40% stmts/branches/funcs/lines, all above floor). New finding: scripts/eval-relevance.ts has a real branch-coverage gap (55.55%) in error-handling paths — not CI-gated (Layer 3 manual tool), least-proven code in the phase, tracked as a follow-up.
+- Phase 5: PRD-level verifier rollup audit — High fidelity, no Critical findings. Independently confirmed all 7 features compose correctly on the same result (live --explain query showed tag_boost+lexical_boost+staleness+confidence_tier+query_id together, no interaction bug). Independently reproduced 96.4% eval number live rather than trusting S1-08's report (note: required explicitly setting MEMO_COLLECTION=memo_eval, .env doesn't set it by default — an env gotcha for future runs, not a defect). Posted to issue #64.
+- Phase 5: technical-writer drift/stale-doc validation — docs_drift_status: clean. No fixes needed; all docs (README, data-model, system-overview, technical-guidelines, TESTING.md, PRD changelog) verified current against the full 8-story merged surface.
+- Phase 5: consolidated PR #74 opened (main <- integration/prd-004-phase-1-trustworthy-retrieval). CI green (2 runs, both SUCCESS), mergeable, CLEAN. Sub-task 8.25 (tag/publish v1.2.0) explicitly excluded from this PR — separate decision after merge, per planner's standing instruction to developer.
+- Local working branch confirmed as the integration branch (`git branch --show-current`) before this checkpoint, per planner's final-state invariant.
