@@ -2,8 +2,10 @@ import {
   computeRecencyScore,
   computeSourceScore,
   computeCompositeScore,
+  computeTagBoost,
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
+  DEFAULT_TAG_BOOST_FACTOR,
 } from '../../../src/lib/ranking';
 import type { RankableEntry } from '../../../src/lib/ranking';
 
@@ -341,5 +343,156 @@ describe('rankResults', () => {
     const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW);
     expect(ranked).toHaveLength(2);
     expect(ranked[0]?.final_score).toBe(ranked[1]?.final_score);
+  });
+});
+
+describe('computeTagBoost (#36)', () => {
+  it('computes a single exact tag match (AC1)', () => {
+    // total_query_terms: rate, limiting, strategy (3); matched_tags: 1
+    const boost = computeTagBoost('rate limiting strategy', ['rate'], 0.05);
+    expect(boost).toBeCloseTo((1 / 3) * 0.05, 9);
+  });
+
+  it('computes multiple tag matches (AC1)', () => {
+    const boost = computeTagBoost('rate limiting strategy', ['rate', 'limiting'], 0.05);
+    expect(boost).toBeCloseTo((2 / 3) * 0.05, 9);
+  });
+
+  it('returns 0 when no tag matches any query term', () => {
+    expect(computeTagBoost('rate limiting strategy', ['unrelated'], 0.05)).toBe(0);
+  });
+
+  it('returns 0 and never divides by zero for a stopword-only query (AC6)', () => {
+    expect(computeTagBoost('the a is', ['rate'], 0.05)).toBe(0);
+  });
+
+  it('matches case-insensitively (AC3)', () => {
+    const boost = computeTagBoost('Rate Limiting', ['RATE'], 0.05);
+    expect(boost).toBeCloseTo((1 / 2) * 0.05, 9);
+  });
+
+  it('strips surrounding punctuation before matching (AC3)', () => {
+    const boost = computeTagBoost('rate, limiting!', ['rate', 'limiting'], 0.05);
+    expect(boost).toBeCloseTo(0.05, 9);
+  });
+
+  it('matches a hyphenated tag only on its whole token, not the bare prefix', () => {
+    // "rate-limiting" is a single query term matching the whole kebab tag.
+    const withHyphen = computeTagBoost('rate-limiting strategy', ['rate-limiting'], 0.05);
+    expect(withHyphen).toBeCloseTo((1 / 2) * 0.05, 9);
+
+    // A bare "rate" tag must NOT match the "rate-limiting" query token.
+    const bareTagNoMatch = computeTagBoost('rate-limiting strategy', ['rate'], 0.05);
+    expect(bareTagNoMatch).toBe(0);
+  });
+
+  it('does not match a substring of a query term (whole-word matching, AC3)', () => {
+    expect(computeTagBoost('ratelimiting strategy', ['rate'], 0.05)).toBe(0);
+  });
+
+  it('excludes stopwords from total_query_terms (AC3)', () => {
+    // "for", "the" are stopwords; only "rate" and "limiting" count.
+    const boost = computeTagBoost('for the rate limiting', ['rate'], 0.05);
+    expect(boost).toBeCloseTo((1 / 2) * 0.05, 9);
+  });
+
+  it('returns 0 when boost_factor is 0, disabling boosting entirely (AC2)', () => {
+    expect(computeTagBoost('rate limiting', ['rate'], 0)).toBe(0);
+  });
+
+  it('returns exactly the factor when every term matches (ratio caps at 1)', () => {
+    expect(computeTagBoost('rate limiting', ['rate', 'limiting'], 0.05)).toBeCloseTo(0.05, 9);
+  });
+
+  it('returns 0 for an empty tags array', () => {
+    expect(computeTagBoost('rate limiting', [], 0.05)).toBe(0);
+  });
+
+  it('returns 0 for an empty or whitespace-only query', () => {
+    expect(computeTagBoost('', ['rate'], 0.05)).toBe(0);
+    expect(computeTagBoost('   ', ['rate'], 0.05)).toBe(0);
+  });
+
+  it('defaults boost_factor to DEFAULT_TAG_BOOST_FACTOR (0.05) when omitted', () => {
+    expect(computeTagBoost('rate limiting', ['rate', 'limiting'])).toBeCloseTo(
+      DEFAULT_TAG_BOOST_FACTOR,
+      9,
+    );
+  });
+
+  it('handles a single-term query (edge case)', () => {
+    expect(computeTagBoost('rate', ['rate'], 0.05)).toBeCloseTo(0.05, 9);
+  });
+
+  it('handles a 50-term query without error', () => {
+    const query = Array.from({ length: 49 }, (_, i) => `term${String(i)}`).join(' ') + ' rate';
+    expect(computeTagBoost(query, ['rate'], 0.05)).toBeCloseTo((1 / 50) * 0.05, 9);
+  });
+
+  it('handles the 5-tag maximum', () => {
+    const boost = computeTagBoost(
+      'rate limiting strategy for retries',
+      ['rate', 'limiting', 'strategy', 'retries', 'unmatched'],
+      0.05,
+    );
+    // total_query_terms excludes "for" (stopword): rate, limiting, strategy, retries = 4
+    // matched tags: rate, limiting, strategy, retries = 4
+    expect(boost).toBeCloseTo((4 / 4) * 0.05, 9);
+  });
+
+  it('handles unicode characters in the query', () => {
+    const boost = computeTagBoost('café résumé', ['café'], 0.05);
+    expect(boost).toBeCloseTo((1 / 2) * 0.05, 9);
+  });
+});
+
+describe('rankResults tag boost integration (#36)', () => {
+  it('attaches tag_boost to the resolved factor bag and composes it into final_score (AC1, AC5)', () => {
+    const entries: RankableEntry[] = [
+      { id: 'x', similarity: 0.5, source: 'agent', tags: ['rate', 'limiting'] },
+    ];
+    const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW, 'rate limiting', 0.05);
+    expect(ranked[0]?.factors.tag_boost).toBeCloseTo(0.05, 9);
+  });
+
+  it('ranks a tag-matching entry above an equal-similarity non-matching one', () => {
+    const entries: RankableEntry[] = [
+      { id: 'no-match', similarity: 0.6, source: 'agent', tags: ['unrelated'] },
+      { id: 'match', similarity: 0.6, source: 'agent', tags: ['rate', 'limiting'] },
+    ];
+    const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW, 'rate limiting', 0.05);
+    expect(ranked[0]?.id).toBe('match');
+    expect(ranked[0]?.final_score).toBeGreaterThan(ranked[1]?.final_score ?? 0);
+  });
+
+  it('defaults tag_boost to 0 when no query is supplied (backward compatible)', () => {
+    const entries: RankableEntry[] = [
+      { id: 'x', similarity: 0.5, source: 'agent', tags: ['rate'] },
+    ];
+    const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW);
+    expect(ranked[0]?.factors.tag_boost).toBe(0);
+  });
+
+  it('caps the boosted score at 1.0 even with a large tag boost (AC5)', () => {
+    const entries: RankableEntry[] = [
+      { id: 'x', similarity: 1, source: 'agent', tags: ['rate', 'limiting'] },
+    ];
+    const ranked = rankResults(entries, DEFAULT_RANKING_WEIGHTS, 90, NOW, 'rate limiting', 1);
+    expect(ranked[0]?.final_score).toBe(1);
+  });
+
+  it('an explicit entry.tagBoost still takes precedence over query-derived computation (backward compat)', () => {
+    const entries = [
+      { id: 'x', similarity: 0.5, source: 'agent', tags: ['unrelated'], tagBoost: 0.05 },
+    ];
+    const ranked = rankResults(
+      entries,
+      DEFAULT_RANKING_WEIGHTS,
+      90,
+      NOW,
+      'no matching terms',
+      0.05,
+    );
+    expect(ranked[0]?.factors.tag_boost).toBe(0.05);
   });
 });

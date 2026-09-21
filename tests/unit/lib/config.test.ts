@@ -243,6 +243,7 @@ describe('MemoConfigSchema', () => {
           w_recency: 0.3,
           w_source: 0.1,
           recency_half_life_days: 365,
+          tag_boost_factor: 0.05,
         });
       }
     });
@@ -269,7 +270,13 @@ describe('MemoConfigSchema', () => {
     it('accepts a fully specified valid ranking block (AC8)', () => {
       const result = MemoConfigSchema.safeParse({
         ...VALID_BASE,
-        ranking: { w_similarity: 0.5, w_recency: 0.4, w_source: 0.1, recency_half_life_days: 30 },
+        ranking: {
+          w_similarity: 0.5,
+          w_recency: 0.4,
+          w_source: 0.1,
+          recency_half_life_days: 30,
+          tag_boost_factor: 0.1,
+        },
       });
       expect(result.success).toBe(true);
       if (result.success) {
@@ -278,6 +285,7 @@ describe('MemoConfigSchema', () => {
           w_recency: 0.4,
           w_source: 0.1,
           recency_half_life_days: 30,
+          tag_boost_factor: 0.1,
         });
       }
     });
@@ -307,6 +315,7 @@ describe('MemoConfigSchema', () => {
           w_recency: 0.3,
           w_source: 0.1,
           recency_half_life_days: 30,
+          tag_boost_factor: 0.05,
         });
       }
     });
@@ -368,6 +377,61 @@ describe('MemoConfigSchema', () => {
       const result = MemoConfigSchema.safeParse({
         ...VALID_BASE,
         ranking: { recency_half_life_days: Infinity },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('resolves tag_boost_factor to its 0.05 default when omitted (#36 AC1)', () => {
+      const result = MemoConfigSchema.safeParse(VALID_BASE);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['tag_boost_factor']).toBe(0.05);
+      }
+    });
+
+    it('accepts tag_boost_factor: 0 to disable boosting entirely (#36 AC2)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: 0 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['tag_boost_factor']).toBe(0);
+      }
+    });
+
+    it('accepts a custom tag_boost_factor without disturbing the weight-sum check', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: 0.1 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['tag_boost_factor']).toBe(0.1);
+        expect(result.data.ranking.w_similarity).toBe(0.6);
+      }
+    });
+
+    it('rejects a negative tag_boost_factor', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: -0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a non-finite tag_boost_factor', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: Infinity },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a string in place of a numeric tag_boost_factor, without coercion', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { tag_boost_factor: '0.05' },
       });
       expect(result.success).toBe(false);
     });

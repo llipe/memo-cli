@@ -220,4 +220,64 @@ describe('handleSearch', () => {
       expect(parsed.count).toBe(1);
     });
   });
+
+  describe('tag overlap boosting (#36)', () => {
+    const boostDeps: SearchDeps = {
+      loadCfg: jest.fn().mockResolvedValue(mockConfig),
+      createRepo: () => mockQdrant as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      createEmbeddings: () => mockEmbeddings as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+
+    beforeEach(() => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'no-tag-match',
+          score: 0.7,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'Unrelated entry',
+            source: 'agent',
+            tags: ['unrelated'],
+            timestamp_utc: new Date().toISOString(),
+          },
+        },
+        {
+          id: 'tag-match',
+          score: 0.7,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'Rate limiting strategy',
+            source: 'agent',
+            tags: ['rate', 'limiting'],
+            timestamp_utc: new Date().toISOString(),
+          },
+        },
+      ]);
+    });
+
+    it('exposes tag_boost on every --json result (AC4)', async () => {
+      await handleSearch({ query: 'rate limiting strategy', limit: '5', json: true }, boostDeps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      expect(parsed.results).toHaveLength(2);
+      for (const result of parsed.results) {
+        expect(typeof result['tag_boost']).toBe('number');
+      }
+    });
+
+    it('ranks a tag-matching entry above an equal-similarity non-matching one', async () => {
+      await handleSearch({ query: 'rate limiting strategy', limit: '5', json: true }, boostDeps);
+      const parsed = JSON.parse(stdoutData) as {
+        results: { id: string; tag_boost: number }[];
+      };
+      expect(parsed.results[0]?.id).toBe('tag-match');
+      expect(parsed.results[0]?.tag_boost).toBeGreaterThan(0);
+      expect(parsed.results[1]?.tag_boost).toBe(0);
+    });
+
+    it('does not change human-mode output format (AC4)', async () => {
+      await handleSearch({ query: 'rate limiting strategy', limit: '5' }, boostDeps);
+      expect(stdoutData).toContain('Rate limiting strategy');
+      expect(stdoutData).not.toContain('tag_boost');
+    });
+  });
 });

@@ -12,7 +12,7 @@
 | ---- | ----- | -------------------------------------------------- | --------------------------------------------------------------------- |
 | 1.0  | S1-01 | [#61](https://github.com/llipe/memo-cli/issues/61) | In review (PR [#66](https://github.com/llipe/memo-cli/pull/66) draft) |
 | 2.0  | S1-02 | [#34](https://github.com/llipe/memo-cli/issues/34) | In review (PR [#67](https://github.com/llipe/memo-cli/pull/67) draft) |
-| 3.0  | S1-03 | [#36](https://github.com/llipe/memo-cli/issues/36) | Open                                                                  |
+| 3.0  | S1-03 | [#36](https://github.com/llipe/memo-cli/issues/36) | In review (PR [#68](https://github.com/llipe/memo-cli/pull/68) draft) |
 | 4.0  | S1-04 | [#35](https://github.com/llipe/memo-cli/issues/35) | Open                                                                  |
 | 5.0  | S1-05 | [#38](https://github.com/llipe/memo-cli/issues/38) | Open                                                                  |
 | 6.0  | S1-06 | [#62](https://github.com/llipe/memo-cli/issues/62) | Open                                                                  |
@@ -119,24 +119,24 @@ Phase 1 writes **no payload data**. Migration artifacts are **not required**; th
 - [ ] 3.0 Implement Story S1-03: Tag overlap boosting — [#36](https://github.com/llipe/memo-cli/issues/36)
 
   > Note: `tag_boost` is one of two additive boosts; `lexical_boost` (task 6.0) is the other. Both apply before the 1.0 cap.
-  - [ ] 3.1 Add `tag_boost_factor` (default `0.05`, `0` disables) to `RankingConfig`
-  - [ ] 3.2 Implement `computeTagBoost(query, tags, factor)` in `src/lib/ranking.ts` with the fixed stopword list (`a, the, is, for, of, in, to, with`)
-  - [ ] 3.3 Normalize the query once per invocation, not per candidate
-  - [ ] 3.4 Apply the boost in `rankResults` as `min(1, base + tag_boost)`, composing with a sibling boost slot
-  - [ ] 3.5 Pass the raw query string into `rankResults` from `src/commands/search.ts`; attach `tag_boost` to every result
-  - [ ] 3.6 Extend `tests/unit/lib/ranking.test.ts`: single match, multiple, none, stopword-only query, mixed case, punctuation, hyphenated tag, factor 0, cap at 1.0, empty tags
-  - [ ] 3.7 Extend `tests/unit/commands/search.test.ts`: `tag_boost` present on results; tag-matching entry outranks an equal-similarity non-matching one
-  - [ ] 3.8 Edge cases: one-term query, 50-term query, 5-tag maximum, unicode in query
-  - [ ] 3.9 Verify AC1–AC3: formula, disable at 0, whole-word and case-insensitive matching with stopwords excluded
-  - [ ] 3.10 Verify AC4–AC6: `tag_boost` in JSON, human output unchanged, cap respected, no division by zero
-  - [ ] 3.11 Verify AC7: replay hit rate ≥ baseline; numbers in the PR body
-  - [ ] 3.12 Manual: `memo search "rate limiting strategy" --json | jq '.results[].tag_boost'`
-  - [ ] 3.13 Document `tag_boost_factor` in `README.md`
-  - [ ] 3.14 Map every AC to its test in the PR body
-  - [ ] 3.15 Migration: record the not-required opt-out in the PR body
-  - [ ] 3.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 3.17 Run `verifier` audit; route drift findings to `product-engineer`
-  - [ ] 3.18 Open PR against `main`, link `Closes #36`, obtain user approval, merge
+  - [x] 3.1 Add `tag_boost_factor` (default `0.05`, `0` disables) to `RankingConfig`
+  - [x] 3.2 Implement `computeTagBoost(query, tags, factor)` in `src/lib/ranking.ts` with the fixed stopword list (`a, the, is, for, of, in, to, with`)
+  - [x] 3.3 Normalize the query once per invocation, not per candidate
+  - [x] 3.4 Apply the boost in `rankResults` as `min(1, base + tag_boost)`, composing with a sibling boost slot
+  - [x] 3.5 Pass the raw query string into `rankResults` from `src/commands/search.ts`; attach `tag_boost` to every result
+  - [x] 3.6 Extend `tests/unit/lib/ranking.test.ts`: single match, multiple, none, stopword-only query, mixed case, punctuation, hyphenated tag, factor 0, cap at 1.0, empty tags
+  - [x] 3.7 Extend `tests/unit/commands/search.test.ts`: `tag_boost` present on results; tag-matching entry outranks an equal-similarity non-matching one
+  - [x] 3.8 Edge cases: one-term query, 50-term query, 5-tag maximum, unicode in query
+  - [x] 3.9 Verify AC1–AC3: formula, disable at 0, whole-word and case-insensitive matching with stopwords excluded
+  - [x] 3.10 Verify AC4–AC6: `tag_boost` in JSON, human output unchanged, cap respected, no division by zero
+  - [x] 3.11 Verify AC7: replay hit rate ≥ baseline; numbers in the PR body — **96.4% before, 96.4% after** (tag_boost is neutral on this fixture set at the default factor; see PR body for the before/after breakdown)
+  - [x] 3.12 Manual: `memo search "rate limiting strategy" --json | jq '.results[].tag_boost'` — ran live against Qdrant Cloud, field present (`0` for this repo's current entries, no tag overlap)
+  - [x] 3.13 Document `tag_boost_factor` in `README.md`
+  - [x] 3.14 Map every AC to its test in the PR body
+  - [x] 3.15 Migration: record the not-required opt-out in the PR body
+  - [x] 3.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — lint/typecheck/audit green; `format:check` clean on every file this story touches (repo-wide fails on pre-existing drift, same precedent as task 2.26); `pnpm test`: **379/379 pass**
+  - [ ] 3.17 Run `verifier` audit; route drift findings to `product-engineer` — **not run**: `developer` has no `Task` tool in this delegation context; caller (`planner`) owns invoking `verifier` directly per the operating contract
+  - [ ] 3.18 Open PR against `main`, link `Closes #36`, obtain user approval, merge — PR [#68](https://github.com/llipe/memo-cli/pull/68) opened as **draft** against `integration/prd-004-phase-1-trustworthy-retrieval` (base-branch override per orchestrated-run instructions), not `main`; not yet merged
 
 - [ ] 4.0 Implement Story S1-04: Dynamic confidence tiers — [#35](https://github.com/llipe/memo-cli/issues/35)
 

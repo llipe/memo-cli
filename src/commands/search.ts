@@ -10,8 +10,9 @@ import {
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
   DEFAULT_RECENCY_HALF_LIFE_DAYS,
+  DEFAULT_TAG_BOOST_FACTOR,
 } from '../lib/ranking.js';
-import type { RankableEntry } from '../lib/ranking.js';
+import type { RankableEntry, ResolvedFactors } from '../lib/ranking.js';
 import type { MemoConfig } from '../types/config.js';
 import type { SearchResult } from '../lib/qdrant.js';
 
@@ -114,17 +115,21 @@ type RankedSearchResult = SearchRankInput & {
   final_score: number;
   recency_score: number;
   source_score: number;
+  factors: ResolvedFactors;
 };
 
 function toRankableEntry(result: SearchResult): SearchRankInput {
   const payload = result.payload;
   const timestampUtc =
     typeof payload?.['timestamp_utc'] === 'string' ? payload['timestamp_utc'] : undefined;
+  const rawTags = payload?.['tags'];
+  const tags = Array.isArray(rawTags) ? rawTags : undefined;
   return {
     id: result.id,
     similarity: result.score,
     timestampUtc,
     source: payload?.['source'],
+    tags,
     payload,
   };
 }
@@ -137,6 +142,11 @@ function toJsonResult(result: RankedSearchResult): Record<string, unknown> {
     final_score: result.final_score,
     recency_score: result.recency_score,
     source_score: result.source_score,
+    // #36 AC4: tag_boost is surfaced explicitly (not the full factor bag)
+    // since it is the only additive/multiplicative factor this story wires
+    // through to a real query; lexical_boost/retention/use_ratio/link stay
+    // internal until their own stories (#54-#56, FR-1.3) light them up.
+    tag_boost: result.factors.tag_boost,
   };
 }
 
@@ -216,8 +226,16 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
       }
     : DEFAULT_RANKING_WEIGHTS;
   const halfLifeDays = rankingConfig?.recency_half_life_days ?? DEFAULT_RECENCY_HALF_LIFE_DAYS;
+  const tagBoostFactor = rankingConfig?.tag_boost_factor ?? DEFAULT_TAG_BOOST_FACTOR;
 
-  const ranked = rankResults(rawResults.map(toRankableEntry), weights, halfLifeDays);
+  const ranked = rankResults(
+    rawResults.map(toRankableEntry),
+    weights,
+    halfLifeDays,
+    Date.now(),
+    flags.query,
+    tagBoostFactor,
+  );
   const results = ranked.slice(0, limit);
   const jsonResults = results.map(toJsonResult);
 
