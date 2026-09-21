@@ -153,17 +153,25 @@ File: `memo.config.json` (per-repository, created by `memo setup init`)
 
 Validated via Zod (`MemoConfigSchema`):
 
-| Field                   | Type     | Required | Default | Constraints                      |
-| ----------------------- | -------- | -------- | ------- | -------------------------------- |
-| `schema_version`        | string   | Yes      | —       | Literal `"1"`                    |
-| `repo`                  | string   | Yes      | —       | kebab-case                       |
-| `org`                   | string   | Yes      | —       | kebab-case                       |
-| `domain`                | string   | Yes      | —       | kebab-case                       |
-| `relates_to`            | string[] | No       | `[]`    | No duplicates, no self-reference |
-| `defaults.source`       | enum     | No       | —       | `agent` \| `scan` \| `manual`    |
-| `defaults.search_scope` | enum     | No       | —       | `repo` \| `related`              |
+| Field                            | Type     | Required | Default | Constraints                      |
+| -------------------------------- | -------- | -------- | ------- | -------------------------------- |
+| `schema_version`                 | string   | Yes      | —       | Literal `"1"`                    |
+| `repo`                           | string   | Yes      | —       | kebab-case                       |
+| `org`                            | string   | Yes      | —       | kebab-case                       |
+| `domain`                         | string   | Yes      | —       | kebab-case                       |
+| `relates_to`                     | string[] | No       | `[]`    | No duplicates, no self-reference |
+| `defaults.source`                | enum     | No       | —       | `agent` \| `scan` \| `manual`    |
+| `defaults.search_scope`          | enum     | No       | —       | `repo` \| `related`              |
+| `ranking.w_similarity`           | number   | No       | `0.6`   | `[0, 1]`; weight-sum rule below  |
+| `ranking.w_recency`              | number   | No       | `0.3`   | `[0, 1]`; weight-sum rule below  |
+| `ranking.w_source`               | number   | No       | `0.1`   | `[0, 1]`; weight-sum rule below  |
+| `ranking.recency_half_life_days` | number   | No       | `365`   | Positive, finite                 |
 
 The schema uses `.passthrough()` to preserve unknown keys for forward compatibility.
+
+`ranking` (issue #34) is additive and fully optional: a v1 config without it, or with an empty `{}`, resolves every field to its default. `w_similarity + w_recency + w_source` must sum to `1.0` within `±0.001` (float tolerance) once defaults are resolved for any missing field — this rejects a partial override that breaks the sum (e.g. `{ "w_similarity": 0.5 }` alone), while a partial override that leaves all three weights untouched (e.g. only `recency_half_life_days`) still passes.
+
+`recency_half_life_days` defaults to `365`, not the originally-proposed `90` — landing composite ranking at `90` regressed the relevance-eval floor from 92.9% to 85.7% (AC21); a one-factor sweep (task 8.0's methodology, applied to this story) found `365` inside a wide, robust plateau (~260-700+ days) that restores 96.4%, without changing the weights. See `README.md`'s relevance-eval subsection and PR #67 for the full sweep.
 
 ---
 

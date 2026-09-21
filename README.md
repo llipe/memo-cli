@@ -15,6 +15,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
 - [Getting Started](#getting-started)
 - [Usage Guide](#usage-guide)
   - [Step 1: Initialize a Repository](#step-1-initialize-a-repository)
+    - [Ranking configuration (optional)](#ranking-configuration-optional)
   - [Step 2: Write Your First Decision](#step-2-write-your-first-decision)
   - [Step 3: Search Decisions](#step-3-search-decisions)
   - [Step 4: List Decisions](#step-4-list-decisions)
@@ -165,6 +166,36 @@ memo setup validate    # check config validity (exit 0 = valid)
 }
 ```
 
+#### Ranking configuration (optional)
+
+`memo search` orders results by a composite `final_score`, not raw similarity. The `ranking` block is additive and optional — omit it entirely to use the documented defaults:
+
+```json
+{
+  "schema_version": "1",
+  "repo": "my-service",
+  "org": "my-company",
+  "domain": "backend",
+  "ranking": {
+    "w_similarity": 0.6,
+    "w_recency": 0.3,
+    "w_source": 0.1,
+    "recency_half_life_days": 365
+  }
+}
+```
+
+| Field                    | Default | Meaning                                                                                                                                                                                                                                                                           |
+| ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `w_similarity`           | `0.6`   | Weight on raw cosine similarity, clamped to `[0, 1]` before compositing                                                                                                                                                                                                           |
+| `w_recency`              | `0.3`   | Weight on exponential recency decay based on `timestamp_utc`                                                                                                                                                                                                                      |
+| `w_source`               | `0.1`   | Weight on source reliability (`agent` 1.0, `manual` 0.8, `scan` 0.5, unknown/missing 0.5)                                                                                                                                                                                         |
+| `recency_half_life_days` | `365`   | Days for the recency score to decay to `0.5`; must be a positive number. Tuned up from the originally-proposed `90` via the task 8.0 sweep methodology, applied to this story after a relevance-eval regression at `90` (see the Development section's relevance-eval subsection) |
+
+**Weight-sum rule:** `w_similarity + w_recency + w_source` must sum to `1.0` within a `±0.001` tolerance (float rounding). A `ranking` block that fails this check — including a _partial_ block whose resolved weights break the sum — fails `memo setup validate` (exit `1`) and `memo search` (`CONFIG_INVALID`, exit `1`); there is no silent fallback to defaults. A partial block that only overrides `recency_half_life_days` is fine, since the untouched weights still sum to `1.0`.
+
+`final_score`, `recency_score`, and `source_score` are always present alongside the original `similarity` on every `--json` result (backward compatible — `similarity` keeps its original raw meaning).
+
 ---
 
 ### Step 2: Write Your First Decision
@@ -274,7 +305,7 @@ memo search "event publishing" \
 
 #### Reading search results
 
-Human mode output shows:
+Results are ordered by a composite `final_score` — not raw similarity (see [Ranking configuration](#ranking-configuration-optional) above). Human mode output shows the `final_score` percentage in the same position raw similarity used to occupy:
 
 ```
   1.  (94%) Adopted JWT with RS256 for service-to-service auth...
@@ -286,7 +317,7 @@ Human mode output shows:
       source: agent  confidence: high  2026-04-09T10:00:00Z
 ```
 
-JSON mode (`--json`) returns the full machine-readable payload:
+JSON mode (`--json`) returns the full machine-readable payload, including all four score components on every result (`similarity` keeps its original raw-cosine meaning; `final_score` is what `results` is ordered by):
 
 ```json
 {
@@ -301,12 +332,17 @@ JSON mode (`--json`) returns the full machine-readable payload:
       "tags": ["auth", "jwt", "security"],
       "entry_type": "decision",
       "similarity": 0.94,
+      "final_score": 0.87,
+      "recency_score": 0.71,
+      "source_score": 1.0,
       ...
     }
   ],
   "count": 2
 }
 ```
+
+> **Note for existing `--json` consumers:** if you previously sorted or filtered on `results[].similarity`, that field's raw meaning is unchanged, but the array's own order now follows `final_score`, not `similarity` — switch to `final_score` if you rely on result order.
 
 ---
 
@@ -726,6 +762,17 @@ the refusal.
 offline (no network, no `QDRANT_URL`/`EMBEDDINGS_API_KEY`) and asserts the
 recomputed hit rate is at least `baseline.json.overall_top3`, guarding every
 later ranking change against a regression.
+
+**Story S1-02 (issue #34) case study:** landing composite ranking at the
+originally-proposed defaults (`recency_half_life_days: 90`) dropped the
+overall hit rate from the recorded 92.9% floor to 85.7% — a real regression,
+not a fluke (`concept` and `identifier` queries were hit hardest, consistent
+with recency weighting burying a genuinely correct older decision). Rather
+than accept the regression or move the floor, a one-factor sweep over
+`recency_half_life_days` (keeping the weights at their spec values) found a
+wide, robust plateau from ~260 to 700+ days all measuring 96.4%; `365` was
+chosen as the simplest, most legible value well inside that plateau. See PR
+#67 for the full sweep grid and numbers.
 
 The `eval:relevance` script sets `TS_NODE_TRANSPILE_ONLY=true` for its
 `node --loader ts-node/esm` invocation: ts-node/esm's own type-check pass

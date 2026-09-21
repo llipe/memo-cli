@@ -81,4 +81,33 @@ describe('output', () => {
       expect(written).not.toMatch(/\x1b\[/);
     });
   });
+
+  // Issue #34 (D6, AC6): the human-output percentage now renders the caller's
+  // composite score. `searchResults` itself is score-source agnostic - the
+  // caller (`search.ts`) is responsible for passing `final_score` into the
+  // `similarity` field - so these tests assert the rendering contract, not
+  // ranking math (that belongs to `ranking.test.ts`).
+  describe('searchResults()', () => {
+    it('renders the passed-in score as a rounded percentage, not a separate raw value', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.72, repo: 'memo-cli', rationale: 'An old but relevant decision' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('72%');
+      expect(written).not.toContain('91%');
+    });
+
+    it('keeps the repo label, then the score, then the rationale lead in order', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.5, repo: 'my-service', rationale: 'lead text' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      const repoIdx = written.indexOf('my-service');
+      const scoreIdx = written.indexOf('50%');
+      const leadIdx = written.indexOf('lead text');
+      expect(repoIdx).toBeGreaterThanOrEqual(0);
+      expect(repoIdx).toBeLessThan(scoreIdx);
+      expect(scoreIdx).toBeLessThan(leadIdx);
+    });
+  });
 });

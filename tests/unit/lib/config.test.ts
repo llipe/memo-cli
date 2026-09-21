@@ -228,4 +228,192 @@ describe('MemoConfigSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  // ---------------------------------------------------------------------------
+  // ranking (issue #34)
+  // ---------------------------------------------------------------------------
+
+  describe('ranking', () => {
+    it('resolves full defaults when the ranking block is absent (AC10)', () => {
+      const result = MemoConfigSchema.safeParse(VALID_BASE);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking).toEqual({
+          w_similarity: 0.6,
+          w_recency: 0.3,
+          w_source: 0.1,
+          recency_half_life_days: 365,
+        });
+      }
+    });
+
+    it('resolves full defaults when the ranking block is an empty object', () => {
+      const result = MemoConfigSchema.safeParse({ ...VALID_BASE, ranking: {} });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking.w_similarity).toBe(0.6);
+      }
+    });
+
+    // EC-11 / F-2: the documented defaults, written out literally, must
+    // themselves pass validation even though 0.6 + 0.3 + 0.1 !== 1.0 in
+    // IEEE 754 - the ±0.001 tolerance is load-bearing.
+    it('accepts the documented defaults written out literally (EC-11, F-2)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts a fully specified valid ranking block (AC8)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.5, w_recency: 0.4, w_source: 0.1, recency_half_life_days: 30 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking).toEqual({
+          w_similarity: 0.5,
+          w_recency: 0.4,
+          w_source: 0.1,
+          recency_half_life_days: 30,
+        });
+      }
+    });
+
+    it('rejects a partial block whose resolved weights break the sum check (AC11)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.5 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'ranking');
+        expect(issue).toBeDefined();
+        expect(issue?.message).toContain('0.9');
+      }
+    });
+
+    it('accepts a partial block that only overrides recency_half_life_days, since the untouched weights still sum to 1.0 (CT-5c)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: 30 },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ranking).toEqual({
+          w_similarity: 0.6,
+          w_recency: 0.3,
+          w_source: 0.1,
+          recency_half_life_days: 30,
+        });
+      }
+    });
+
+    it('rejects weights summing to 0.9, naming the ranking path and the actual sum (AC9)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.5, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'ranking');
+        expect(issue?.message).toMatch(/ranking weights/);
+        expect(issue?.message).toContain('0.9');
+      }
+    });
+
+    it('rejects weights summing to 1.1', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: 0.4, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts a sum within the ±0.001 tolerance boundary', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6005, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a sum just outside the ±0.001 tolerance boundary', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6015, w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects recency_half_life_days of 0 (R10)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: 0 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a negative recency_half_life_days (R10)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: -1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a non-finite recency_half_life_days', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { recency_half_life_days: Infinity },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects an individual weight above 1 even if the sum is 1.0 (R11)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 2.0, w_recency: -1.0, w_source: 0.0 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a string in place of a numeric weight, without coercion (CT-6)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: '0.6', w_recency: 0.3, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const issue = result.error.issues.find((i) => i.path.join('.') === 'ranking.w_similarity');
+        expect(issue).toBeDefined();
+      }
+    });
+
+    it('rejects null in place of a numeric weight', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: { w_similarity: 0.6, w_recency: null, w_source: 0.1 },
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('preserves an unknown key inside ranking and ignores it in the sum (CT-7)', () => {
+      const result = MemoConfigSchema.safeParse({
+        ...VALID_BASE,
+        ranking: {
+          w_similarity: 0.6,
+          w_recency: 0.3,
+          w_source: 0.1,
+          w_future_signal: 0.5,
+        },
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data.ranking as Record<string, unknown>)['w_future_signal']).toBe(0.5);
+      }
+    });
+  });
 });

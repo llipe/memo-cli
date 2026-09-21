@@ -6,8 +6,26 @@ import { output } from '../lib/output.js';
 import { QdrantRepository } from '../lib/qdrant.js';
 import { resolveScopeRepos } from '../lib/registry.js';
 import { buildSearchFilters } from '../lib/search-filters.js';
+import {
+  rankResults,
+  DEFAULT_RANKING_WEIGHTS,
+  DEFAULT_RECENCY_HALF_LIFE_DAYS,
+} from '../lib/ranking.js';
+import type { RankableEntry } from '../lib/ranking.js';
 import type { MemoConfig } from '../types/config.js';
 import type { SearchResult } from '../lib/qdrant.js';
+
+/**
+ * Maximum candidates fetched from Qdrant before ranking and slicing back
+ * down to `--limit` (D2). The outer `max` prevents under-fetching when
+ * `--limit` exceeds 50, at the cost of the `min(..., 50)` cap not binding
+ * above that point (see the binding refinement's D2 rationale and the
+ * `verifier` Design Mode test plan's F-1 finding, which flags but does not
+ * override this as the intended behavior for this story).
+ */
+export function computeOverfetchLimit(limit: number): number {
+  return Math.max(limit, Math.min(limit * 3, 50));
+}
 
 export interface SearchFlags {
   query: string;
@@ -88,11 +106,37 @@ function buildActiveFilters(filters: SearchResponseFilters, repoSet: string[]): 
   return values;
 }
 
-function toJsonResult(result: SearchResult): Record<string, unknown> {
+interface SearchRankInput extends RankableEntry {
+  payload?: Record<string, unknown>;
+}
+
+type RankedSearchResult = SearchRankInput & {
+  final_score: number;
+  recency_score: number;
+  source_score: number;
+};
+
+function toRankableEntry(result: SearchResult): SearchRankInput {
+  const payload = result.payload;
+  const timestampUtc =
+    typeof payload?.['timestamp_utc'] === 'string' ? payload['timestamp_utc'] : undefined;
+  return {
+    id: result.id,
+    similarity: result.score,
+    timestampUtc,
+    source: payload?.['source'],
+    payload,
+  };
+}
+
+function toJsonResult(result: RankedSearchResult): Record<string, unknown> {
   return {
     id: result.id,
     ...(result.payload ?? {}),
-    similarity: result.score,
+    similarity: result.similarity,
+    final_score: result.final_score,
+    recency_score: result.recency_score,
+    source_score: result.source_score,
   };
 }
 
@@ -104,11 +148,13 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     resolveRepos = resolveScopeRepos,
   } = deps;
 
+  // Only a missing config is tolerated (the caller may supply --repo instead).
+  // An invalid config - including invalid `ranking` weights - MUST fail fast
+  // with CONFIG_INVALID rather than silently falling back to defaults (D7,
+  // AC12): a config that exists but does not parse is a user error the agent
+  // should see, not a state indistinguishable from "no config at all".
   const config = await loadCfg().catch((err: unknown) => {
-    if (
-      err instanceof MemoError &&
-      (err.code === 'CONFIG_NOT_FOUND' || err.code === 'CONFIG_INVALID')
-    ) {
+    if (err instanceof MemoError && err.code === 'CONFIG_NOT_FOUND') {
       return null;
     }
     throw err;
@@ -158,7 +204,21 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
   await qdrant.ensureCollection();
 
   const vector = await embeddings.embed(buildSearchVectorInput(flags.query, tags));
-  const results = await qdrant.search(vector, filters, limit);
+  const overfetchLimit = computeOverfetchLimit(limit);
+  const rawResults = await qdrant.search(vector, filters, overfetchLimit);
+
+  const rankingConfig = config?.ranking;
+  const weights = rankingConfig
+    ? {
+        w_similarity: rankingConfig.w_similarity,
+        w_recency: rankingConfig.w_recency,
+        w_source: rankingConfig.w_source,
+      }
+    : DEFAULT_RANKING_WEIGHTS;
+  const halfLifeDays = rankingConfig?.recency_half_life_days ?? DEFAULT_RECENCY_HALF_LIFE_DAYS;
+
+  const ranked = rankResults(rawResults.map(toRankableEntry), weights, halfLifeDays);
+  const results = ranked.slice(0, limit);
   const jsonResults = results.map(toJsonResult);
 
   if (flags.json) {
@@ -185,7 +245,11 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
   output.searchResults(
     results.map((result) => ({
       id: result.id,
-      similarity: result.score,
+      // D6: the human-output percentage is now the composite final_score,
+      // not the raw similarity. The field name stays `similarity` here
+      // because SearchHumanResult is a private rendering type, not the
+      // `--json` contract (which exposes final_score explicitly).
+      similarity: result.final_score,
       ...(result.payload ?? {}),
     })),
   );

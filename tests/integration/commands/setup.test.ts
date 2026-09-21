@@ -220,4 +220,105 @@ describe('setup validate', () => {
       mockExit.mockRestore();
     }
   });
+
+  // Issue #34 - the `ranking` block (AC8, AC9).
+  describe('ranking block', () => {
+    it('exits 0 for a config with a valid ranking block (AC8)', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify(
+          { ...VALID_CONFIG, ranking: { w_similarity: 0.6, w_recency: 0.3, w_source: 0.1 } },
+          null,
+          2,
+        ),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      try {
+        await handleValidate(tmpDir);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(0)');
+      } finally {
+        mockExit.mockRestore();
+      }
+    });
+
+    it('exits 1 and names the ranking path and actual sum for an invalid weight sum (AC9)', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify(
+          { ...VALID_CONFIG, ranking: { w_similarity: 0.5, w_recency: 0.3, w_source: 0.1 } },
+          null,
+          2,
+        ),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+      const stderrChunks: string[] = [];
+      const stderrSpy = jest
+        .spyOn(process.stderr, 'write')
+        .mockImplementation((chunk: string | Uint8Array) => {
+          stderrChunks.push(String(chunk));
+          return true;
+        });
+
+      try {
+        await handleValidate(tmpDir);
+        fail('Expected process.exit to be called');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(1)');
+        const stderr = stderrChunks.join('');
+        expect(stderr).toContain('ranking');
+        expect(stderr).toContain('0.9');
+      } finally {
+        mockExit.mockRestore();
+        stderrSpy.mockRestore();
+      }
+    });
+
+    it('exits 0 for a config with no ranking block (AC10)', async () => {
+      await writeFile(join(tmpDir, 'memo.config.json'), JSON.stringify(VALID_CONFIG, null, 2));
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      try {
+        await handleValidate(tmpDir);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(0)');
+      } finally {
+        mockExit.mockRestore();
+      }
+    });
+
+    it('exits 1 for a partial ranking block that breaks the weight sum (AC11)', async () => {
+      await writeFile(
+        join(tmpDir, 'memo.config.json'),
+        JSON.stringify({ ...VALID_CONFIG, ranking: { w_similarity: 0.5 } }, null, 2),
+      );
+
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
+        throw new Error(`process.exit(${String(code)})`);
+      });
+
+      try {
+        await handleValidate(tmpDir);
+        fail('Expected process.exit to be called');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        expect(msg).toBe('process.exit(1)');
+      } finally {
+        mockExit.mockRestore();
+      }
+    });
+  });
 });
