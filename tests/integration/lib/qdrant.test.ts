@@ -33,6 +33,21 @@ describe('QdrantRepository Integration', () => {
     process.env = originalEnv;
   });
 
+  const V2_NEW_FIELDS = {
+    bank: {},
+    kind: {},
+    session_id: {},
+    contexts: {},
+    seq: {},
+    archived: {},
+    superseded: {},
+    consolidated: {},
+    pinned: {},
+    valid_to: {},
+    expires_at: {},
+    archived_at: {},
+  };
+
   it('ensureCollection() creates collection on fresh instance', async () => {
     mockGetCollection.mockRejectedValueOnce(new Error('collection not found'));
     mockCreateCollection.mockResolvedValueOnce({});
@@ -42,7 +57,8 @@ describe('QdrantRepository Integration', () => {
     await repo.ensureCollection();
 
     expect(mockCreateCollection).toHaveBeenCalledTimes(1);
-    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(10); // 10 payload indexes (#62 adds rationale + files_modified)
+    // 22 payload indexes total (#62 adds rationale + files_modified; #81/S2-02 adds 12 v2 indexes).
+    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(22);
   });
 
   it('ensureCollection() is idempotent when called twice against a fully-indexed collection', async () => {
@@ -64,6 +80,7 @@ describe('QdrantRepository Integration', () => {
         dedupe_key_sha256: {},
         rationale: {},
         files_modified: {},
+        ...V2_NEW_FIELDS,
       },
     });
 
@@ -72,7 +89,7 @@ describe('QdrantRepository Integration', () => {
     await repo.ensureCollection();
 
     expect(mockCreateCollection).toHaveBeenCalledTimes(1);
-    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(10); // only from the first (create) call
+    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(22); // only from the first (create) call
   });
 
   it('throws COLLECTION_BOOTSTRAP_FAILED when Qdrant is unreachable', async () => {
@@ -99,8 +116,8 @@ describe('QdrantRepository Integration', () => {
           timestamp_utc: {},
           commit: {},
           dedupe_key_sha256: {},
-          // rationale and files_modified are missing, as they would be on a
-          // collection created before #62 (AC11).
+          // rationale, files_modified, and the 12 S2-02/#81 v2 fields are all
+          // missing, as they would be on a collection created before #62/#81.
         },
       });
       mockCreatePayloadIndex.mockResolvedValue({});
@@ -109,7 +126,7 @@ describe('QdrantRepository Integration', () => {
       await repo.ensureIndexes();
 
       expect(mockCreateCollection).not.toHaveBeenCalled();
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(2);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(14);
       expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
         'decisions',
         expect.objectContaining({ field_name: 'rationale' }),
@@ -134,6 +151,7 @@ describe('QdrantRepository Integration', () => {
           dedupe_key_sha256: {},
           rationale: {},
           files_modified: {},
+          ...V2_NEW_FIELDS,
         },
       });
 
@@ -150,6 +168,92 @@ describe('QdrantRepository Integration', () => {
       await expect(repo.ensureIndexes()).rejects.toMatchObject({
         code: 'COLLECTION_BOOTSTRAP_FAILED',
       });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Story S2-02 (issue #81): SC-1 / CT-6 — ensureIndexes reconciles a
+  // pre-existing v1.2.0-shaped collection by creating exactly the 12 new
+  // indexes, and is idempotent on a second run.
+  // ---------------------------------------------------------------------------
+
+  describe('ensureIndexes() (#81 AC1 — SC-1/CT-6)', () => {
+    const V1_2_0_PAYLOAD_SCHEMA = {
+      repo: {},
+      org: {},
+      entry_type: {},
+      source: {},
+      tags: {},
+      timestamp_utc: {},
+      commit: {},
+      dedupe_key_sha256: {},
+      rationale: {},
+      files_modified: {},
+    };
+
+    it('SC-1: first call creates exactly the 12 new indexes and none of the existing 10; second call creates 0', async () => {
+      mockGetCollection
+        .mockResolvedValueOnce({ config: {}, payload_schema: V1_2_0_PAYLOAD_SCHEMA })
+        .mockResolvedValueOnce({
+          config: {},
+          payload_schema: { ...V1_2_0_PAYLOAD_SCHEMA, ...V2_NEW_FIELDS },
+        });
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository();
+      await repo.ensureIndexes();
+
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(12);
+      const createdFields = new Set(
+        mockCreatePayloadIndex.mock.calls.map(
+          (call) => (call[1] as { field_name: string }).field_name,
+        ),
+      );
+      expect(createdFields).toEqual(new Set(Object.keys(V2_NEW_FIELDS)));
+      // None of the 10 pre-existing fields were re-created.
+      for (const field of Object.keys(V1_2_0_PAYLOAD_SCHEMA)) {
+        expect(createdFields.has(field)).toBe(false);
+      }
+
+      mockCreatePayloadIndex.mockClear();
+      await repo.ensureIndexes();
+      expect(mockCreatePayloadIndex).not.toHaveBeenCalled();
+    });
+
+    it('CT-6: PAYLOAD_INDEXES field/schema pairs for the 12 new entries match AC1 exactly', async () => {
+      mockGetCollection.mockResolvedValueOnce({
+        config: {},
+        payload_schema: V1_2_0_PAYLOAD_SCHEMA,
+      });
+      mockCreatePayloadIndex.mockResolvedValue({});
+
+      const repo = new QdrantRepository();
+      await repo.ensureIndexes();
+
+      const expected: Record<string, string> = {
+        bank: 'keyword',
+        kind: 'keyword',
+        session_id: 'keyword',
+        contexts: 'keyword',
+        seq: 'integer',
+        archived: 'bool',
+        superseded: 'bool',
+        consolidated: 'bool',
+        pinned: 'bool',
+        valid_to: 'datetime',
+        expires_at: 'datetime',
+        archived_at: 'datetime',
+      };
+
+      for (const call of mockCreatePayloadIndex.mock.calls) {
+        const [, { field_name, field_schema }] = call as [
+          string,
+          { field_name: string; field_schema: string },
+        ];
+        if (field_name in expected) {
+          expect(field_schema).toBe(expected[field_name]);
+        }
+      }
     });
   });
 });

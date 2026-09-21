@@ -9,6 +9,11 @@ import { debugLog } from './debug.js';
 const DEFAULT_COLLECTION_NAME = 'decisions';
 const VECTOR_SIZE = 1536;
 
+/** Default page size for `scrollAll` and the chunk size for `batchSetPayload` (#81 AC2/AC5). */
+const DEFAULT_SCROLL_ALL_BATCH = 256;
+const BATCH_SET_PAYLOAD_CHUNK_SIZE = 256;
+const DEFAULT_STALENESS_CORPUS_LIMIT = 1000;
+
 /**
  * Resolves the effective collection name from `MEMO_COLLECTION`.
  *
@@ -43,6 +48,32 @@ export interface ScrollOptions {
   withVector?: boolean;
 }
 
+/** Ordering directive for `scrollOrdered` (#81 AC3, spec §18.4). */
+export interface OrderBySpec {
+  key: string;
+  direction?: 'asc' | 'desc';
+}
+
+export interface ScrollOrderedOptions {
+  orderBy: OrderBySpec;
+  limit: number;
+  /** Includes the stored vector on every returned point. Default `false`. */
+  withVector?: boolean;
+}
+
+export interface ScrollAllOptions {
+  /** Page size forwarded as `limit`. Default `256` (#81 AC2). */
+  batch?: number;
+  /** Includes the stored vector on every returned point. Default `false`. */
+  withVector?: boolean;
+}
+
+/** One `{ id, payload }` operation for `batchSetPayload` (#81 AC5). */
+export interface SetPayloadOp {
+  id: string | number;
+  payload: Record<string, unknown>;
+}
+
 /**
  * `rationale` and `files_modified` text indexes per #62 AC2, sub-task 6.1:
  * verified live against Qdrant 1.18.2 that a `text` index on an array field
@@ -69,6 +100,20 @@ const PAYLOAD_INDEXES = [
   { field: 'dedupe_key_sha256', schema: 'keyword' },
   { field: 'rationale', schema: TEXT_INDEX_SCHEMA },
   { field: 'files_modified', schema: TEXT_INDEX_SCHEMA },
+  // Phase 2 (S2-02, issue #81, spec §18.4): twelve v2 filter fields. `entry_type`
+  // above is already indexed and reused unchanged by v2 filters.
+  { field: 'bank', schema: 'keyword' },
+  { field: 'kind', schema: 'keyword' },
+  { field: 'session_id', schema: 'keyword' },
+  { field: 'contexts', schema: 'keyword' },
+  { field: 'seq', schema: 'integer' },
+  { field: 'archived', schema: 'bool' },
+  { field: 'superseded', schema: 'bool' },
+  { field: 'consolidated', schema: 'bool' },
+  { field: 'pinned', schema: 'bool' },
+  { field: 'valid_to', schema: 'datetime' },
+  { field: 'expires_at', schema: 'datetime' },
+  { field: 'archived_at', schema: 'datetime' },
 ] as const;
 
 export class QdrantRepository {
@@ -256,9 +301,245 @@ export class QdrantRepository {
    * Bounded at `limit` (default `1,000`) - a config-free constant, not
    * user-configurable, documented here rather than exposed as a setting;
    * revisit if a single repo's corpus regularly exceeds this bound.
+   *
+   * Superseded by `fetchStalenessCorpus` (#81/S2-02, spec §18.4/A12), which
+   * adds bank scoping. Left in place here rather than deleted: its only
+   * caller (`src/commands/search.ts`) has not moved to `fetchStalenessCorpus`
+   * yet - that call-site change is S2-05's scope (spec §18.4/AC6 explicitly
+   * allows either story to carry the removal, "must not survive Phase 2").
    */
   async fetchByRepo(repos: string[], limit = 1000): Promise<ScrollResult[]> {
     return this.scroll({ must: [{ key: 'repo', match: { any: repos } }] }, limit);
+  }
+
+  /**
+   * Builds the §8.1 bank base-filter shape needed by `fetchStalenessCorpus`
+   * (#81 AC6): for `bank = 'kb'`, a point matches when its `bank` field is
+   * explicitly `'kb'` *or* absent (pre-Phase-2 points have no `bank` field
+   * and are implicitly `kb`), plus a `repo` any-match clause that is only
+   * ever added for `kb`. For any other (private) bank, an exact `bank`
+   * match with no `repo` clause - private-bank isolation means the caller's
+   * repo scope never narrows a private bank's corpus.
+   *
+   * This is a private, method-scoped implementation of the §8.1 shape
+   * rather than a call into `src/lib/filters.ts`'s `buildBaseFilter`,
+   * because that shared builder is S2-03's scope and has not landed yet
+   * (this story has no dependency on S2-03). Once S2-03 merges,
+   * `fetchStalenessCorpus` may be refactored to compose `buildBaseFilter`
+   * instead of this local helper; the request shape is designed to match
+   * it exactly so that refactor is behavior-preserving.
+   */
+  private buildStalenessCorpusFilter(bank: string, repos: string[]): QdrantFilter {
+    if (bank === 'kb') {
+      return {
+        must: [
+          {
+            should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }],
+          },
+          { key: 'repo', match: { any: repos } },
+        ],
+      };
+    }
+    return { must: [{ key: 'bank', match: { value: bank } }] };
+  }
+
+  /**
+   * Fetches the staleness-detection corpus, bank-scoped (#81 AC6, spec
+   * §18.4/A12): applies the §8.1 base filter for `bank`, plus the `repo`
+   * any-match clause only when `bank === 'kb'` (a private bank's corpus is
+   * never narrowed by the caller's repo scope - private-bank isolation).
+   * Ordered by `timestamp_utc` desc via the underlying `scroll()`, same as
+   * `fetchByRepo`.
+   */
+  async fetchStalenessCorpus(
+    { bank, repos }: { bank: string; repos: string[] },
+    limit = DEFAULT_STALENESS_CORPUS_LIMIT,
+  ): Promise<ScrollResult[]> {
+    return this.scroll(this.buildStalenessCorpusFilter(bank, repos), limit);
+  }
+
+  /**
+   * Returns a single ordered page (#81 AC3, spec §18.4): sends `order_by`
+   * and never sends `offset` - Qdrant rejects `offset` alongside `order_by`
+   * (decision A11), so this method can never auto-continue to a further
+   * page even when the response's `next_page_offset` is non-null. Callers
+   * that need pagination over an ordered scan pass `order_by.start_from`
+   * (unused by any Phase 2 caller - `timeline --last` is a single bounded
+   * page). Requires a payload index on `orderBy.key`.
+   */
+  async scrollOrdered(
+    filter: QdrantFilter | undefined,
+    options: ScrollOrderedOptions,
+  ): Promise<ScrollResult[]> {
+    try {
+      const result = await withRetry(() =>
+        this.client.scroll(this.collectionName, {
+          filter,
+          limit: options.limit,
+          with_payload: true,
+          with_vector: options.withVector ?? false,
+          order_by: options.orderBy,
+        }),
+      );
+      return (
+        result as {
+          points: {
+            id: string | number;
+            payload?: Record<string, unknown> | null;
+            vector?: number[] | null;
+          }[];
+        }
+      ).points.map((p) => ({
+        id: p.id,
+        payload: p.payload ?? undefined,
+        ...(options.withVector && Array.isArray(p.vector) ? { vector: p.vector } : {}),
+      }));
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'QDRANT_OPERATION_FAILED',
+        `Scroll failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /**
+   * Streams every page of an unordered full-collection scan (#81 AC2, spec
+   * §18.4): sends no `order_by` (Qdrant rejects `offset` alongside
+   * `order_by` - decision A11) and pages with `offset: next_page_offset`
+   * from the previous response, until `next_page_offset` is `null`.
+   * `onPage` is invoked once per non-empty page, in order; a page with zero
+   * points is never delivered (this is the mechanism behind the "empty
+   * collection -> zero `onPage` calls" edge case, applied uniformly to any
+   * zero-length page rather than special-cased only for the first call).
+   * Resolves to `undefined` once the loop ends - this is a streaming
+   * callback contract, not an accumulate-then-return contract, so a caller
+   * (`migrate`, S2-09) can process an arbitrarily large collection without
+   * buffering every page's points into memory at once.
+   *
+   * A client failure mid-loop propagates as `MemoError('QDRANT_OPERATION_FAILED')`,
+   * matching every other method's error-mapping convention; pages already
+   * delivered via `onPage` are not retried or rolled back.
+   */
+  async scrollAll(
+    filter: QdrantFilter | undefined,
+    options: ScrollAllOptions,
+    onPage: (page: ScrollResult[]) => void | Promise<void>,
+  ): Promise<void> {
+    const batch = options.batch ?? DEFAULT_SCROLL_ALL_BATCH;
+    let offset: string | number | undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      let result: unknown;
+      try {
+        result = await withRetry(() =>
+          this.client.scroll(this.collectionName, {
+            filter,
+            limit: batch,
+            with_payload: true,
+            with_vector: options.withVector ?? false,
+            ...(offset !== undefined ? { offset } : {}),
+          }),
+        );
+      } catch (err) {
+        if (err instanceof MemoError) throw err;
+        throw new MemoError(
+          'QDRANT_OPERATION_FAILED',
+          `Scroll failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      const typed = result as {
+        points: {
+          id: string | number;
+          payload?: Record<string, unknown> | null;
+          vector?: number[] | null;
+        }[];
+        next_page_offset?: string | number | null;
+      };
+
+      if (typed.points.length > 0) {
+        const page: ScrollResult[] = typed.points.map((p) => ({
+          id: p.id,
+          payload: p.payload ?? undefined,
+          ...(options.withVector && Array.isArray(p.vector) ? { vector: p.vector } : {}),
+        }));
+        await onPage(page);
+      }
+
+      const nextOffset = typed.next_page_offset ?? null;
+      hasMore = nextOffset !== null;
+      offset = hasMore && nextOffset !== null ? nextOffset : undefined;
+    }
+  }
+
+  /**
+   * Counts points matching `filter` (#81 AC4, spec §18.4): always requests
+   * an exact count (`exact: true`), never the faster approximate count.
+   */
+  async count(filter?: QdrantFilter): Promise<number> {
+    try {
+      const result = await withRetry(() =>
+        this.client.count(this.collectionName, { filter, exact: true }),
+      );
+      return result.count;
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'QDRANT_OPERATION_FAILED',
+        `Count failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /** Overwrites the payload of a single point (#81 AC5, spec §18.4). */
+  async setPayload(id: string | number, payload: Record<string, unknown>): Promise<void> {
+    try {
+      await withRetry(() =>
+        this.client.setPayload(this.collectionName, {
+          points: [id],
+          payload,
+          wait: true,
+        }),
+      );
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'QDRANT_OPERATION_FAILED',
+        `Set payload failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  /**
+   * Overwrites the payload of many points in one logical call (#81 AC5,
+   * spec §18.4): chunks `ops` at `256` operations per `batchUpdate` call
+   * (Qdrant/HTTP payload-size hygiene, matching the story's documented
+   * chunk size) and issues the chunks sequentially, preserving input order.
+   * `batchSetPayload([])` is a no-op - no `batchUpdate` call is made.
+   */
+  async batchSetPayload(ops: SetPayloadOp[]): Promise<void> {
+    if (ops.length === 0) return;
+    try {
+      for (let i = 0; i < ops.length; i += BATCH_SET_PAYLOAD_CHUNK_SIZE) {
+        const chunk = ops.slice(i, i + BATCH_SET_PAYLOAD_CHUNK_SIZE);
+        await withRetry(() =>
+          this.client.batchUpdate(this.collectionName, {
+            wait: true,
+            operations: chunk.map((op) => ({
+              set_payload: { points: [op.id], payload: op.payload },
+            })),
+          }),
+        );
+      }
+    } catch (err) {
+      if (err instanceof MemoError) throw err;
+      throw new MemoError(
+        'QDRANT_OPERATION_FAILED',
+        `Batch set payload failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   async getByDedupeKey(dedupeKeySha256: string): Promise<ScrollResult | null> {
