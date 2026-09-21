@@ -14,8 +14,14 @@ import {
   DEFAULT_CONFIDENCE_THRESHOLDS,
 } from '../lib/ranking.js';
 import type { RankableEntry, ResolvedFactors, ConfidenceTier } from '../lib/ranking.js';
+import {
+  detectStaleness,
+  DEFAULT_STALENESS_THRESHOLD_DAYS,
+  DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD,
+} from '../lib/staleness.js';
+import type { StalenessCandidate } from '../lib/staleness.js';
 import type { MemoConfig } from '../types/config.js';
-import type { SearchResult } from '../lib/qdrant.js';
+import type { SearchResult, ScrollResult } from '../lib/qdrant.js';
 
 /**
  * Maximum candidates fetched from Qdrant before ranking and slicing back
@@ -151,7 +157,10 @@ function toRankableEntry(result: SearchResult): SearchRankInput {
   };
 }
 
-function toJsonResult(result: RankedSearchResult): Record<string, unknown> {
+/** A ranked result with its optional staleness annotation attached (#38 D-1). */
+type StaleAnnotated<T> = T & { stale?: true; stale_by?: string | number };
+
+function toJsonResult(result: StaleAnnotated<RankedSearchResult>): Record<string, unknown> {
   return {
     id: result.id,
     ...omitStoredConfidence(result.payload),
@@ -166,7 +175,20 @@ function toJsonResult(result: RankedSearchResult): Record<string, unknown> {
     tag_boost: result.factors.tag_boost,
     // #35 AC3/AC4: confidence_tier replaces the removed static `confidence`.
     confidence_tier: result.confidence_tier,
+    // #38 AC3: `stale`/`stale_by` are omitted entirely (not `false`/`null`)
+    // when the result is not flagged - never spread an `undefined` value in.
+    ...(result.stale ? { stale: true as const, stale_by: result.stale_by } : {}),
   };
+}
+
+/** Maps a `fetchByRepo` scroll result into staleness detection's input shape (#38 AC5/AC6). */
+function toStalenessCandidate(result: ScrollResult): StalenessCandidate {
+  const payload = result.payload;
+  const timestampUtc =
+    typeof payload?.['timestamp_utc'] === 'string' ? payload['timestamp_utc'] : undefined;
+  const rawTags = payload?.['tags'];
+  const tags = Array.isArray(rawTags) ? rawTags : undefined;
+  return { id: result.id, timestampUtc, tags };
 }
 
 export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): Promise<void> {
@@ -259,7 +281,33 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     confidenceThresholds,
   );
   const results = ranked.slice(0, limit);
-  const jsonResults = results.map(toJsonResult);
+
+  // #38 AC5/AC6: exactly one `scroll` (via `fetchByRepo`) per invocation,
+  // repo-scoped, cached for the rest of the command - never per result, and
+  // skipped entirely when there is nothing to annotate. Staleness is
+  // computed strictly after ranking/slicing (AC4): it reads `results` but
+  // can never feed back into `final_score` or ordering.
+  const stalenessConfig = {
+    staleness_threshold_days:
+      rankingConfig?.staleness_threshold_days ?? DEFAULT_STALENESS_THRESHOLD_DAYS,
+    staleness_tag_overlap_threshold:
+      rankingConfig?.staleness_tag_overlap_threshold ?? DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD,
+  };
+  const staleFlags =
+    results.length > 0
+      ? detectStaleness(
+          results,
+          (await qdrant.fetchByRepo(resolvedRepos)).map(toStalenessCandidate),
+          stalenessConfig,
+          Date.now(),
+        )
+      : new Map<string, string | number>();
+
+  const annotatedResults: StaleAnnotated<RankedSearchResult>[] = results.map((result) => {
+    const staleBy = staleFlags.get(String(result.id));
+    return staleBy === undefined ? result : { ...result, stale: true, stale_by: staleBy };
+  });
+  const jsonResults = annotatedResults.map(toJsonResult);
 
   if (flags.json) {
     output.result(
@@ -283,7 +331,7 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
   }
 
   output.searchResults(
-    results.map((result) => ({
+    annotatedResults.map((result) => ({
       id: result.id,
       // D6: the human-output percentage is now the composite final_score,
       // not the raw similarity. The field name stays `similarity` here
@@ -293,6 +341,8 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
       ...omitStoredConfidence(result.payload),
       // #35 AC5: drives the `[tier]` prefix in `output.searchResults`.
       confidenceTier: result.confidence_tier,
+      // #38 AC7: drives the inline `⚠ STALE` warning in `output.searchResults`.
+      ...(result.stale ? { stale: true as const, staleBy: result.stale_by } : {}),
     })),
   );
 }

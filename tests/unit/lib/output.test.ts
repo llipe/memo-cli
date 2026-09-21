@@ -155,5 +155,62 @@ describe('output', () => {
       expect(written).toContain('[exact]');
       expect(written).not.toMatch(/\x1b\[/);
     });
+
+    // #38 AC7: the staleness warning renders inline under the flagged result.
+    it('renders the STALE warning with the superseder id when stale is true (AC7)', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.7,
+          repo: 'memo-cli',
+          rationale: 'An old decision',
+          stale: true,
+          staleBy: 'newer-entry-id',
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('⚠ STALE');
+      expect(written).toContain('superseded by newer-entry-id');
+    });
+
+    it('places the STALE warning under the flagged result, after its main line', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.7,
+          repo: 'memo-cli',
+          rationale: 'An old decision',
+          stale: true,
+          staleBy: 'newer-entry-id',
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      const mainLineIdx = written.indexOf('An old decision');
+      const staleIdx = written.indexOf('⚠ STALE');
+      expect(mainLineIdx).toBeGreaterThanOrEqual(0);
+      expect(staleIdx).toBeGreaterThan(mainLineIdx);
+    });
+
+    it('omits the STALE warning entirely when stale is absent (backward compatible)', () => {
+      output.searchResults([
+        { id: '1', similarity: 0.7, repo: 'memo-cli', rationale: 'A fresh decision' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).not.toContain('STALE');
+    });
+
+    it('omits the STALE warning when stale is false', () => {
+      output.searchResults([
+        {
+          id: '1',
+          similarity: 0.7,
+          repo: 'memo-cli',
+          rationale: 'A fresh decision',
+          stale: false,
+        },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).not.toContain('STALE');
+    });
   });
 });

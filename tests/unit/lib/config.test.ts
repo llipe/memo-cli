@@ -245,6 +245,8 @@ describe('MemoConfigSchema', () => {
           recency_half_life_days: 365,
           tag_boost_factor: 0.05,
           confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
+          staleness_threshold_days: 120,
+          staleness_tag_overlap_threshold: 0.5,
         });
       }
     });
@@ -288,6 +290,8 @@ describe('MemoConfigSchema', () => {
           recency_half_life_days: 30,
           tag_boost_factor: 0.1,
           confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
+          staleness_threshold_days: 120,
+          staleness_tag_overlap_threshold: 0.5,
         });
       }
     });
@@ -319,6 +323,8 @@ describe('MemoConfigSchema', () => {
           recency_half_life_days: 30,
           tag_boost_factor: 0.05,
           confidence_thresholds: { exact: 0.88, high: 0.75, medium: 0.6 },
+          staleness_threshold_days: 120,
+          staleness_tag_overlap_threshold: 0.5,
         });
       }
     });
@@ -593,6 +599,120 @@ describe('MemoConfigSchema', () => {
         const result = MemoConfigSchema.safeParse({
           ...VALID_BASE,
           ranking: { confidence_thresholds: { exact: '0.9', high: 0.7, medium: 0.4 } },
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // staleness_threshold_days / staleness_tag_overlap_threshold (issue #38)
+    // -------------------------------------------------------------------------
+
+    describe('staleness', () => {
+      it('resolves staleness_threshold_days to its 120 default when omitted (#38 AC1)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['staleness_threshold_days']).toBe(
+            120,
+          );
+        }
+      });
+
+      it('resolves staleness_tag_overlap_threshold to its 0.5 default when omitted (#38 AC1)', () => {
+        const result = MemoConfigSchema.safeParse(VALID_BASE);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(
+            (result.data.ranking as Record<string, unknown>)['staleness_tag_overlap_threshold'],
+          ).toBe(0.5);
+        }
+      });
+
+      it('accepts a custom staleness_threshold_days without disturbing the weight-sum check', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: 30 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['staleness_threshold_days']).toBe(
+            30,
+          );
+          expect(result.data.ranking.w_similarity).toBe(0.6);
+        }
+      });
+
+      it('accepts staleness_threshold_days: 0', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: 0 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect((result.data.ranking as Record<string, unknown>)['staleness_threshold_days']).toBe(
+            0,
+          );
+        }
+      });
+
+      it('rejects a negative staleness_threshold_days', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: -1 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-finite staleness_threshold_days', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: Infinity },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a string in place of a numeric staleness_threshold_days, without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_threshold_days: '120' },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('accepts a custom staleness_tag_overlap_threshold in [0, 1]', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: 0.75 },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(
+            (result.data.ranking as Record<string, unknown>)['staleness_tag_overlap_threshold'],
+          ).toBe(0.75);
+        }
+      });
+
+      it('rejects a staleness_tag_overlap_threshold above 1', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: 1.5 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a negative staleness_tag_overlap_threshold', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: -0.1 },
+        });
+        expect(result.success).toBe(false);
+      });
+
+      it('rejects a non-numeric staleness_tag_overlap_threshold without coercion', () => {
+        const result = MemoConfigSchema.safeParse({
+          ...VALID_BASE,
+          ranking: { staleness_tag_overlap_threshold: '0.5' },
         });
         expect(result.success).toBe(false);
       });

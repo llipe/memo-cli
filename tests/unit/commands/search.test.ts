@@ -9,6 +9,7 @@ import { MemoError } from '../../../src/lib/errors.js';
 const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   search: jest.fn().mockResolvedValue([]),
+  fetchByRepo: jest.fn().mockResolvedValue([]),
 };
 
 const mockEmbeddings = {
@@ -36,6 +37,7 @@ beforeEach(() => {
   jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
   jest.clearAllMocks();
   mockQdrant.search.mockResolvedValue([]);
+  mockQdrant.fetchByRepo.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -317,6 +319,205 @@ describe('handleSearch', () => {
       await handleSearch({ query: 'q', limit: '5' }, confidenceDeps);
       expect(stdoutData).toContain('[exact]');
       expect(stdoutData).not.toContain('confidence: high');
+    });
+  });
+
+  describe('staleness detection (#38)', () => {
+    const stalenessDeps: SearchDeps = {
+      loadCfg: jest.fn().mockResolvedValue(mockConfig),
+      createRepo: () => mockQdrant as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      createEmbeddings: () => mockEmbeddings as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
+
+    const oldTimestamp = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString();
+    const newTimestamp = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+
+    beforeEach(() => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'old-entry',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'An old decision',
+            source: 'agent',
+            tags: ['auth', 'rate-limiting'],
+            timestamp_utc: oldTimestamp,
+          },
+        },
+      ]);
+      mockQdrant.fetchByRepo.mockResolvedValue([
+        {
+          id: 'old-entry',
+          payload: {
+            repo: 'memo-cli',
+            tags: ['auth', 'rate-limiting'],
+            timestamp_utc: oldTimestamp,
+          },
+        },
+        {
+          id: 'newer-entry',
+          payload: {
+            repo: 'memo-cli',
+            tags: ['auth', 'rate-limiting'],
+            timestamp_utc: newTimestamp,
+          },
+        },
+      ]);
+    });
+
+    it('calls fetchByRepo exactly once regardless of the number of ranked results (AC5)', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'old-entry',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'An old decision',
+            source: 'agent',
+            tags: ['auth'],
+            timestamp_utc: oldTimestamp,
+          },
+        },
+        {
+          id: 'another-entry',
+          score: 0.7,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'Another decision',
+            source: 'agent',
+            tags: ['billing'],
+            timestamp_utc: newTimestamp,
+          },
+        },
+      ]);
+
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+
+      expect(mockQdrant.fetchByRepo).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call fetchByRepo when there are no ranked results', async () => {
+      mockQdrant.search.mockResolvedValue([]);
+
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+
+      expect(mockQdrant.fetchByRepo).not.toHaveBeenCalled();
+    });
+
+    it('scopes the fetchByRepo call to the resolved repo (AC6)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+
+      expect(mockQdrant.fetchByRepo).toHaveBeenCalledWith(['memo-cli']);
+    });
+
+    it('scopes the fetchByRepo call to the full related repo set for --scope related (AC6)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true, scope: 'related' }, stalenessDeps);
+
+      expect(mockQdrant.fetchByRepo).toHaveBeenCalledWith(['memo-cli', 'platform-docs']);
+    });
+
+    it('flags a stale result with stale:true and stale_by in --json output (AC1, AC2)', async () => {
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      const result = parsed.results.find((r) => r['id'] === 'old-entry');
+      expect(result?.['stale']).toBe(true);
+      expect(result?.['stale_by']).toBe('newer-entry');
+    });
+
+    it('omits stale and stale_by entirely when not stale (AC3)', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'fresh-entry',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'A fresh decision',
+            source: 'agent',
+            tags: ['auth'],
+            timestamp_utc: newTimestamp,
+          },
+        },
+      ]);
+      mockQdrant.fetchByRepo.mockResolvedValue([
+        {
+          id: 'fresh-entry',
+          payload: { repo: 'memo-cli', tags: ['auth'], timestamp_utc: newTimestamp },
+        },
+      ]);
+
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      const result = parsed.results[0];
+      expect(result).not.toHaveProperty('stale');
+      expect(result).not.toHaveProperty('stale_by');
+    });
+
+    it('does not change final_score or ordering when staleness is flagged (AC4)', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'old-entry',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'An old decision',
+            source: 'agent',
+            tags: ['auth', 'rate-limiting'],
+            timestamp_utc: oldTimestamp,
+          },
+        },
+        {
+          id: 'other-entry',
+          score: 0.5,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'A lower-similarity decision',
+            source: 'agent',
+            tags: [],
+            timestamp_utc: oldTimestamp,
+          },
+        },
+      ]);
+
+      const withStaleness = await (async () => {
+        await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+        return JSON.parse(stdoutData) as {
+          results: { id: string; final_score: number }[];
+        };
+      })();
+
+      // Re-run with an empty corpus (no staleness ever flagged) - final_score
+      // and ordering must be identical either way. Compared with a small
+      // tolerance rather than exact equality since real wall-clock
+      // milliseconds elapse between the two `handleSearch` invocations,
+      // each of which reads `Date.now()` independently for recency scoring.
+      stdoutData = '';
+      mockQdrant.fetchByRepo.mockResolvedValueOnce([]);
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+      const withoutStaleness = JSON.parse(stdoutData) as {
+        results: { id: string; final_score: number }[];
+      };
+
+      expect(withoutStaleness.results.map((r) => r.id)).toEqual(
+        withStaleness.results.map((r) => r.id),
+      );
+      withoutStaleness.results.forEach((r, i) => {
+        expect(r.final_score).toBeCloseTo(withStaleness.results[i]?.final_score ?? NaN, 6);
+      });
+    });
+
+    it('renders the STALE warning inline in human output (AC7)', async () => {
+      await handleSearch({ query: 'q', limit: '5' }, stalenessDeps);
+      expect(stdoutData).toContain('⚠ STALE');
+      expect(stdoutData).toContain('superseded by newer-entry');
+    });
+
+    it('never crashes on an empty corpus and never flags staleness', async () => {
+      mockQdrant.fetchByRepo.mockResolvedValue([]);
+
+      await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      expect(parsed.results[0]).not.toHaveProperty('stale');
     });
   });
 });

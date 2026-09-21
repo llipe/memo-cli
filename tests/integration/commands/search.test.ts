@@ -4,6 +4,7 @@ import type { SearchDeps } from '../../../src/commands/search.js';
 const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   search: jest.fn(),
+  fetchByRepo: jest.fn().mockResolvedValue([]),
 };
 
 const mockEmbeddings = {
