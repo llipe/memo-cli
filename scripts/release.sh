@@ -206,6 +206,7 @@ log "==> Pushing commit and release tag to origin main..."
 git push origin main --follow-tags
 
 log "==> Force-updating the release branch to trigger the CI publish workflow..."
+git fetch origin release --quiet
 git push origin main:release --force-with-lease
 
 log ""
