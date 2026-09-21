@@ -1,5 +1,6 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { EntryPayload } from '../types/entry.js';
+import type { EntryKind } from '../types/entry.js';
 
 export interface DedupeKeyParams {
   repo: string;
@@ -13,6 +14,50 @@ export function buildDedupeKey(params: DedupeKeyParams): string {
   const { repo, commit, story, entry_type, source } = params;
   const canonical = `v1|${repo}|${commit ?? 'na'}|${story ?? 'na'}|${entry_type}|${source}`;
   return createHash('sha256').update(canonical).digest('hex');
+}
+
+export interface DedupeKeyV2Params {
+  bank: string;
+  kind: EntryKind;
+  repo?: string;
+  commit?: string;
+  story?: string;
+  session_id?: string;
+  seq?: number;
+  entry_type: string;
+  source: string;
+}
+
+/**
+ * Builds the v2 dedupe key (A7, spec §18.5): `semantic` and `episodic` keys
+ * are the literal canonical string (not hashed) so they stay directly
+ * comparable/debuggable; `self` intentionally never matches anything -
+ * `sha256('self|' + randomUUID())` - since a `self` write always creates a
+ * new fact rather than deduplicating against a prior one.
+ *
+ * `semantic` keys never carry `session`/`seq` regardless of what the caller
+ * passes for those fields (they belong only to the `episodic` shape).
+ * `episodic` keys always carry both; `seq = 0` serializes to the literal
+ * `"0"`, not `'na'` (0 is a valid, meaningful sequence position).
+ */
+export function buildDedupeKeyV2(params: DedupeKeyV2Params): string {
+  const { bank, kind, repo, commit, story, session_id, seq, entry_type, source } = params;
+
+  if (kind === 'self') {
+    return createHash('sha256').update(`self|${randomUUID()}`).digest('hex');
+  }
+
+  const repoPart = repo ?? 'na';
+  const commitPart = commit ?? 'na';
+  const storyPart = story ?? 'na';
+
+  if (kind === 'episodic') {
+    const sessionPart = session_id ?? 'na';
+    const seqPart = seq !== undefined ? String(seq) : 'na';
+    return `v2|${bank}|${repoPart}|${commitPart}|${storyPart}|${sessionPart}|${seqPart}|episodic|${entry_type}|${source}`;
+  }
+
+  return `v2|${bank}|${repoPart}|${commitPart}|${storyPart}|na|semantic|${entry_type}|${source}`;
 }
 
 export function sourceToConfidence(source: 'agent' | 'manual' | 'scan'): 'high' | 'medium' | 'low' {

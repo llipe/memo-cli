@@ -313,49 +313,22 @@ export class QdrantRepository {
   }
 
   /**
-   * Builds the §8.1 bank base-filter shape needed by `fetchStalenessCorpus`
-   * (#81 AC6): for `bank = 'kb'`, a point matches when its `bank` field is
-   * explicitly `'kb'` *or* absent (pre-Phase-2 points have no `bank` field
-   * and are implicitly `kb`), plus a `repo` any-match clause that is only
-   * ever added for `kb`. For any other (private) bank, an exact `bank`
-   * match with no `repo` clause - private-bank isolation means the caller's
-   * repo scope never narrows a private bank's corpus.
-   *
-   * This is a private, method-scoped implementation of the §8.1 shape
-   * rather than a call into `src/lib/filters.ts`'s `buildBaseFilter`,
-   * because that shared builder is S2-03's scope and has not landed yet
-   * (this story has no dependency on S2-03). Once S2-03 merges,
-   * `fetchStalenessCorpus` may be refactored to compose `buildBaseFilter`
-   * instead of this local helper; the request shape is designed to match
-   * it exactly so that refactor is behavior-preserving.
-   */
-  private buildStalenessCorpusFilter(bank: string, repos: string[]): QdrantFilter {
-    if (bank === 'kb') {
-      return {
-        must: [
-          {
-            should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }],
-          },
-          { key: 'repo', match: { any: repos } },
-        ],
-      };
-    }
-    return { must: [{ key: 'bank', match: { value: bank } }] };
-  }
-
-  /**
-   * Fetches the staleness-detection corpus, bank-scoped (#81 AC6, spec
-   * §18.4/A12): applies the §8.1 base filter for `bank`, plus the `repo`
-   * any-match clause only when `bank === 'kb'` (a private bank's corpus is
-   * never narrowed by the caller's repo scope - private-bank isolation).
-   * Ordered by `timestamp_utc` desc via the underlying `scroll()`, same as
+   * Fetches the staleness-detection corpus (#81 AC6, spec §18.4/A12;
+   * refactored per the S2-02 Audit Mode drift finding D-2, issue #82 task
+   * 3.7): the caller builds `base` via `src/lib/filters.ts`'s
+   * `buildBaseFilter` (plus a `repo` any-match clause when `bank = 'kb'`,
+   * merged in via `mergeFilters`) and this method applies it verbatim -
+   * it no longer derives its own private copy of the §8.1 bank/repo shape.
+   * This guarantees the staleness corpus can never silently diverge from
+   * the same base filter every other read path uses (S2-05 AC4). Ordered
+   * by `timestamp_utc` desc via the underlying `scroll()`, same as
    * `fetchByRepo`.
    */
   async fetchStalenessCorpus(
-    { bank, repos }: { bank: string; repos: string[] },
+    base: QdrantFilter,
     limit = DEFAULT_STALENESS_CORPUS_LIMIT,
   ): Promise<ScrollResult[]> {
-    return this.scroll(this.buildStalenessCorpusFilter(bank, repos), limit);
+    return this.scroll(base, limit);
   }
 
   /**

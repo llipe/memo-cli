@@ -1,5 +1,6 @@
 import {
   buildDedupeKey,
+  buildDedupeKeyV2,
   buildEmbedText,
   consolidate,
   sourceToConfidence,
@@ -175,5 +176,122 @@ describe('update', () => {
     const patch: Partial<EntryPayload> = { id: '00000000-0000-0000-0000-000000000999' };
     const result = update(BASE, patch);
     expect(result.id).toBe(BASE.id);
+  });
+});
+
+describe('buildDedupeKeyV2 (AC6/AC7, spec §18.5)', () => {
+  const SEMANTIC_BASE = {
+    bank: 'jarvis-memory',
+    kind: 'semantic' as const,
+    repo: 'my-repo',
+    commit: 'abc123',
+    story: 'SP-1',
+    entry_type: 'decision',
+    source: 'agent',
+  };
+
+  const EPISODIC_BASE = {
+    bank: 'jarvis-memory',
+    kind: 'episodic' as const,
+    repo: 'my-repo',
+    commit: 'abc123',
+    story: 'SP-1',
+    session_id: 'sess-1',
+    seq: 0,
+    entry_type: 'observation',
+    source: 'agent',
+  };
+
+  describe('semantic keys', () => {
+    it('EC-42/CT-8: embeds actual values with the literal template (single "na" for the session slot)', () => {
+      expect(buildDedupeKeyV2(SEMANTIC_BASE)).toBe(
+        'v2|jarvis-memory|my-repo|abc123|SP-1|na|semantic|decision|agent',
+      );
+    });
+
+    it('EC-43: substitutes "na" for undefined commit/story', () => {
+      expect(buildDedupeKeyV2({ ...SEMANTIC_BASE, commit: undefined, story: undefined })).toBe(
+        'v2|jarvis-memory|my-repo|na|na|na|semantic|decision|agent',
+      );
+    });
+
+    it('EC-44: ignores stray session_id/seq passed to the semantic branch', () => {
+      const withoutExtras = buildDedupeKeyV2(SEMANTIC_BASE);
+      const withExtras = buildDedupeKeyV2({
+        ...SEMANTIC_BASE,
+        session_id: 'sess-should-be-ignored',
+        seq: 7,
+      } as typeof SEMANTIC_BASE & { session_id: string; seq: number });
+      expect(withExtras).toBe(withoutExtras);
+    });
+  });
+
+  describe('episodic keys', () => {
+    it('EC-45/CT-8: includes session and seq, with seq=0 serialized as the literal "0"', () => {
+      expect(buildDedupeKeyV2(EPISODIC_BASE)).toBe(
+        'v2|jarvis-memory|my-repo|abc123|SP-1|sess-1|0|episodic|observation|agent',
+      );
+    });
+
+    it('EC-46: substitutes "na" for undefined repo/commit/story, keeps session/seq literal', () => {
+      expect(
+        buildDedupeKeyV2({
+          ...EPISODIC_BASE,
+          repo: undefined,
+          commit: undefined,
+          story: undefined,
+        }),
+      ).toBe('v2|jarvis-memory|na|na|na|sess-1|0|episodic|observation|agent');
+    });
+
+    it('AC7/EC-48: seq=0 vs seq=1 with all else identical produce different keys', () => {
+      const a = buildDedupeKeyV2({ ...EPISODIC_BASE, seq: 0 });
+      const b = buildDedupeKeyV2({ ...EPISODIC_BASE, seq: 1 });
+      expect(a).not.toBe(b);
+    });
+
+    it('AC7/EC-47: same inputs with the same seq produce the same key, called twice', () => {
+      const a = buildDedupeKeyV2({ ...EPISODIC_BASE, seq: 3 });
+      const b = buildDedupeKeyV2({ ...EPISODIC_BASE, seq: 3 });
+      expect(a).toBe(b);
+    });
+  });
+
+  describe('self keys (AC6)', () => {
+    it('EC-50/CT-8: returns a 64-character lowercase hex SHA-256 digest', () => {
+      const key = buildDedupeKeyV2({
+        bank: 'jarvis-memory',
+        kind: 'self',
+        entry_type: 'structure',
+        source: 'manual',
+      });
+      expect(/^[0-9a-f]{64}$/.test(key)).toBe(true);
+    });
+
+    it('EC-49: two calls with identical inputs never collide', () => {
+      const params = {
+        bank: 'jarvis-memory',
+        kind: 'self' as const,
+        entry_type: 'structure',
+        source: 'manual',
+      };
+      const a = buildDedupeKeyV2(params);
+      const b = buildDedupeKeyV2(params);
+      expect(a).not.toBe(b);
+    });
+
+    it('property: 1,000 calls with identical fixed inputs produce zero collisions', () => {
+      const params = {
+        bank: 'jarvis-memory',
+        kind: 'self' as const,
+        entry_type: 'structure',
+        source: 'manual',
+      };
+      const keys = new Set<string>();
+      for (let i = 0; i < 1000; i++) {
+        keys.add(buildDedupeKeyV2(params));
+      }
+      expect(keys.size).toBe(1000);
+    });
   });
 });
