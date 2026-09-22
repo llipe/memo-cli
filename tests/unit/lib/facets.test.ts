@@ -1,4 +1,4 @@
-import { aggregateField } from '../../../src/lib/facets.js';
+import { aggregateField, aggregateMultipleFields } from '../../../src/lib/facets.js';
 import type { FacetScrollFn } from '../../../src/lib/facets.js';
 
 describe('aggregateField', () => {
@@ -106,5 +106,64 @@ describe('aggregateField', () => {
     const result = await aggregateField('tags', scroll);
 
     expect(result).toEqual([{ name: 'api', count: 1 }]);
+  });
+});
+
+describe('aggregateMultipleFields', () => {
+  it('aggregates orgs, repos, domains, and banks in a single scroll pass', async () => {
+    const scroll: FacetScrollFn = jest.fn().mockResolvedValue([
+      { id: '1', payload: { org: 'llipe', repo: 'memo-cli', domain: 'dev-tools', bank: 'kb' } },
+      { id: '2', payload: { org: 'llipe', repo: 'memo-cli', domain: 'dev-tools', bank: 'kb' } },
+      { id: '3', payload: { bank: 'private-bank' } },
+    ]);
+
+    const result = await aggregateMultipleFields(scroll);
+
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(result.banks).toEqual(
+      expect.arrayContaining([
+        { name: 'kb', count: 2 },
+        { name: 'private-bank', count: 1 },
+      ]),
+    );
+  });
+
+  it('folds points with an absent bank field into "kb"', async () => {
+    const scroll: FacetScrollFn = jest.fn().mockResolvedValue([
+      { id: '1', payload: { bank: 'kb' } },
+      { id: '2', payload: {} },
+      { id: '3', payload: { bank: 'private-bank' } },
+    ]);
+
+    const result = await aggregateMultipleFields(scroll);
+
+    expect(result.banks).toEqual(
+      expect.arrayContaining([
+        { name: 'kb', count: 2 },
+        { name: 'private-bank', count: 1 },
+      ]),
+    );
+    expect(result.banks.filter((b) => b.name === 'kb')).toHaveLength(1);
+  });
+
+  it('returns an empty banks array when the collection is empty', async () => {
+    const scroll: FacetScrollFn = jest.fn().mockResolvedValue([]);
+
+    const result = await aggregateMultipleFields(scroll);
+
+    expect(result.banks).toEqual([]);
+  });
+
+  it('counts a private-bank point with no org/repo/domain under banks only', async () => {
+    const scroll: FacetScrollFn = jest
+      .fn()
+      .mockResolvedValue([{ id: '1', payload: { bank: 'private-bank' } }]);
+
+    const result = await aggregateMultipleFields(scroll);
+
+    expect(result.orgs).toEqual([]);
+    expect(result.repos).toEqual([]);
+    expect(result.domains).toEqual([]);
+    expect(result.banks).toEqual([{ name: 'private-bank', count: 1 }]);
   });
 });

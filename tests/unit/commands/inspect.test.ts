@@ -21,6 +21,10 @@ const fullFacets: MultiFacetResult = {
     { name: 'developer-tools', count: 5 },
     { name: 'infra', count: 2 },
   ],
+  banks: [
+    { name: 'kb', count: 5 },
+    { name: 'my-bank', count: 2 },
+  ],
 };
 
 let stdoutData = '';
@@ -91,6 +95,7 @@ describe('handleInspect', () => {
         orgs: [{ name: 'solo', count: 1 }],
         repos: [],
         domains: [],
+        banks: [],
       };
       await handleInspect({}, makeDeps(facets));
 
@@ -175,6 +180,7 @@ describe('handleInspect', () => {
         orgs: [],
         repos: [{ name: 'bare-repo', count: 1 }],
         domains: [],
+        banks: [],
       };
       await handleInspect({ repos: true, json: true }, makeDeps(facets));
 
@@ -186,8 +192,86 @@ describe('handleInspect', () => {
     });
   });
 
+  describe('banks facet (S2-08)', () => {
+    it('shows a Banks section alongside the default view', async () => {
+      await handleInspect({}, makeDeps());
+
+      expect(stdoutData).toContain('Banks (2):');
+      expect(stdoutData).toContain('kb  (5 entries)');
+      expect(stdoutData).toContain('my-bank  (2 entries)');
+    });
+
+    it('is still shown when a narrowing flag is set (independent axis, §18.14 item 13)', async () => {
+      await handleInspect({ orgs: true }, makeDeps());
+
+      expect(stdoutData).toContain('Organizations (2):');
+      expect(stdoutData).toContain('Banks (2):');
+      expect(stdoutData).not.toContain('Repositories');
+      expect(stdoutData).not.toContain('Domains');
+    });
+
+    it('includes banks in the --json envelope regardless of narrowing flags', async () => {
+      await handleInspect({ orgs: true, json: true }, makeDeps());
+
+      const result = JSON.parse(stdoutData) as Record<string, unknown>;
+      expect(result['banks']).toEqual([
+        { name: 'kb', count: 5 },
+        { name: 'my-bank', count: 2 },
+      ]);
+      expect(result['orgs']).toBeDefined();
+      expect(result['repos']).toBeUndefined();
+      expect(result['domains']).toBeUndefined();
+    });
+
+    it('outputs full JSON contract including banks with no flags', async () => {
+      await handleInspect({ json: true }, makeDeps());
+
+      const result = JSON.parse(stdoutData) as Record<string, unknown>;
+      expect(result['banks']).toEqual([
+        { name: 'kb', count: 5 },
+        { name: 'my-bank', count: 2 },
+      ]);
+    });
+
+    it('does not affect existing orgs/repos/domains shape or content', async () => {
+      await handleInspect({ json: true }, makeDeps());
+
+      const result = JSON.parse(stdoutData) as Record<string, unknown>;
+      expect(result['orgs']).toEqual([
+        { name: 'acme', count: 2 },
+        { name: 'llipe', count: 5 },
+      ]);
+    });
+
+    it('omits the Banks section when banks is empty even if other facets have entries', async () => {
+      const facets: MultiFacetResult = {
+        orgs: [{ name: 'llipe', count: 1 }],
+        repos: [],
+        domains: [],
+        banks: [],
+      };
+      await handleInspect({}, makeDeps(facets));
+
+      expect(stdoutData).not.toContain('Banks');
+    });
+
+    it('shows banks even when orgs/repos/domains are all empty (private-bank-only collection)', async () => {
+      const facets: MultiFacetResult = {
+        orgs: [],
+        repos: [],
+        domains: [],
+        banks: [{ name: 'private-bank', count: 3 }],
+      };
+      await handleInspect({}, makeDeps(facets));
+
+      expect(stdoutData).toContain('Banks (1):');
+      expect(stdoutData).toContain('private-bank  (3 entries)');
+      expect(stdoutData).not.toContain('No entries found.');
+    });
+  });
+
   describe('empty result', () => {
-    const emptyFacets: MultiFacetResult = { orgs: [], repos: [], domains: [] };
+    const emptyFacets: MultiFacetResult = { orgs: [], repos: [], domains: [], banks: [] };
 
     it('outputs "No entries found." message', async () => {
       await handleInspect({}, makeDeps(emptyFacets));

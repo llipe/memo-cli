@@ -246,22 +246,22 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
 - [ ] 8.0 Implement Story S2-08: `memo bank init|list|show` and `inspect` banks facet — [#87](https://github.com/llipe/memo-cli/issues/87)
 
   > Note: depends on task 4.0 (`bank init` delegates to the S2-04 write path). Independent of task 9.0.
-  - [ ] 8.1 Write `tests/unit/commands/bank.test.ts`: id validation and `kb` rejection; idempotent `init`; `writeConfig` called only with `--set-default`; `list` folding of `bank`-absent points into `kb`; `show` ordering and state counts
-  - [ ] 8.2 Write `tests/unit/commands/inspect.test.ts` case: `banks` facet present
-  - [ ] 8.3 Write `tests/integration/commands/bank.test.ts`: init → list → show on a mocked repo with a v1 point present
-  - [ ] 8.4 Create `src/commands/bank.ts` with `init`, `list`, `show` subcommands; `init` delegates to the write handler with fixed flags per §18.10; `--set-default` gates the sole `writeConfig` call (decision A13)
-  - [ ] 8.5 Add a `banks` facet (counts only) to `src/commands/inspect.ts`
-  - [ ] 8.6 Register `bank` in `src/index.ts`
-  - [ ] 8.7 Verify AC1–AC3: init creation, idempotency, `--set-default` gating
-  - [ ] 8.8 Verify AC4: `list` folding and counts
-  - [ ] 8.9 Verify AC5: `show` ordering and state counts, unknown-bank zero-count response
-  - [ ] 8.10 Verify AC6: `inspect` `banks` facet
-  - [ ] 8.11 Manual: on `memo_eval`, `memo bank init --id smoke-bank` (twice), `memo bank list`, `memo bank show --id smoke-bank`, `memo inspect`
-  - [ ] 8.12 Edge cases: id as UUID; `--tags` with one tag rejected by the 2–5 schema rule; `--set-default` with no `memo.config.json` present; `show` on an all-archived bank
-  - [ ] 8.13 Map every AC to its test in the PR body
-  - [ ] 8.14 Migration: not required — writes go through the S2-04 path, no existing data changes; document the 1.2.x read-compatibility caveat (a `self` point looks like an ordinary entry to 1.2.x `memo list`) in the PR body
-  - [ ] 8.15 Update `README.md` command section and `docs/system-overview.md`
-  - [ ] 8.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [x] 8.1 Write `tests/unit/commands/bank.test.ts`: id validation and `kb` rejection; idempotent `init`; `writeConfig` called only with `--set-default`; `list` folding of `bank`-absent points into `kb`; `show` ordering and state counts
+  - [x] 8.2 Write `tests/unit/commands/inspect.test.ts` case: `banks` facet present
+  - [x] 8.3 Write `tests/integration/commands/bank.test.ts`: init → list → show on a mocked repo with a v1 point present
+  - [x] 8.4 Create `src/commands/bank.ts` with `init`, `list`, `show` subcommands; `init` delegates to the write handler with fixed flags per §18.10; `--set-default` gates the sole `writeConfig` call (decision A13)
+  - [x] 8.5 Add a `banks` facet (counts only) to `src/commands/inspect.ts`
+  - [x] 8.6 Register `bank` in `src/index.ts`
+  - [x] 8.7 Verify AC1–AC3: init creation, idempotency, `--set-default` gating
+  - [x] 8.8 Verify AC4: `list` folding and counts
+  - [x] 8.9 Verify AC5: `show` ordering and state counts, unknown-bank zero-count response
+  - [x] 8.10 Verify AC6: `inspect` `banks` facet
+  - [x] 8.11 Manual: on `memo_eval`, `memo bank init --id smoke-bank` (twice), `memo bank list`, `memo bank show --id smoke-bank`, `memo inspect`
+  - [x] 8.12 Edge cases: id as UUID; `--tags` with one tag rejected by the 2–5 schema rule; `--set-default` with no `memo.config.json` present; `show` on an all-archived bank
+  - [x] 8.13 Map every AC to its test in the PR body
+  - [x] 8.14 Migration: not required — writes go through the S2-04 path, no existing data changes; document the 1.2.x read-compatibility caveat (a `self` point looks like an ordinary entry to 1.2.x `memo list`) in the PR body
+  - [x] 8.15 Update `README.md` command section and `docs/system-overview.md`
+  - [x] 8.16 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
   - [ ] 8.17 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
   - [ ] 8.18 Open PR against `main`, link `Closes #87`, obtain user approval, merge
 
