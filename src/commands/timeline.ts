@@ -8,6 +8,7 @@ import { output } from '../lib/output.js';
 import type { TimelineHumanGroup, TimelineHumanResult } from '../lib/output.js';
 import { QdrantRepository } from '../lib/qdrant.js';
 import type { ScrollResult } from '../lib/qdrant.js';
+import { DATE_ONLY, isValidCalendarDate, parseDateParts } from '../lib/iso-date.js';
 
 /**
  * `memo timeline` (spec §18.8, S2-06). Replays `kind = episodic` history in
@@ -50,13 +51,13 @@ function parseLast(value: string | number | undefined): { limit: number; clamped
   return { limit: parsed, clamped: false };
 }
 
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-
 /**
  * Validates and normalizes `--since` to an ISO 8601 datetime (AC3): a
  * date-only value normalizes to midnight UTC (matching the `--from`
  * convention in `list-filters.ts`'s `normalizeIsoBoundary`); any other
- * unparseable string fails `VALIDATION_FAILED` (SC-4).
+ * unparseable string fails `VALIDATION_FAILED` (SC-4). A date-only value
+ * must also be a real calendar date (issue #98) - `2026-13-40` fails even
+ * though it matches the `DATE_ONLY` shape.
  */
 function parseSince(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
@@ -67,6 +68,13 @@ function parseSince(value: string | undefined): string | undefined {
   }
 
   if (DATE_ONLY.test(trimmed)) {
+    const [year, month, day] = parseDateParts(trimmed);
+    if (!isValidCalendarDate(year, month, day)) {
+      throw new MemoError(
+        'VALIDATION_FAILED',
+        `Invalid --since value "${value}". Not a real calendar date.`,
+      );
+    }
     return `${trimmed}T00:00:00.000Z`;
   }
 

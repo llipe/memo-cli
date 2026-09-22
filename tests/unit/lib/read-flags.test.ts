@@ -95,6 +95,10 @@ describe('parseReadFlags (AC1, spec §18.7)', () => {
       expectValidationFailed(() => parseReadFlags({ asOf: '03/01/2025' }, {}, undefined));
     });
 
+    it('issue #98: a calendar-invalid date-only value (month 13, day 40) fails VALIDATION_FAILED', () => {
+      expectValidationFailed(() => parseReadFlags({ asOf: '2026-13-40' }, {}, undefined));
+    });
+
     it('EC-16: --as-of implies includeSuperseded true even when --include-superseded is not set', () => {
       const result = parseReadFlags({ asOf: '2026-01-01' }, {}, undefined);
       expect(result.includeSuperseded).toBe(true);

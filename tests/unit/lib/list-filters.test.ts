@@ -28,6 +28,20 @@ describe('normalizeListDateRange', () => {
       }),
     ).toThrow(MemoError);
   });
+
+  it('issue #98: a calendar-invalid --from date-only value (month 13, day 40) fails VALIDATION_FAILED', () => {
+    expect(() => normalizeListDateRange({ from: '2026-13-40' })).toThrow(MemoError);
+  });
+
+  it('issue #98: a calendar-invalid --to date-only value (2025-02-30) fails VALIDATION_FAILED', () => {
+    expect(() => normalizeListDateRange({ to: '2025-02-30' })).toThrow(MemoError);
+  });
+
+  it('issue #98: a valid full ISO datetime for --from is unaffected (unchanged behavior)', () => {
+    expect(normalizeListDateRange({ from: '2026-02-15T10:00:00.000Z' })).toEqual({
+      from: '2026-02-15T10:00:00.000Z',
+    });
+  });
 });
 
 describe('buildListFilters', () => {

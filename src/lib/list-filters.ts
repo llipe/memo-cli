@@ -1,5 +1,6 @@
 import { MemoError } from './errors.js';
 import { mergeFilters } from './filters.js';
+import { DATE_ONLY, isValidCalendarDate, parseDateParts } from './iso-date.js';
 import type { QdrantFilter } from './qdrant.js';
 
 export interface BuildListFiltersInput {
@@ -45,7 +46,14 @@ function normalizeIsoBoundary(value: string, boundary: 'from' | 'to'): string {
     throw new MemoError('VALIDATION_FAILED', `--${boundary} must not be empty.`);
   }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  if (DATE_ONLY.test(trimmed)) {
+    const [year, month, day] = parseDateParts(trimmed);
+    if (!isValidCalendarDate(year, month, day)) {
+      throw new MemoError(
+        'VALIDATION_FAILED',
+        `--${boundary} must be a valid calendar date. Received "${value}".`,
+      );
+    }
     return boundary === 'from' ? `${trimmed}T00:00:00.000Z` : `${trimmed}T23:59:59.999Z`;
   }
 
