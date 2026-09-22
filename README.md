@@ -1262,6 +1262,8 @@ src/
 │   ├── delete.ts         # memo delete (safe single + bulk delete)
 │   ├── read.ts           # memo read (single entry by ID)
 │   ├── timeline.ts       # memo timeline (episodic replay, never ranked)
+│   ├── recall.ts         # memo recall (SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS)
+│   ├── migrate.ts        # memo migrate --to-v2 (v1→v2 payload migration)
 │   └── bank.ts           # memo bank (init / list / show) + inspect banks facet
 ├── lib/
 │   ├── qdrant.ts         # Qdrant collection management & queries
@@ -1276,6 +1278,17 @@ src/
 │   ├── list-filters.ts   # List pre-filter builder (date range)
 │   ├── retry.ts          # Exponential backoff retry
 │   ├── eval.ts           # Pure top-3 hit-rate computation (eval harness)
+│   ├── ranking.ts        # Composite ranking score, confidence tiers, tag boost
+│   ├── staleness.ts      # Pure staleness detection
+│   ├── lexical.ts        # Pure lexical identifier matching
+│   ├── entry-normalize.ts # `normalizeEntry`: read-side v1→v2 defaulting boundary
+│   ├── bank.ts           # Bank resolution, kind defaults, policy lookup
+│   ├── filters.ts        # `buildBaseFilter` (bank/kind/state) + `mergeFilters`
+│   ├── migrate.ts        # v1→v2 migration rules (bank/kind/session_id inference, idempotency)
+│   ├── recall.ts         # SELF + tiered candidate assembly, caps, trimming, dedup
+│   ├── read-flags.ts     # Shared read-path flag parsing (bank/kind/state)
+│   ├── duration.ts       # Human-readable duration formatting
+│   ├── iso-date.ts       # ISO-8601 date parsing/formatting helpers
 │   └── debug.ts          # Debug logging (MEMO_DEBUG)
 ├── adapters/
 │   └── openai-embeddings.ts  # OpenAI text-embedding-3-small
