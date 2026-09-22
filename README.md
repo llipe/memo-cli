@@ -25,6 +25,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
   - [Step 8: Delete Entries](#step-8-delete-entries)
   - [Step 9: Read a Single Entry](#step-9-read-a-single-entry)
   - [Step 10: Replay Episodic History](#step-10-replay-episodic-history)
+  - [Step 11: Restore Context in One Call (memo recall)](#step-11-restore-context-in-one-call-memo-recall)
 - [Command Reference](#command-reference)
 - [Agent Integration](#agent-integration)
   - [Agent Skill (memo-cli-usage)](#agent-skill-memo-cli-usage)
@@ -751,21 +752,90 @@ Only `kind = episodic` entries are ever returned, with the default `archived`/`s
 
 ---
 
+### Step 11: Restore Context in One Call (`memo recall`)
+
+`memo recall` is the headline Phase 2 command: instead of running `search`/`list`/`timeline` separately and synthesizing by hand, one call returns everything an agent needs to start a session — within a token budget.
+
+```bash
+memo recall "plan the next story" --bank my-agent
+```
+
+Returns six sections, in this fixed order:
+
+| Section        | What it is                                                    | Cap                      |
+| -------------- | ------------------------------------------------------------- | ------------------------ |
+| `SELF`         | Every non-superseded `self` entry of the bank, newest first   | none (never trimmed, K4) |
+| `POLICIES`     | Ranked `kb` semantic entries with `entry_type = policy`       | none (never omitted)     |
+| `SHARED`       | Ranked `kb` semantic entries relevant to the task             | 8                        |
+| `MINE`         | Ranked bank-private semantic entries relevant to the task     | 5                        |
+| `LAST SESSION` | The bank's most recent episodic session, in `seq` order       | 15                       |
+| `CONFLICTS`    | Entries flagged `pending_contradiction` (empty until Phase 4) | 5                        |
+
+An id kept in an earlier section never repeats in a later one (cross-section dedup). If the total would exceed `--max-tokens`, sections are trimmed lowest-priority first — `conflicts → last_session (oldest first) → mine → shared → policies` — until it fits; `SELF` is **never** trimmed, even if it alone exceeds the budget (the response still reports the true `used_tokens`, honestly, rather than pretending it fit).
+
+```bash
+# Override the token budget (default: config.recall.max_tokens, 2000)
+memo recall "plan the next story" --bank my-agent --max-tokens 500
+
+# --scope applies to SHARED only (repo | related, default: config or repo)
+memo recall "plan the next story" --bank my-agent --scope related
+```
+
+#### `--bank kb`
+
+With `--bank kb` (or no `--bank` at all), `SELF`, `MINE`, and `LAST SESSION` are **omitted** — not empty arrays — from both human and `--json` output, since the shared knowledge base has no private self-reflection or episodic history of its own:
+
+```bash
+memo recall "plan the next story" --bank kb
+# SELF/MINE/LAST SESSION headers never print; only POLICIES, SHARED, CONFLICTS
+```
+
+#### JSON mode
+
+```bash
+memo recall "plan the next story" --bank my-agent --json
+# {
+#   "query_id": "...",
+#   "bank": "my-agent",
+#   "budget": { "max_tokens": 2000, "used_tokens": 1740 },
+#   "sections": {
+#     "self": [...], "policies": [...], "shared": [...], "mine": [...],
+#     "last_session": { "session_id": "ISSUE-42", "entries": [...] },
+#     "conflicts": []
+#   },
+#   "truncated": ["conflicts"]
+# }
+```
+
+#### All recall flags
+
+| Flag               | Default                                  | Description                                                          |
+| ------------------ | ---------------------------------------- | -------------------------------------------------------------------- |
+| `--bank`           | `MEMO_BANK`, `config.bank.default`, `kb` | Bank id to gather context from                                       |
+| `--scope`          | config or `repo`                         | `repo` \| `related` — applies to `SHARED` only                       |
+| `--max-tokens <n>` | `config.recall.max_tokens` (`2000`)      | Token budget for the whole bundle (`ceil(chars / 4)` per entry line) |
+| `--json`           | `false`                                  | Output as JSON                                                       |
+
+`memo recall` is **read-only** in Phase 2 (decision A14): it emits a `query_id` but writes nothing — no `setPayload`/`batchSetPayload` call and no file under `~/.memo/` — every invocation is safe to run repeatedly with no side effects. Session-close counters and the `memo used` feedback loop arrive in Phase 3.
+
+---
+
 ## Command Reference
 
-| Command               | Purpose                                  | Key Flags                                                                       |
-| --------------------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
-| `memo setup init`     | Create `memo.config.json`                | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
-| `memo setup show`     | Display current config                   | `--json`                                                                        |
-| `memo setup validate` | Check config validity                    | —                                                                               |
-| `memo write`          | Capture a decision                       | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
-| `memo search <query>` | Semantic search                          | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
-| `memo list`           | Chronological listing                    | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
-| `memo tags list`      | Browse unique tags                       | `--scope`, `--sort`, `--json`                                                   |
-| `memo inspect`        | Discover orgs/repos/domains              | `--orgs`, `--repos`, `--domains`, `--json`                                      |
-| `memo delete`         | Delete entries                           | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
-| `memo read`           | Read one specific entry by id            | `--id`, `--json`                                                                |
-| `memo timeline`       | Replay episodic memory in sequence order | `--bank`, `--session`, `--last`, `--since`, `--json`                            |
+| Command               | Purpose                                                                        | Key Flags                                                                       |
+| --------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `memo setup init`     | Create `memo.config.json`                                                      | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
+| `memo setup show`     | Display current config                                                         | `--json`                                                                        |
+| `memo setup validate` | Check config validity                                                          | —                                                                               |
+| `memo write`          | Capture a decision                                                             | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
+| `memo search <query>` | Semantic search                                                                | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
+| `memo list`           | Chronological listing                                                          | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
+| `memo tags list`      | Browse unique tags                                                             | `--scope`, `--sort`, `--json`                                                   |
+| `memo inspect`        | Discover orgs/repos/domains                                                    | `--orgs`, `--repos`, `--domains`, `--json`                                      |
+| `memo delete`         | Delete entries                                                                 | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
+| `memo read`           | Read one specific entry by id                                                  | `--id`, `--json`                                                                |
+| `memo timeline`       | Replay episodic memory in sequence order                                       | `--bank`, `--session`, `--last`, `--since`, `--json`                            |
+| `memo recall <task>`  | One call to restore context (SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS) | `--bank`, `--scope`, `--max-tokens`, `--json`                                   |
 
 ### Global flags
 
@@ -808,6 +878,29 @@ memo write \
 # 3. Verify the write
 memo search "OAuth2 mobile client" --json | jq '.count'
 ```
+
+### Session protocol preview (long-lived agents, Phase 2)
+
+A long-lived agent with its own private bank (`MEMO_BANK`) follows this shape — `recall` restores context at session start, episodic `write` calls capture what happened, and session close stays a no-op until Phase 3 adds `memo used`/`memo decay`:
+
+```bash
+export MEMO_BANK=jarvis-memory
+
+# Session start — restore context in one call
+memo recall "plan the next story" --bank "$MEMO_BANK" --json
+
+# During the session — capture intent and outcome as episodic memory
+memo write --kind episodic --session ISSUE-42 \
+  --rationale "Intent: implement rate limiting per the refined spec." \
+  --tags "issue-42,intent" --json
+memo write --kind episodic --session ISSUE-42 \
+  --rationale "Outcome: shipped, tests green, PR merged." \
+  --tags "issue-42,outcome" --json
+
+# Session close — Phase 3 (memo used / memo decay); no-op in Phase 2
+```
+
+See `.claude/skills/memo-cli-usage/` for the full harness-level protocol once dev-tasks consumes the 1.3.0 contract (S2-10).
 
 ### Environment setup for agents
 

@@ -45,7 +45,7 @@
 - `src/types/config.ts` — `schema_version` enum `'1'|'2'`, `bank`, `banks` (kb/private × self/episodic/semantic policy), `recall.max_tokens`
 - `src/types/entry.ts` — `EntryPayloadV2Schema` superset, kind/bank `superRefine` rules, `entry_type` gains `policy`/`observation`, `source` gains `scan`
 - `src/lib/dedupe.ts` — `buildDedupeKeyV2` (per-kind), `sourceToConfidence('scan')`
-- `src/lib/qdrant.ts` — 12 new payload indexes, `scrollOrdered`, `scrollAll`, `count`, `setPayload`, `batchSetPayload`, `fetchStalenessCorpus` (replaces `fetchByRepo`)
+- `src/lib/qdrant.ts` — 12 new payload indexes (task 2.0) + `pending_contradiction` (task 7.0, discovered missing during S2-07 live manual validation against a strict-mode Qdrant cluster), `scrollOrdered`, `scrollAll`, `count`, `setPayload`, `batchSetPayload`, `fetchStalenessCorpus` (replaces `fetchByRepo`)
 - `src/lib/search-filters.ts`, `src/lib/list-filters.ts` — accept and merge a `base` filter
 - `src/commands/write.ts` — `--bank/--kind/--session/--seq/--context/--provenance/--manual/--supersedes/--pin/--expires-in`, v2 payload build order, soft-cap warning
 - `src/commands/search.ts` — read-flags, `base` filter wired through dense/lexical/staleness, `--kind self` unranked path, `rankCandidates()` extraction for reuse by `recall`
@@ -53,6 +53,7 @@
 - `src/commands/setup.ts` — `--v2` init flag, resolved bank default in `validate`
 - `src/commands/inspect.ts` — `banks` facet
 - `src/index.ts` — register `timeline`, `recall`, `bank`, `migrate`
+- `src/lib/output.ts` — `recallSections`/`recallFooter` human-output renderer (task 7.0)
 - `tests/unit/commands/{write,search,list,tags,read,setup,inspect}.test.ts`, `tests/unit/lib/{config,qdrant,dedupe,search-filters,list-filters}.test.ts`, `tests/integration/commands/{write,search,read,setup,migrate}.test.ts`
 - `tests/relevance/replay.test.ts` — AC-2.3 identity assertion added
 - `README.md`, `docs/data-model.md`, `docs/system-overview.md`, `docs/technical-guidelines.md`, `/TESTING.md`, `docs/requirements/prd-004-long-lived-agent-memory.md`
@@ -217,30 +218,30 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
 - [ ] 7.0 Implement Story S2-07: `memo recall` — [#86](https://github.com/llipe/memo-cli/issues/86)
 
   > Note: depends on tasks 5.0 and 6.0. The headline Phase 2 feature (PRD goal 3). Per decision A14, this task writes no local snapshot and updates no retrieval counters — `recall` is read-only until Phase 3.
-  - [ ] 7.1 Write `tests/unit/lib/recall.test.ts` (pure `assembleRecall`): SELF complete and first; superseded `self` absent; SELF intact under a budget smaller than SELF alone; cross-section dedup; trimming order (`conflicts → last_session → mine → shared → policies`); single `query_id`; `bank=kb` omits SELF/MINE/LAST SESSION
-  - [ ] 7.2 Write `tests/unit/commands/recall.test.ts`: call-count/shape assertions on the mocked repo and embeddings adapter; assert zero `setPayload`/`batchSetPayload`/filesystem calls; `--scope` reaches only the SHARED filter; POLICIES filter shape
-  - [ ] 7.3 Write `tests/integration/commands/recall.test.ts`: seeded mock with two banks, one superseded `self`, one `policy` entry, a two-session episodic history — assert the full JSON bundle
-  - [ ] 7.4 Extract `rankCandidates()` from `src/commands/search.ts` (over-fetch, lexical union, `rankResults`, `detectStaleness`) with no behavior change — confirm Phase 1 and task 5.0 tests stay green after extraction
-  - [ ] 7.5 Create `src/lib/recall.ts` (`assembleRecall`, pure, per §8.5/§18.9 caps and trimming order)
-  - [ ] 7.6 Create `src/commands/recall.ts`: gather SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS per the §18.9 table, one embed call, `query_id = randomUUID()`; register in `src/index.ts`
-  - [ ] 7.7 Implement the human-output renderer (section headers, `budget: used/max · truncated: …` footer) per spec §10
-  - [ ] 7.8 Verify AC1 (PRD AC-2.6): section order and SELF completeness/superseded-omission
-  - [ ] 7.9 Verify AC2–AC3: budget trimming behavior and honest over-budget reporting when SELF alone exceeds it
-  - [ ] 7.10 Verify AC4: cross-section dedup and single `query_id`
-  - [ ] 7.11 Verify AC5: section caps
-  - [ ] 7.12 Verify AC6: SHARED/MINE ranked identically to `memo search`; LAST SESSION seq-ordered; SELF unscored
-  - [ ] 7.13 Verify AC7: `bank=kb` omission
-  - [ ] 7.14 Verify AC8: exactly one embed call, zero write calls
-  - [ ] 7.15 Verify AC9: `--max-tokens` default from config, `--scope` scoping, envelope/output shape
-  - [ ] 7.16 Verify AC10: POLICIES population from `kb` `entry_type=policy` entries
-  - [ ] 7.17 Manual: on `memo_eval` after task 4.0's writes, run `memo recall "plan the next story" --bank <b>` human and `--json`, `--max-tokens 200`, `--bank kb`; measure and record wall time (`< 4s` target)
-  - [ ] 7.18 Edge cases: bank with no episodic history; `self` count above `soft_cap`; empty task string rejected; duplicate entry in SHARED and MINE candidates (dedup keeps SHARED); huge `--max-tokens` (`truncated: []`); embeddings failure surfaces `EMBEDDING_API_ERROR` with no partial bundle
-  - [ ] 7.19 Map every AC to its test in the PR body, including the recorded latency measurement
-  - [ ] 7.20 Migration: not required — read-only, no local state written; record opt-out rationale in the PR body
-  - [ ] 7.21 Update `README.md` (command + session protocol preview) and `docs/system-overview.md` (recall flow diagram)
-  - [ ] 7.22 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 7.23 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 7.24 Open PR against `main`, link `Closes #86`, obtain user approval, merge
+  - [x] 7.1 Write `tests/unit/lib/recall.test.ts` (pure `assembleRecall`): SELF complete and first; superseded `self` absent; SELF intact under a budget smaller than SELF alone; cross-section dedup; trimming order (`conflicts → last_session → mine → shared → policies`); single `query_id`; `bank=kb` omits SELF/MINE/LAST SESSION
+  - [x] 7.2 Write `tests/unit/commands/recall.test.ts`: call-count/shape assertions on the mocked repo and embeddings adapter; assert zero `setPayload`/`batchSetPayload`/filesystem calls; `--scope` reaches only the SHARED filter; POLICIES filter shape
+  - [x] 7.3 Write `tests/integration/commands/recall.test.ts`: seeded mock with two banks, one superseded `self`, one `policy` entry, a two-session episodic history — assert the full JSON bundle
+  - [x] 7.4 Extract `rankCandidates()` from `src/commands/search.ts` (over-fetch, lexical union, `rankResults`, `detectStaleness`) with no behavior change — confirm Phase 1 and task 5.0 tests stay green after extraction
+  - [x] 7.5 Create `src/lib/recall.ts` (`assembleRecall`, pure, per §8.5/§18.9 caps and trimming order)
+  - [x] 7.6 Create `src/commands/recall.ts`: gather SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS per the §18.9 table, one embed call, `query_id = randomUUID()`; register in `src/index.ts`
+  - [x] 7.7 Implement the human-output renderer (section headers, `budget: used/max · truncated: …` footer) per spec §10
+  - [x] 7.8 Verify AC1 (PRD AC-2.6): section order and SELF completeness/superseded-omission
+  - [x] 7.9 Verify AC2–AC3: budget trimming behavior and honest over-budget reporting when SELF alone exceeds it
+  - [x] 7.10 Verify AC4: cross-section dedup and single `query_id`
+  - [x] 7.11 Verify AC5: section caps
+  - [x] 7.12 Verify AC6: SHARED/MINE ranked identically to `memo search`; LAST SESSION seq-ordered; SELF unscored
+  - [x] 7.13 Verify AC7: `bank=kb` omission
+  - [x] 7.14 Verify AC8: exactly one embed call, zero write calls
+  - [x] 7.15 Verify AC9: `--max-tokens` default from config, `--scope` scoping, envelope/output shape
+  - [x] 7.16 Verify AC10: POLICIES population from `kb` `entry_type=policy` entries
+  - [x] 7.17 Manual: on `memo_eval` after task 4.0's writes, run `memo recall "plan the next story" --bank <b>` human and `--json`, `--max-tokens 200`, `--bank kb`; measure and record wall time (`< 4s` target)
+  - [x] 7.18 Edge cases: bank with no episodic history; `self` count above `soft_cap`; empty task string rejected; duplicate entry in SHARED and MINE candidates (dedup keeps SHARED); huge `--max-tokens` (`truncated: []`); embeddings failure surfaces `EMBEDDING_API_ERROR` with no partial bundle
+  - [x] 7.19 Map every AC to its test in the PR body, including the recorded latency measurement
+  - [x] 7.20 Migration: not required — read-only, no local state written; record opt-out rationale in the PR body
+  - [x] 7.21 Update `README.md` (command + session protocol preview) and `docs/system-overview.md` (recall flow diagram)
+  - [x] 7.22 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [ ] 7.23 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — **not run in this execution context** (no-delegation default, see closeout payload); caller (`planner`) invokes `verifier` directly
+  - [ ] 7.24 Open PR against the integration branch (`integration/prd-004-phase-2-banks-kinds-sessions-recall`, per this run's base-branch override), link `Closes #86`, obtain approval, merge — PR [#100](https://github.com/llipe/memo-cli/pull/100) opened as draft; approval/merge pending
 
 - [ ] 8.0 Implement Story S2-08: `memo bank init|list|show` and `inspect` banks facet — [#87](https://github.com/llipe/memo-cli/issues/87)
 

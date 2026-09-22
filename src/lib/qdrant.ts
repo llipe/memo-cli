@@ -114,6 +114,12 @@ const PAYLOAD_INDEXES = [
   { field: 'valid_to', schema: 'datetime' },
   { field: 'expires_at', schema: 'datetime' },
   { field: 'archived_at', schema: 'datetime' },
+  // S2-07 (issue #86): `memo recall`'s CONFLICTS section filters on this
+  // field directly (spec §18.9: `scroll({ bank, pending_contradiction: true
+  // }, 5)`) - discovered missing from the S2-02 twelve-index list during
+  // this story's live manual validation (a strict-mode Qdrant cluster
+  // rejects a filter on an unindexed field with 400 Bad Request).
+  { field: 'pending_contradiction', schema: 'bool' },
 ] as const;
 
 export class QdrantRepository {

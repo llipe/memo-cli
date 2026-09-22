@@ -46,6 +46,9 @@ describe('QdrantRepository Integration', () => {
     valid_to: {},
     expires_at: {},
     archived_at: {},
+    // S2-07 (#86): added post-S2-02, once `memo recall`'s CONFLICTS section
+    // needed to filter on this field directly against a strict-mode cluster.
+    pending_contradiction: {},
   };
 
   it('ensureCollection() creates collection on fresh instance', async () => {
@@ -57,8 +60,9 @@ describe('QdrantRepository Integration', () => {
     await repo.ensureCollection();
 
     expect(mockCreateCollection).toHaveBeenCalledTimes(1);
-    // 22 payload indexes total (#62 adds rationale + files_modified; #81/S2-02 adds 12 v2 indexes).
-    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(22);
+    // 23 payload indexes total (#62 adds rationale + files_modified; #81/S2-02
+    // adds 12 v2 indexes; #86/S2-07 adds pending_contradiction).
+    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(23);
   });
 
   it('ensureCollection() is idempotent when called twice against a fully-indexed collection', async () => {
@@ -89,7 +93,7 @@ describe('QdrantRepository Integration', () => {
     await repo.ensureCollection();
 
     expect(mockCreateCollection).toHaveBeenCalledTimes(1);
-    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(22); // only from the first (create) call
+    expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(23); // only from the first (create) call
   });
 
   it('throws COLLECTION_BOOTSTRAP_FAILED when Qdrant is unreachable', async () => {
@@ -116,8 +120,9 @@ describe('QdrantRepository Integration', () => {
           timestamp_utc: {},
           commit: {},
           dedupe_key_sha256: {},
-          // rationale, files_modified, and the 12 S2-02/#81 v2 fields are all
-          // missing, as they would be on a collection created before #62/#81.
+          // rationale, files_modified, the 12 S2-02/#81 v2 fields, and
+          // S2-07/#86's pending_contradiction are all missing, as they would
+          // be on a collection created before #62/#81/#86.
         },
       });
       mockCreatePayloadIndex.mockResolvedValue({});
@@ -126,7 +131,7 @@ describe('QdrantRepository Integration', () => {
       await repo.ensureIndexes();
 
       expect(mockCreateCollection).not.toHaveBeenCalled();
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(14);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(15);
       expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
         'decisions',
         expect.objectContaining({ field_name: 'rationale' }),
@@ -173,8 +178,9 @@ describe('QdrantRepository Integration', () => {
 
   // ---------------------------------------------------------------------------
   // Story S2-02 (issue #81): SC-1 / CT-6 — ensureIndexes reconciles a
-  // pre-existing v1.2.0-shaped collection by creating exactly the 12 new
-  // indexes, and is idempotent on a second run.
+  // pre-existing v1.2.0-shaped collection by creating exactly the v2 field
+  // indexes, and is idempotent on a second run. Extended by S2-07 (#86) to
+  // also cover `pending_contradiction` (13 v2 fields total as of this story).
   // ---------------------------------------------------------------------------
 
   describe('ensureIndexes() (#81 AC1 — SC-1/CT-6)', () => {
@@ -191,7 +197,7 @@ describe('QdrantRepository Integration', () => {
       files_modified: {},
     };
 
-    it('SC-1: first call creates exactly the 12 new indexes and none of the existing 10; second call creates 0', async () => {
+    it('SC-1: first call creates exactly the 13 new indexes and none of the existing 10; second call creates 0', async () => {
       mockGetCollection
         .mockResolvedValueOnce({ config: {}, payload_schema: V1_2_0_PAYLOAD_SCHEMA })
         .mockResolvedValueOnce({
@@ -203,7 +209,7 @@ describe('QdrantRepository Integration', () => {
       const repo = new QdrantRepository();
       await repo.ensureIndexes();
 
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(12);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(13);
       const createdFields = new Set(
         mockCreatePayloadIndex.mock.calls.map(
           (call) => (call[1] as { field_name: string }).field_name,
@@ -220,7 +226,7 @@ describe('QdrantRepository Integration', () => {
       expect(mockCreatePayloadIndex).not.toHaveBeenCalled();
     });
 
-    it('CT-6: PAYLOAD_INDEXES field/schema pairs for the 12 new entries match AC1 exactly', async () => {
+    it('CT-6: PAYLOAD_INDEXES field/schema pairs for the 13 new entries match AC1 exactly', async () => {
       mockGetCollection.mockResolvedValueOnce({
         config: {},
         payload_schema: V1_2_0_PAYLOAD_SCHEMA,
@@ -243,6 +249,7 @@ describe('QdrantRepository Integration', () => {
         valid_to: 'datetime',
         expires_at: 'datetime',
         archived_at: 'datetime',
+        pending_contradiction: 'bool',
       };
 
       for (const call of mockCreatePayloadIndex.mock.calls) {
