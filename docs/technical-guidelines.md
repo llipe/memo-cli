@@ -361,7 +361,7 @@ If rationale exceeds 512 tokens (~2000 characters), embed a compressed summary (
   - `scrollAll(filter, { batch?, withVector? }, onPage)` — unordered full-collection scan; sends no `order_by`, pages via `offset: next_page_offset` until `null`; streams pages through `onPage` rather than accumulating a return value.
   - `count(filter?)` — exact point count (`exact: true`).
   - `setPayload(id, payload)` / `batchSetPayload(ops)` — payload overwrite, single point or many (chunked at 256 operations per `batchUpdate` call).
-  - `fetchStalenessCorpus(base, limit?)` — staleness corpus scoped by a caller-built `base: QdrantFilter` (from `lib/filters.ts`'s `buildBaseFilter`, plus a `repo` any-match clause the caller merges in for `bank = 'kb'`); refactored in issue #82 (drift fix D-2) to compose the shared base filter instead of deriving its own private copy, so it can never silently diverge from every other read path's bank/kind/state filter. Supersedes `fetchByRepo` (retained until its last caller, `search.ts`, moves off it — tracked to the Phase 2 exit gate, S2-11).
+  - `fetchStalenessCorpus(base, limit?)` — staleness corpus scoped by a caller-built `base: QdrantFilter` (from `lib/filters.ts`'s `buildBaseFilter`, plus a `repo` any-match clause the caller merges in for `bank = 'kb'`); refactored in issue #82 (drift fix D-2) to compose the shared base filter instead of deriving its own private copy, so it can never silently diverge from every other read path's bank/kind/state filter. Superseded `fetchByRepo`, which was removed in issue #84 (S2-05) once `search.ts` (its last caller) moved onto `fetchStalenessCorpus`.
 
 ### Search and List Semantics
 

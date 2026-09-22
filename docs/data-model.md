@@ -212,7 +212,7 @@ The schema uses `.passthrough()` to preserve unknown keys for forward compatibil
 
 ### Config v2 (issue #53 / S2-01)
 
-Additive when introduced in S2-01 (no command wired these blocks into read/write paths yet); `memo write` (S2-04, below) is the first command to read `banks.*` policy via `policyFor()`/`resolveBank()`. Read-side wiring (`search`/`list`/`tags`/`read`) remains S2-05. A v1.2.0 config parses unchanged; `bank`, `banks`, and `recall` resolve to their documented defaults even when entirely absent from the file.
+Additive when introduced in S2-01 (no command wired these blocks into read/write paths yet); `memo write` (S2-04, below) reads `banks.*` policy via `policyFor()`/`resolveBank()`, and `search`/`list`/`tags list`/`read` (S2-05, issue #84) resolve `bank`/`kind` via `resolveBank()`/`src/lib/read-flags.ts`'s `parseReadFlags` before building the shared `base` filter (`buildBaseFilter`). A v1.2.0 config parses unchanged; `bank`, `banks`, and `recall` resolve to their documented defaults even when entirely absent from the file.
 
 | Field                         | Type    | Default        | Constraints                                |
 | ----------------------------- | ------- | -------------- | ------------------------------------------ |
@@ -249,7 +249,7 @@ A single `superRefine` enforces PRD §2.5's rules:
 | `self` carries no retention fields   | `kind === 'self'` with `stability`/`expires_at`/`retrieval_count` rejected (path: `kind`)            |
 | `seq` only on episodic               | `seq !== undefined && kind !== 'episodic'` rejected (path: `seq`)                                    |
 
-`normalizeEntry()` (`src/lib/entry-normalize.ts`, pure) is the read boundary: `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, every boolean (`archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`) `??= false`, and `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. `memo write --supersedes` (S2-04, below) is the first command to call it, to check the target's `bank`/`kind`/`superseded` state before writing; other read-side commands remain S2-05.
+`normalizeEntry()` (`src/lib/entry-normalize.ts`, pure) is the read boundary: `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, every boolean (`archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`) `??= false`, and `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. `memo write --supersedes` (S2-04, below) calls it to check the target's `bank`/`kind`/`superseded` state before writing; `memo read` (S2-05, issue #84) calls it directly for its full diagnostic-view projection, while `search`/`list` compose it via `projectV2Fields()`'s additive-only, present-when-true-only subset (S2-05 AC8).
 
 ### `memo write` v2 (issue #83 / S2-04)
 
