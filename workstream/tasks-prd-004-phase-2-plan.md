@@ -240,8 +240,8 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [x] 7.20 Migration: not required — read-only, no local state written; record opt-out rationale in the PR body
   - [x] 7.21 Update `README.md` (command + session protocol preview) and `docs/system-overview.md` (recall flow diagram)
   - [x] 7.22 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [x] 7.23 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [x] 7.24 Open PR against `main`, link `Closes #86`, obtain user approval, merge
+  - [ ] 7.23 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — **not run in this execution context** (no-delegation default, see closeout payload); caller (`planner`) invokes `verifier` directly
+  - [ ] 7.24 Open PR against the integration branch (`integration/prd-004-phase-2-banks-kinds-sessions-recall`, per this run's base-branch override), link `Closes #86`, obtain approval, merge — PR [#100](https://github.com/llipe/memo-cli/pull/100) opened as draft; approval/merge pending
 
 - [ ] 8.0 Implement Story S2-08: `memo bank init|list|show` and `inspect` banks facet — [#87](https://github.com/llipe/memo-cli/issues/87)
 
