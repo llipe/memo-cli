@@ -138,30 +138,30 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
 
 - [ ] 4.0 Implement Story S2-04: `memo write` v2 — banks, kinds, sessions, supersede — [#83](https://github.com/llipe/memo-cli/issues/83)
 
-  > Note: depends on task 3.0. Independent of tasks 5.0 and 6.0 (touches `write.ts` only). AC-2.1, AC-2.2, and AC-2.8 are proved here.
-  - [ ] 4.1 Write `tests/unit/lib/duration.test.ts`: `2d`/`12h`/`30m` parse; invalid strings rejected; `0d` rejected
-  - [ ] 4.2 Write `tests/unit/commands/write.test.ts` cases for every AC (payload shape per kind, warning text, error codes/messages, call order `getById` → `upsert` → `setPayload`)
-  - [ ] 4.3 Write `tests/integration/commands/write.test.ts`: supersede round-trip (write A, write B `--supersedes A`, confirm A's `valid_to`/`superseded_by`); v1-key dedupe fallback catches a v1.2.0 duplicate; two-bank writes never share dedupe hits
-  - [ ] 4.4 Create `src/lib/duration.ts`
-  - [ ] 4.5 Add flags to `write.ts`: `--bank`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--manual`, `--supersedes`, `--pin`, `--expires-in`
-  - [ ] 4.6 Implement the §18.6 eleven-step write order: resolve bank/kind/policy → scope rules → source/entry_type defaults → build v2 payload incl. retention fields and `nextSeq` → validate → supersede target checks → soft-cap check/warning → dedupe v2 with `kb`-semantic v1 fallback → embed/upsert → supersede `setPayload` with the two-id failure message → v2 JSON result
-  - [ ] 4.7 Verify AC1 (PRD AC-2.1): `--kind self` in `kb` fails `VALIDATION_FAILED`; in a private bank via `MEMO_BANK` it succeeds with the right payload
-  - [ ] 4.8 Verify AC2 (PRD AC-2.2): default kind by bank
-  - [ ] 4.9 Verify AC3: `kb` scope requirement unchanged; private bank optional
-  - [ ] 4.10 Verify AC4: auto-`seq`, `--expires-in` parsing and defaults
-  - [ ] 4.11 Verify AC5–AC6: entry_type/source defaults, provenance requirement
-  - [ ] 4.12 Verify AC7 (PRD AC-2.8, write half): supersede success and every rejection path (other bank, other kind, already superseded, missing target)
-  - [ ] 4.13 Verify AC8: supersede-update failure message contains both ids
-  - [ ] 4.14 Verify AC9: soft-cap warning at exactly `soft_cap`, silent at `soft_cap - 1`
-  - [ ] 4.15 Verify AC10–AC11: dedupe v2 + v1 fallback; full v2 JSON result shape
-  - [ ] 4.16 Manual: against `MEMO_COLLECTION=memo_eval`, write one `self`, three episodic with auto-`seq`, one semantic `--supersedes`
-  - [ ] 4.17 Edge cases: explicit `--seq` below existing max; `--supersedes` self-reference guard; `--bank kb --kind self` explicit; duplicate `--context` values; JSON-mode duplicate error unchanged
-  - [ ] 4.18 Map every AC to its test in the PR body
-  - [ ] 4.19 Migration: not required by this story — new writes are v2, existing points untouched and still readable via `normalizeEntry`; record opt-out rationale and the v1.2.x read-compatibility note in the PR body
-  - [ ] 4.20 Update `README.md` write section and `docs/data-model.md` write-path notes
-  - [ ] 4.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`; confirm `write.ts` coverage at or above `jest.config.ts` thresholds
-  - [ ] 4.22 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 4.23 Open PR against `main`, link `Closes #83`, obtain user approval, merge
+  > Note: depends on task 3.0. Independent of tasks 5.0 and 6.0 (touches `write.ts` only). AC-2.1, AC-2.2, and AC-2.8 are proved here. PR: [#95](https://github.com/llipe/memo-cli/pull/95) (draft, against the integration branch).
+  - [x] 4.1 Write `tests/unit/lib/duration.test.ts`: `2d`/`12h`/`30m` parse; invalid strings rejected; `0d` rejected
+  - [x] 4.2 Write `tests/unit/commands/write.test.ts` cases for every AC (payload shape per kind, warning text, error codes/messages, call order `getById` → `upsert` → `setPayload`)
+  - [x] 4.3 Write `tests/integration/commands/write.test.ts`: supersede round-trip (write A, write B `--supersedes A`, confirm A's `valid_to`/`superseded_by`); v1-key dedupe fallback catches a v1.2.0 duplicate; two-bank writes never share dedupe hits
+  - [x] 4.4 Create `src/lib/duration.ts`
+  - [x] 4.5 Add flags to `write.ts`: `--bank`, `--kind`, `--session`, `--seq`, `--context` (repeatable), `--provenance`, `--manual`, `--supersedes`, `--pin`, `--expires-in`
+  - [x] 4.6 Implement the §18.6 eleven-step write order: resolve bank/kind/policy → scope rules → source/entry_type defaults → build v2 payload incl. retention fields and `nextSeq` → validate → supersede target checks → soft-cap check/warning → dedupe v2 with `kb`-semantic v1 fallback → embed/upsert → supersede `setPayload` with the two-id failure message → v2 JSON result
+  - [x] 4.7 Verify AC1 (PRD AC-2.1): `--kind self` in `kb` fails `VALIDATION_FAILED`; in a private bank via `MEMO_BANK` it succeeds with the right payload
+  - [x] 4.8 Verify AC2 (PRD AC-2.2): default kind by bank
+  - [x] 4.9 Verify AC3: `kb` scope requirement unchanged; private bank optional
+  - [x] 4.10 Verify AC4: auto-`seq`, `--expires-in` parsing and defaults
+  - [x] 4.11 Verify AC5–AC6: entry_type/source defaults, provenance requirement
+  - [x] 4.12 Verify AC7 (PRD AC-2.8, write half): supersede success and every rejection path (other bank, other kind, already superseded, missing target)
+  - [x] 4.13 Verify AC8: supersede-update failure message contains both ids
+  - [x] 4.14 Verify AC9: soft-cap warning at exactly `soft_cap`, silent at `soft_cap - 1`
+  - [x] 4.15 Verify AC10–AC11: dedupe v2 + v1 fallback; full v2 JSON result shape
+  - [x] 4.16 Manual: against `MEMO_COLLECTION=memo_eval`, write one `self`, three episodic with auto-`seq`, one semantic `--supersedes` — confirmed live (bank `jarvis-eval-s204`): self write, three episodic writes with `seq` 0/1/2, semantic supersede round-trip verified via `memo read --id`
+  - [x] 4.17 Edge cases: explicit `--seq` below existing max; `--supersedes` self-reference guard; `--bank kb --kind self` explicit; duplicate `--context` values; JSON-mode duplicate error unchanged
+  - [x] 4.18 Map every AC to its test in the PR body
+  - [x] 4.19 Migration: not required by this story — new writes are v2, existing points untouched and still readable via `normalizeEntry`; record opt-out rationale and the v1.2.x read-compatibility note in the PR body
+  - [x] 4.20 Update `README.md` write section and `docs/data-model.md` write-path notes
+  - [x] 4.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`; confirm `write.ts` coverage at or above `jest.config.ts` thresholds — `pnpm run validate` green (777/777 tests, no vulnerabilities)
+  - [ ] 4.22 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — owned by `planner`/caller: this `developer` run has no `Task` tool (no-delegation default), so `verifier_audit: not-run(no-delegation)` in the closeout payload
+  - [ ] 4.23 Open PR against `main`, link `Closes #83`, obtain user approval, merge — draft PR [#95](https://github.com/llipe/memo-cli/pull/95) opened against the integration branch per this run's base-branch override; final PR-to-`main`/merge is `planner`'s consolidated-PR step
 
 - [ ] 5.0 Implement Story S2-05: Read-side flags on `search`, `list`, `tags`, `read`, and bank-aware staleness — [#84](https://github.com/llipe/memo-cli/issues/84)
 
