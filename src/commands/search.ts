@@ -3,11 +3,15 @@ import { Command } from 'commander';
 import { loadConfig } from '../lib/config.js';
 import { debugLog } from '../lib/debug.js';
 import { createEmbeddingsAdapter } from '../lib/embeddings.js';
+import { normalizeEntry, projectV2Fields } from '../lib/entry-normalize.js';
 import { MemoError } from '../lib/errors.js';
+import { buildBaseFilter, mergeFilters } from '../lib/filters.js';
 import { cosine, computeLexicalBoost, extractIdentifierTokens } from '../lib/lexical.js';
 import { output } from '../lib/output.js';
-import type { ExplainFactors } from '../lib/output.js';
+import type { ExplainFactors, UnrankedSearchHumanResult } from '../lib/output.js';
 import { QdrantRepository } from '../lib/qdrant.js';
+import { parseReadFlags } from '../lib/read-flags.js';
+import type { RawReadFlags } from '../lib/read-flags.js';
 import { resolveScopeRepos } from '../lib/registry.js';
 import { buildSearchFilters } from '../lib/search-filters.js';
 import {
@@ -18,13 +22,20 @@ import {
   DEFAULT_CONFIDENCE_THRESHOLDS,
   DEFAULT_LEXICAL_BOOST_FACTOR,
 } from '../lib/ranking.js';
-import type { RankableEntry, ResolvedFactors, ConfidenceTier } from '../lib/ranking.js';
+import type {
+  RankableEntry,
+  ResolvedFactors,
+  ConfidenceTier,
+  RankingWeights,
+  ConfidenceThresholds,
+} from '../lib/ranking.js';
 import {
   detectStaleness,
   DEFAULT_STALENESS_THRESHOLD_DAYS,
   DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD,
 } from '../lib/staleness.js';
-import type { StalenessCandidate } from '../lib/staleness.js';
+import type { StalenessCandidate, StalenessDetectionConfig } from '../lib/staleness.js';
+import { DEFAULT_BANK_ID } from '../types/config.js';
 import type { MemoConfig } from '../types/config.js';
 import type { QdrantFilter, SearchResult, ScrollResult } from '../lib/qdrant.js';
 
@@ -49,7 +60,7 @@ export function computeOverfetchLimit(limit: number): number {
   return Math.max(limit, Math.min(limit * 3, 50));
 }
 
-export interface SearchFlags {
+export interface SearchFlags extends RawReadFlags {
   query: string;
   scope?: string;
   repo?: string;
@@ -73,6 +84,10 @@ export interface SearchDeps {
 export interface SearchResponseFilters {
   scope: 'repo' | 'related';
   repo: string;
+  bank: string;
+  kind: string;
+  session?: string;
+  as_of?: string;
   org?: string;
   tags?: string[];
   entry_type?: string[];
@@ -177,7 +192,7 @@ interface SearchRankInput extends RankableEntry {
   payload?: Record<string, unknown>;
 }
 
-type RankedSearchResult = SearchRankInput & {
+export type RankedSearchResult = SearchRankInput & {
   final_score: number;
   recency_score: number;
   source_score: number;
@@ -217,7 +232,7 @@ function toRankableEntry(result: SearchResult): SearchRankInput {
 }
 
 /** A ranked result with its optional staleness annotation attached (#38 D-1). */
-type StaleAnnotated<T> = T & { stale?: true; stale_by?: string | number };
+export type StaleAnnotated<T> = T & { stale?: true; stale_by?: string | number };
 
 /**
  * Projects a ranked result into the `--explain` factor bag (#63 AC5, AC8).
@@ -251,6 +266,9 @@ function toJsonResult(
   return {
     id: result.id,
     ...omitStoredConfidence(result.payload),
+    // S2-05 AC8: additive-only v2 fields (bank/kind always; the rest only
+    // when present/true on the source entry).
+    ...projectV2Fields(normalizeEntry(result.payload ?? {})),
     similarity: result.similarity,
     final_score: result.final_score,
     recency_score: result.recency_score,
@@ -271,7 +289,7 @@ function toJsonResult(
   };
 }
 
-/** Maps a `fetchByRepo` scroll result into staleness detection's input shape (#38 AC5/AC6). */
+/** Maps a `fetchStalenessCorpus` scroll result into staleness detection's input shape (#38 AC5/AC6). */
 function toStalenessCandidate(result: ScrollResult): StalenessCandidate {
   const payload = result.payload;
   const timestampUtc =
@@ -279,6 +297,159 @@ function toStalenessCandidate(result: ScrollResult): StalenessCandidate {
   const rawTags = payload?.['tags'];
   const tags = Array.isArray(rawTags) ? rawTags : undefined;
   return { id: result.id, timestampUtc, tags };
+}
+
+/**
+ * `--kind self` JSON projection (S2-05 AC5): the same payload/v2-field
+ * shape as a ranked result, minus every ranking-derived field
+ * (`similarity`/`final_score`/`recency_score`/`source_score`/`tag_boost`/
+ * `confidence_tier`) - `self` never enters `rankResults`, so there is
+ * nothing to project for those keys.
+ */
+function toSelfJsonResult(result: ScrollResult): Record<string, unknown> {
+  return {
+    id: result.id,
+    ...omitStoredConfidence(result.payload),
+    ...projectV2Fields(normalizeEntry(result.payload ?? {})),
+  };
+}
+
+/** `--kind self` human projection (S2-05 AC5/AC6): typed field extraction, no ranking fields. */
+function toUnrankedHumanResult(result: ScrollResult): UnrankedSearchHumanResult {
+  const payload = result.payload ?? {};
+  const normalized = normalizeEntry(payload);
+  const rawTags = payload['tags'];
+  return {
+    id: result.id,
+    ...(typeof payload['repo'] === 'string' ? { repo: payload['repo'] } : {}),
+    ...(typeof payload['rationale'] === 'string' ? { rationale: payload['rationale'] } : {}),
+    ...(typeof payload['entry_type'] === 'string' ? { entry_type: payload['entry_type'] } : {}),
+    ...(typeof payload['source'] === 'string' ? { source: payload['source'] } : {}),
+    ...(typeof payload['org'] === 'string' ? { org: payload['org'] } : {}),
+    ...(Array.isArray(rawTags) ? { tags: rawTags } : {}),
+    ...(typeof payload['story'] === 'string' ? { story: payload['story'] } : {}),
+    ...(typeof payload['commit'] === 'string' ? { commit: payload['commit'] } : {}),
+    ...(typeof payload['timestamp_utc'] === 'string'
+      ? { timestamp_utc: payload['timestamp_utc'] }
+      : {}),
+    ...(normalized.archived ? { archived: true as const } : {}),
+    ...(normalized.superseded ? { superseded: true as const } : {}),
+  };
+}
+
+/**
+ * `rankCandidates()` (S2-07 task 7.4, issue #86): the dense-overfetch,
+ * lexical-union, `rankResults`, `detectStaleness` pipeline extracted
+ * verbatim from `handleSearch` (no behavior change - Phase 1 and S2-05
+ * tests must stay green) so `memo recall`'s SHARED/MINE sections can reuse
+ * the exact same ranking pipeline as `memo search` instead of a parallel
+ * copy. `handleSearch` below is now a thin caller of this function.
+ */
+export interface RankCandidatesInput {
+  qdrant: QdrantRepository;
+  vector: number[];
+  filters: QdrantFilter;
+  query: string;
+  limit: number;
+  weights: RankingWeights;
+  halfLifeDays: number;
+  tagBoostFactor: number;
+  confidenceThresholds: ConfidenceThresholds;
+  lexicalEnabled: boolean;
+  lexicalBoostFactor: number;
+  stalenessConfig: StalenessDetectionConfig;
+  stalenessCorpusFilter: QdrantFilter;
+}
+
+export async function rankCandidates(
+  input: RankCandidatesInput,
+): Promise<StaleAnnotated<RankedSearchResult>[]> {
+  const overfetchLimit = computeOverfetchLimit(input.limit);
+  const rawResults = await input.qdrant.search(input.vector, input.filters, overfetchLimit);
+
+  // #62 AC3/AC4/AC8: only queries with identifier-shaped tokens issue the
+  // extra scroll, and only when lexical matching is enabled - an ordinary
+  // prose query (or `--lexical off`) never fires a second Qdrant call.
+  const identifiers = input.lexicalEnabled ? extractIdentifierTokens(input.query) : [];
+  let candidateResults: SearchResult[] = rawResults;
+
+  if (identifiers.length > 0) {
+    try {
+      const lexicalFilter = buildLexicalScrollFilter(input.filters, identifiers);
+      const lexicalScrollResults = await input.qdrant.scroll(lexicalFilter, LEXICAL_SCROLL_LIMIT, {
+        withVector: true,
+      });
+
+      // #62 AC5: dense candidates keep Qdrant's own score; only lexical-only
+      // candidates get a locally computed cosine similarity. Union dedupe by id.
+      const byId = new Map<string, SearchResult>();
+      for (const result of rawResults) byId.set(String(result.id), result);
+      for (const scrollResult of lexicalScrollResults) {
+        const key = String(scrollResult.id);
+        if (byId.has(key)) continue;
+        const similarity = scrollResult.vector ? cosine(input.vector, scrollResult.vector) : 0;
+        byId.set(key, { id: scrollResult.id, score: similarity, payload: scrollResult.payload });
+      }
+      candidateResults = [...byId.values()];
+    } catch (err) {
+      // #62 AC-resilience: the lexical scroll failing degrades to dense-only
+      // results; it is logged under MEMO_DEBUG and never changes the exit code.
+      debugLog(
+        `lexical scroll failed, degrading to dense-only results: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  const rankableEntries = candidateResults.map((result) => {
+    const entry = toRankableEntry(result);
+    const lexicalBoost =
+      identifiers.length > 0
+        ? computeLexicalBoost(
+            identifiers,
+            typeof entry.payload?.['rationale'] === 'string'
+              ? entry.payload['rationale']
+              : undefined,
+            Array.isArray(entry.payload?.['files_modified'])
+              ? entry.payload['files_modified']
+              : undefined,
+            input.lexicalBoostFactor,
+          )
+        : 0;
+    return { ...entry, lexicalBoost };
+  });
+
+  const ranked = rankResults(
+    rankableEntries,
+    input.weights,
+    input.halfLifeDays,
+    Date.now(),
+    input.query,
+    input.tagBoostFactor,
+    input.confidenceThresholds,
+  );
+  const results = ranked.slice(0, input.limit);
+
+  // #38 AC5/AC6, S2-05 AC4: exactly one `scroll` (via `fetchStalenessCorpus`)
+  // per invocation, cached for the rest of the command - never per result,
+  // and skipped entirely when there is nothing to annotate. Staleness is
+  // computed strictly after ranking/slicing (AC4): it reads `results` but
+  // can never feed back into `final_score` or ordering.
+  const staleFlags =
+    results.length > 0
+      ? detectStaleness(
+          results,
+          (await input.qdrant.fetchStalenessCorpus(input.stalenessCorpusFilter)).map(
+            toStalenessCandidate,
+          ),
+          input.stalenessConfig,
+          Date.now(),
+        )
+      : new Map<string, string | number>();
+
+  return results.map((result) => {
+    const staleBy = staleFlags.get(String(result.id));
+    return staleBy === undefined ? result : { ...result, stale: true, stale_by: staleBy };
+  });
 }
 
 export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): Promise<void> {
@@ -321,20 +492,54 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
   const sources = parseCsv(flags.source);
   const limit = parseLimit(flags.limit);
 
-  const resolvedRepos = resolveRepos({ repo, scope, config });
-  const filters = buildSearchFilters({
-    repo,
-    scope,
-    relatedRepos: resolvedRepos.filter((candidate) => candidate !== repo),
-    org,
-    tags,
-    entryTypes,
-    sources,
+  // S2-05 AC1/AC4: the shared read-side flags, validated once, and the one
+  // `base` filter shared by the dense query, the lexical scroll, and the
+  // staleness corpus below - no downstream code path builds its own copy of
+  // the bank/kind/state predicate.
+  const readFlags = parseReadFlags(
+    {
+      bank: flags.bank,
+      kind: flags.kind,
+      session: flags.session,
+      includeArchived: flags.includeArchived,
+      includeSuperseded: flags.includeSuperseded,
+      asOf: flags.asOf,
+    },
+    process.env,
+    config ?? undefined,
+  );
+  const base = buildBaseFilter({
+    bank: readFlags.bank,
+    kind: readFlags.kind,
+    includeArchived: readFlags.includeArchived,
+    includeSuperseded: readFlags.includeSuperseded,
+    ...(readFlags.session !== undefined ? { session: readFlags.session } : {}),
+    ...(readFlags.asOf !== undefined ? { asOf: readFlags.asOf } : {}),
   });
+
+  const resolvedRepos = resolveRepos({ repo, scope, config });
+  const filters = buildSearchFilters(
+    {
+      repo,
+      scope,
+      relatedRepos: resolvedRepos.filter((candidate) => candidate !== repo),
+      org,
+      tags,
+      entryTypes,
+      sources,
+      bank: readFlags.bank,
+      explicitRepo: flags.repo !== undefined,
+    },
+    base,
+  );
 
   const responseFilters: SearchResponseFilters = {
     scope,
     repo,
+    bank: readFlags.bank,
+    kind: readFlags.kind,
+    ...(readFlags.session !== undefined ? { session: readFlags.session } : {}),
+    ...(readFlags.asOf !== undefined ? { as_of: readFlags.asOf } : {}),
     ...(org ? { org } : {}),
     ...(tags.length > 0 ? { tags } : {}),
     ...(entryTypes.length > 0 ? { entry_type: entryTypes } : {}),
@@ -345,13 +550,45 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
   const repoUrl = process.env['QDRANT_URL'];
   const repoKey = process.env['QDRANT_API_KEY'];
   const qdrant = createRepo(repoUrl, repoKey);
-  const embeddings = createEmbeddings();
 
   await qdrant.ensureCollection();
 
+  // S2-05 AC5: `--kind self` is a distinct, unranked path - no embeddings
+  // call, no dense/lexical scroll, no staleness corpus. `self` entries never
+  // enter `rankResults` in any mode (this is the only mode that can return
+  // them at all).
+  if (readFlags.kind === 'self') {
+    const selfResults = await qdrant.scroll(filters, limit);
+
+    if (flags.json) {
+      const jsonResults = selfResults.map(toSelfJsonResult);
+      output.result(
+        {
+          query: flags.query,
+          query_id: queryId,
+          filters: responseFilters,
+          results: jsonResults,
+          count: jsonResults.length,
+          ...(jsonResults.length === 0
+            ? { message: 'No results found for the requested scope and filters.' }
+            : {}),
+        },
+        { json: true },
+      );
+      return;
+    }
+
+    if (selfResults.length === 0) {
+      output.searchEmpty(flags.query, buildActiveFilters(responseFilters, resolvedRepos));
+      return;
+    }
+
+    output.searchResultsUnranked(selfResults.map(toUnrankedHumanResult));
+    return;
+  }
+
+  const embeddings = createEmbeddings();
   const vector = await embeddings.embed(buildSearchVectorInput(flags.query, tags));
-  const overfetchLimit = computeOverfetchLimit(limit);
-  const rawResults = await qdrant.search(vector, filters, overfetchLimit);
 
   const rankingConfig = config?.ranking;
   const weights = rankingConfig
@@ -368,92 +605,38 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
   const lexicalEnabled = parseLexicalFlag(flags.lexical, rankingConfig);
   const lexicalBoostFactor = rankingConfig?.lexical_boost_factor ?? DEFAULT_LEXICAL_BOOST_FACTOR;
 
-  // #62 AC3/AC4/AC8: only queries with identifier-shaped tokens issue the
-  // extra scroll, and only when lexical matching is enabled - an ordinary
-  // prose query (or `--lexical off`) never fires a second Qdrant call.
-  const identifiers = lexicalEnabled ? extractIdentifierTokens(flags.query) : [];
-  let candidateResults: SearchResult[] = rawResults;
-
-  if (identifiers.length > 0) {
-    try {
-      const lexicalFilter = buildLexicalScrollFilter(filters, identifiers);
-      const lexicalScrollResults = await qdrant.scroll(lexicalFilter, LEXICAL_SCROLL_LIMIT, {
-        withVector: true,
-      });
-
-      // #62 AC5: dense candidates keep Qdrant's own score; only lexical-only
-      // candidates get a locally computed cosine similarity. Union dedupe by id.
-      const byId = new Map<string, SearchResult>();
-      for (const result of rawResults) byId.set(String(result.id), result);
-      for (const scrollResult of lexicalScrollResults) {
-        const key = String(scrollResult.id);
-        if (byId.has(key)) continue;
-        const similarity = scrollResult.vector ? cosine(vector, scrollResult.vector) : 0;
-        byId.set(key, { id: scrollResult.id, score: similarity, payload: scrollResult.payload });
-      }
-      candidateResults = [...byId.values()];
-    } catch (err) {
-      // #62 AC-resilience: the lexical scroll failing degrades to dense-only
-      // results; it is logged under MEMO_DEBUG and never changes the exit code.
-      debugLog(
-        `lexical scroll failed, degrading to dense-only results: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  }
-
-  const rankableEntries = candidateResults.map((result) => {
-    const entry = toRankableEntry(result);
-    const lexicalBoost =
-      identifiers.length > 0
-        ? computeLexicalBoost(
-            identifiers,
-            typeof entry.payload?.['rationale'] === 'string'
-              ? entry.payload['rationale']
-              : undefined,
-            Array.isArray(entry.payload?.['files_modified'])
-              ? entry.payload['files_modified']
-              : undefined,
-            lexicalBoostFactor,
-          )
-        : 0;
-    return { ...entry, lexicalBoost };
-  });
-
-  const ranked = rankResults(
-    rankableEntries,
-    weights,
-    halfLifeDays,
-    Date.now(),
-    flags.query,
-    tagBoostFactor,
-    confidenceThresholds,
-  );
-  const results = ranked.slice(0, limit);
-
-  // #38 AC5/AC6: exactly one `scroll` (via `fetchByRepo`) per invocation,
-  // repo-scoped, cached for the rest of the command - never per result, and
-  // skipped entirely when there is nothing to annotate. Staleness is
-  // computed strictly after ranking/slicing (AC4): it reads `results` but
-  // can never feed back into `final_score` or ordering.
+  // #38 AC5/AC6, S2-05 AC4/A12: the corpus shares the exact same `base`
+  // filter as the dense query and lexical scroll (bank-aware staleness) - a
+  // `repo` any-match clause is layered on top only for the shared `kb`
+  // bank, where repo scoping is still meaningful; a private bank's corpus
+  // is bank-scoped only, since its entries need not carry a `repo` at all.
   const stalenessConfig = {
     staleness_threshold_days:
       rankingConfig?.staleness_threshold_days ?? DEFAULT_STALENESS_THRESHOLD_DAYS,
     staleness_tag_overlap_threshold:
       rankingConfig?.staleness_tag_overlap_threshold ?? DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD,
   };
-  const staleFlags =
-    results.length > 0
-      ? detectStaleness(
-          results,
-          (await qdrant.fetchByRepo(resolvedRepos)).map(toStalenessCandidate),
-          stalenessConfig,
-          Date.now(),
-        )
-      : new Map<string, string | number>();
+  const stalenessCorpusFilter: QdrantFilter =
+    readFlags.bank === DEFAULT_BANK_ID
+      ? mergeFilters(base, { must: [{ key: 'repo', match: { any: resolvedRepos } }] })
+      : base;
 
-  const annotatedResults: StaleAnnotated<RankedSearchResult>[] = results.map((result) => {
-    const staleBy = staleFlags.get(String(result.id));
-    return staleBy === undefined ? result : { ...result, stale: true, stale_by: staleBy };
+  // S2-07 task 7.4: the over-fetch/lexical-union/rank/staleness pipeline now
+  // lives in the extracted `rankCandidates()` helper (no behavior change).
+  const annotatedResults = await rankCandidates({
+    qdrant,
+    vector,
+    filters,
+    query: flags.query,
+    limit,
+    weights,
+    halfLifeDays,
+    tagBoostFactor,
+    confidenceThresholds,
+    lexicalEnabled,
+    lexicalBoostFactor,
+    stalenessConfig,
+    stalenessCorpusFilter,
   });
   const jsonResults = annotatedResults.map((result) => toJsonResult(result, explain));
 
@@ -477,7 +660,7 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
     return;
   }
 
-  if (results.length === 0) {
+  if (annotatedResults.length === 0) {
     output.searchEmpty(flags.query, buildActiveFilters(responseFilters, resolvedRepos));
     return;
   }
@@ -497,6 +680,9 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
       ...(result.stale ? { stale: true as const, staleBy: result.stale_by } : {}),
       // #63 AC6: drives the aligned factor table in `output.searchResults`.
       ...(explain ? { explain: buildExplainFactors(result) } : {}),
+      // S2-05 AC6: drives the `[archived]`/`[superseded]` prefix.
+      ...(normalizeEntry(result.payload ?? {}).archived ? { archived: true as const } : {}),
+      ...(normalizeEntry(result.payload ?? {}).superseded ? { superseded: true as const } : {}),
     })),
   );
 
@@ -519,6 +705,15 @@ const search = new Command('search')
   .option('--limit <n>', 'maximum number of results', '10')
   .option('--lexical <on|off>', 'enable/disable lexical identifier matching (default: on)')
   .option('--explain', 'show a per-result factor breakdown (#63)')
+  .option('--bank <id>', 'bank id (default: MEMO_BANK, config.bank.default, or "kb")')
+  .option('--kind <kind>', 'self|episodic|semantic|all (default: all, case-insensitive)')
+  .option('--session <id>', 'restrict to an episodic session id')
+  .option('--include-archived', 'include archived entries')
+  .option('--include-superseded', 'include superseded entries')
+  .option(
+    '--as-of <iso>',
+    'point-in-time read (ISO 8601 date or datetime); implies --include-superseded',
+  )
   .option('--json', 'output as JSON')
   .action(async (query: string, opts: Record<string, unknown>) => {
     await handleSearch({
@@ -532,6 +727,12 @@ const search = new Command('search')
       limit: opts['limit'] as string | undefined,
       lexical: opts['lexical'] as string | undefined,
       explain: opts['explain'] as boolean | undefined,
+      bank: opts['bank'] as string | undefined,
+      kind: opts['kind'] as string | undefined,
+      session: opts['session'] as string | undefined,
+      includeArchived: opts['includeArchived'] as boolean | undefined,
+      includeSuperseded: opts['includeSuperseded'] as boolean | undefined,
+      asOf: opts['asOf'] as string | undefined,
       json: opts['json'] as boolean | undefined,
     });
   });

@@ -1,4 +1,15 @@
+import { buildBaseFilter } from '../../../src/lib/filters.js';
 import { buildSearchFilters } from '../../../src/lib/search-filters.js';
+
+interface FilterShape {
+  must?: Record<string, unknown>[];
+  must_not?: Record<string, unknown>[];
+  should?: Record<string, unknown>[];
+}
+
+function shape(filter: unknown): FilterShape {
+  return filter as FilterShape;
+}
 
 describe('buildSearchFilters', () => {
   it('builds repo-scoped filters with multi-tag AND semantics', () => {
@@ -67,5 +78,71 @@ describe('buildSearchFilters', () => {
         { key: 'source', match: { value: 'agent' } },
       ],
     });
+  });
+});
+
+describe('buildSearchFilters — base merge semantics (AC5, CT-3/CT-4)', () => {
+  it('CT-4: merges must/must_not/should by concatenation, base first, never nesting', () => {
+    const base = shape(buildBaseFilter({ bank: 'kb', kind: 'all' }));
+    const filter = shape(buildSearchFilters({ repo: 'memo-cli', scope: 'repo', bank: 'kb' }, base));
+
+    expect(filter).toEqual({
+      must: [...(base.must ?? []), { key: 'repo', match: { value: 'memo-cli' } }],
+      must_not: base.must_not,
+    });
+    // Guard against accidental nesting: no entry in `must` itself contains a `must` key.
+    for (const clause of filter.must ?? []) {
+      expect(Object.keys(clause)).not.toContain('must');
+    }
+  });
+
+  it('EC-37: base present, builder produces no clauses of its own — merged result equals base verbatim', () => {
+    const base = buildBaseFilter({ bank: 'kb', kind: 'semantic' });
+    const filter = buildSearchFilters({ repo: '', scope: 'repo', bank: 'private-x' }, base);
+    expect(filter).toEqual(base);
+  });
+
+  it('EC-36: an empty base object merges cleanly, no empty arrays left dangling', () => {
+    const filter = buildSearchFilters({ repo: 'memo-cli', scope: 'repo' }, {});
+    expect(filter).toEqual({ must: [{ key: 'repo', match: { value: 'memo-cli' } }] });
+  });
+
+  it('CT-3: retains its existing parameter list when called with only one argument (Phase 1 compatibility)', () => {
+    const filter = buildSearchFilters({ repo: 'memo-cli', scope: 'repo' });
+    expect(filter).toEqual({ must: [{ key: 'repo', match: { value: 'memo-cli' } }] });
+  });
+});
+
+describe('buildSearchFilters — conditional repo clause (AC5, CT-5)', () => {
+  it('EC-38: bank="kb" with no explicit --repo still adds the repo clause', () => {
+    const filter = shape(buildSearchFilters({ repo: 'memo-cli', scope: 'repo', bank: 'kb' }));
+    expect(filter.must).toContainEqual({ key: 'repo', match: { value: 'memo-cli' } });
+  });
+
+  it('EC-39: a private bank with no explicit --repo omits the repo clause entirely', () => {
+    const filter = shape(
+      buildSearchFilters({ repo: 'memo-cli', scope: 'repo', bank: 'jarvis-memory' }),
+    );
+    expect(filter.must ?? []).not.toContainEqual({ key: 'repo', match: { value: 'memo-cli' } });
+  });
+
+  it('EC-40: a private bank with an explicit --repo still adds the repo clause', () => {
+    const filter = shape(
+      buildSearchFilters({
+        repo: 'memo-cli',
+        scope: 'repo',
+        bank: 'jarvis-memory',
+        explicitRepo: true,
+      }),
+    );
+    expect(filter.must).toContainEqual({ key: 'repo', match: { value: 'memo-cli' } });
+  });
+
+  it('EC-41: does not mutate the base object across two calls with the same base reference', () => {
+    const base = shape(buildBaseFilter({ bank: 'kb', kind: 'all' }));
+    const beforeMustLength = (base.must ?? []).length;
+    buildSearchFilters({ repo: 'memo-cli', scope: 'repo', bank: 'kb' }, base);
+    buildSearchFilters({ repo: 'other-repo', scope: 'repo', bank: 'kb' }, base);
+    expect((base.must ?? []).length).toBe(beforeMustLength);
   });
 });

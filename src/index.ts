@@ -12,6 +12,10 @@ import tags from './commands/tags.js';
 import inspect from './commands/inspect.js';
 import del from './commands/delete.js';
 import read from './commands/read.js';
+import timeline from './commands/timeline.js';
+import recall from './commands/recall.js';
+import bank from './commands/bank.js';
+import migrate from './commands/migrate.js';
 import { MemoError } from './lib/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,6 +38,10 @@ program.addCommand(tags);
 program.addCommand(inspect);
 program.addCommand(del);
 program.addCommand(read);
+program.addCommand(timeline);
+program.addCommand(recall);
+program.addCommand(bank);
+program.addCommand(migrate);
 
 let fatalHandled = false;
 

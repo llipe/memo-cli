@@ -1,3 +1,4 @@
+import { mergeFilters } from './filters.js';
 import type { QdrantFilter } from './qdrant.js';
 
 export interface BuildSearchFiltersInput {
@@ -8,6 +9,14 @@ export interface BuildSearchFiltersInput {
   tags?: string[];
   entryTypes?: string[];
   sources?: string[];
+  /**
+   * Bank this search targets (spec §18.5, AC5). Defaults to `'kb'` when
+   * omitted, preserving Phase 1 behavior (the `repo` clause was always
+   * added unconditionally before Phase 2 introduced private banks).
+   */
+  bank?: string;
+  /** Set when the caller passed an explicit `--repo` flag (AC5). */
+  explicitRepo?: boolean;
 }
 
 function unique(values: string[]): string[] {
@@ -18,16 +27,23 @@ function buildAnyMatch(key: string, values: string[]): { key: string; match: { a
   return { key, match: { any: values } };
 }
 
-export function buildSearchFilters(input: BuildSearchFiltersInput): QdrantFilter {
+export function buildSearchFilters(
+  input: BuildSearchFiltersInput,
+  base: QdrantFilter = {},
+): QdrantFilter {
   const must: Record<string, unknown>[] = [];
   const should: Record<string, unknown>[] = [];
 
-  if (input.scope === 'related') {
-    for (const repo of unique([input.repo, ...(input.relatedRepos ?? [])])) {
-      should.push({ key: 'repo', match: { value: repo } });
+  const repoClauseAllowed = (input.bank ?? 'kb') === 'kb' || input.explicitRepo === true;
+
+  if (repoClauseAllowed) {
+    if (input.scope === 'related') {
+      for (const repo of unique([input.repo, ...(input.relatedRepos ?? [])])) {
+        should.push({ key: 'repo', match: { value: repo } });
+      }
+    } else {
+      must.push({ key: 'repo', match: { value: input.repo } });
     }
-  } else {
-    must.push({ key: 'repo', match: { value: input.repo } });
   }
 
   if (input.org) {
@@ -52,8 +68,10 @@ export function buildSearchFilters(input: BuildSearchFiltersInput): QdrantFilter
     must.push(buildAnyMatch('source', sources));
   }
 
-  return {
+  const builderFilter: QdrantFilter = {
     ...(must.length > 0 ? { must } : {}),
     ...(should.length > 0 ? { should } : {}),
   };
+
+  return mergeFilters(base, builderFilter);
 }

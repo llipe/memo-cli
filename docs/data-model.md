@@ -43,12 +43,15 @@ erDiagram
     }
 
     CONFIG {
-        string schema_version "literal '1'"
+        string schema_version "'1' | '2'"
         string repo "kebab-case, required"
         string org "kebab-case, required"
         string domain "kebab-case, required"
         string[] relates_to "optional, no self-reference"
         object defaults "optional: source, search_scope"
+        object bank "v2: default bank id (kebab or UUID), default kb"
+        object banks "v2: per-kind lifecycle policy, kb + private"
+        object recall "v2: max_tokens, default 2000"
     }
 
     CONFIG ||--o{ DECISIONS : "provides context for"
@@ -81,18 +84,31 @@ Validated at write time via Zod (`EntryPayloadSchema`):
 
 ### Payload Indexes
 
-| Field               | Index Type | Purpose                                       |
-| ------------------- | ---------- | --------------------------------------------- |
-| `repo`              | keyword    | Pre-filter by repository                      |
-| `org`               | keyword    | Pre-filter by organization                    |
-| `entry_type`        | keyword    | Filter by entry category                      |
-| `source`            | keyword    | Filter by creation source                     |
-| `tags`              | keyword    | AND-semantics tag filtering                   |
-| `timestamp_utc`     | datetime   | Chronological ordering and date-range queries |
-| `commit`            | keyword    | Lookup by commit SHA                          |
-| `dedupe_key_sha256` | keyword    | Duplicate detection lookup                    |
-| `rationale`         | text       | Lexical identifier matching (issue #62)       |
-| `files_modified`    | text       | Lexical identifier matching (issue #62)       |
+| Field                   | Index Type | Purpose                                             |
+| ----------------------- | ---------- | --------------------------------------------------- |
+| `repo`                  | keyword    | Pre-filter by repository                            |
+| `org`                   | keyword    | Pre-filter by organization                          |
+| `entry_type`            | keyword    | Filter by entry category                            |
+| `source`                | keyword    | Filter by creation source                           |
+| `tags`                  | keyword    | AND-semantics tag filtering                         |
+| `timestamp_utc`         | datetime   | Chronological ordering and date-range queries       |
+| `commit`                | keyword    | Lookup by commit SHA                                |
+| `dedupe_key_sha256`     | keyword    | Duplicate detection lookup                          |
+| `rationale`             | text       | Lexical identifier matching (issue #62)             |
+| `files_modified`        | text       | Lexical identifier matching (issue #62)             |
+| `bank`                  | keyword    | Bank isolation (PRD-004 Phase 2, issue #81)         |
+| `kind`                  | keyword    | Filter by memory kind (episodic/semantic/self, #81) |
+| `session_id`            | keyword    | Filter/group episodic entries by session (#81)      |
+| `contexts`              | keyword    | AND-semantics context filtering (#81)               |
+| `seq`                   | integer    | Ordered scans within a session (#81)                |
+| `archived`              | bool       | Default-exclude archived entries (#81)              |
+| `superseded`            | bool       | Default-exclude superseded entries (#81)            |
+| `consolidated`          | bool       | Filter by consolidation state (#81)                 |
+| `pinned`                | bool       | Filter by pinned state (#81)                        |
+| `valid_to`              | datetime   | Point-in-time (`--as-of`) validity queries (#81)    |
+| `expires_at`            | datetime   | Expiry-based staleness/archival queries (#81)       |
+| `archived_at`           | datetime   | Archival timestamp queries (#81)                    |
+| `pending_contradiction` | bool       | `memo recall`'s CONFLICTS filter (#86)              |
 
 The two `text` indexes use `tokenizer: word`, `lowercase: true`, `min_token_len: 2`,
 `max_token_len: 20` — mirrored client-side by `src/lib/lexical.ts`'s `tokenizeWord` so a
@@ -171,7 +187,7 @@ Validated via Zod (`MemoConfigSchema`):
 
 | Field                                     | Type     | Required | Default                                    | Constraints                                                                |
 | ----------------------------------------- | -------- | -------- | ------------------------------------------ | -------------------------------------------------------------------------- |
-| `schema_version`                          | string   | Yes      | —                                          | Literal `"1"`                                                              |
+| `schema_version`                          | string   | Yes      | —                                          | `"1"` \| `"2"`                                                             |
 | `repo`                                    | string   | Yes      | —                                          | kebab-case                                                                 |
 | `org`                                     | string   | Yes      | —                                          | kebab-case                                                                 |
 | `domain`                                  | string   | Yes      | —                                          | kebab-case                                                                 |
@@ -194,6 +210,79 @@ The schema uses `.passthrough()` to preserve unknown keys for forward compatibil
 `ranking` (issue #34) is additive and fully optional: a v1 config without it, or with an empty `{}`, resolves every field to its default. `w_similarity + w_recency + w_source` must sum to `1.0` within `±0.001` (float tolerance) once defaults are resolved for any missing field — this rejects a partial override that breaks the sum (e.g. `{ "w_similarity": 0.5 }` alone), while a partial override that leaves all three weights untouched (e.g. only `recency_half_life_days`) still passes.
 
 `recency_half_life_days` defaults to `365`, not the originally-proposed `90` — landing composite ranking at `90` regressed the relevance-eval floor from 92.9% to 85.7% (AC21); a one-factor sweep (task 8.0's methodology, applied to this story) found `365` inside a wide, robust plateau (~260-700+ days) that restores 96.4%, without changing the weights. See `README.md`'s relevance-eval subsection and PR #67 for the full sweep.
+
+### Config v2 (issue #53 / S2-01)
+
+Additive when introduced in S2-01 (no command wired these blocks into read/write paths yet); `memo write` (S2-04, below) reads `banks.*` policy via `policyFor()`/`resolveBank()`, and `search`/`list`/`tags list`/`read` (S2-05, issue #84) resolve `bank`/`kind` via `resolveBank()`/`src/lib/read-flags.ts`'s `parseReadFlags` before building the shared `base` filter (`buildBaseFilter`). A v1.2.0 config parses unchanged; `bank`, `banks`, and `recall` resolve to their documented defaults even when entirely absent from the file.
+
+| Field                         | Type    | Default        | Constraints                                |
+| ----------------------------- | ------- | -------------- | ------------------------------------------ |
+| `bank.default`                | string  | `"kb"`         | Kebab-case bank id or UUID (`KebabOrUuid`) |
+| `banks.kb.episodic.*`         | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `banks.kb.semantic.*`         | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `banks.private.self.soft_cap` | integer | `50`           | Positive integer                           |
+| `banks.private.episodic.*`    | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `banks.private.semantic.*`    | object  | §8.4 row below | See `KindPolicySchema` fields below        |
+| `recall.max_tokens`           | integer | `2000`         | Positive integer                           |
+
+`KindPolicySchema` fields (`initial_stability_days`, `expires_in_days`, `archive_threshold`, `archive_noisy`, `promoted_grace_days`, `superseded_grace_days`, `purge_after_days`) carry no per-field default — each bank/kind combination supplies its own full default row (below) so a partial override of one bank/kind (e.g. only `banks.private.self.soft_cap`) does not blank out sibling policy blocks. `purge_after_days: null` means "never purge automatically"; absent (when the enclosing object is explicitly present but the key is omitted) resolves to `undefined`.
+
+| Bank type / kind       | `initial_stability_days` | `expires_in_days` | `archive_threshold` | `archive_noisy` | `promoted_grace_days` | `superseded_grace_days` | `purge_after_days` |
+| ---------------------- | ------------------------ | ----------------- | ------------------- | --------------- | --------------------- | ----------------------- | ------------------ |
+| `private` / `self`     | —                        | —                 | —                   | —               | —                     | —                       | — (`soft_cap: 50`) |
+| `private` / `episodic` | 3                        | 30                | —                   | —               | 7                     | —                       | 30                 |
+| `private` / `semantic` | 30                       | —                 | 0.05                | `true`          | —                     | 30                      | 90                 |
+| `kb` / `episodic`      | 3                        | 90                | —                   | —               | 7                     | —                       | `null` (never)     |
+| `kb` / `semantic`      | 90                       | —                 | 0.05                | `false`         | —                     | 30                      | `null` (never)     |
+
+### Entry Payload Schema v2 (issue #53 / S2-01)
+
+`EntryPayloadV2Schema` (`src/types/entry.ts`) is a write-time superset of the v1 schema, which remains exported and unchanged. New fields: `schema_version` (`literal('2')`, defaults to `'2'`), `bank` (`KebabOrUuid`), `kind` (`self | episodic | semantic`), `session_id`, `seq`, `contexts`, `provenance`, `valid_from`, `valid_to`, `superseded`, `superseded_by`, `consolidated`, `consolidated_at`, `pinned`, `archived`, `archived_reason`, `archived_at`, `expires_at`, `stability`, `stability_since`, `last_retrieved_at`, `retrieval_count`, `used_count`, `pending_contradiction`, and a widened `dedupe_key_version` (`v1 | v2`). `entry_type` gains `policy`/`observation`; `source` gains `scan` (`sourceToConfidence('scan') === 'low'`). `repo`/`org`/`domain` become optional at the schema level.
+
+A single `superRefine` enforces PRD §2.5's rules:
+
+| Rule                                 | Check                                                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| K1 — `self` only in private banks    | `kind === 'self' && bank === 'kb'` rejected (path: `kind`)                                           |
+| K2 — scope required in `kb`          | `bank === 'kb' && !(repo && org && domain)` rejected (path: `repo`)                                  |
+| episodic needs a session             | `kind === 'episodic' && !session_id` rejected (path: `session_id`)                                   |
+| K3 — agent semantic needs provenance | `kind === 'semantic' && source === 'agent' && provenance` empty/absent rejected (path: `provenance`) |
+| `self` carries no retention fields   | `kind === 'self'` with `stability`/`expires_at`/`retrieval_count` rejected (path: `kind`)            |
+| `seq` only on episodic               | `seq !== undefined && kind !== 'episodic'` rejected (path: `seq`)                                    |
+
+`normalizeEntry()` (`src/lib/entry-normalize.ts`, pure) is the read boundary: `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, every boolean (`archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`) `??= false`, and `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. `memo write --supersedes` (S2-04, below) calls it to check the target's `bank`/`kind`/`superseded` state before writing; `memo read` (S2-05, issue #84) calls it directly for its full diagnostic-view projection, while `search`/`list` compose it via `projectV2Fields()`'s additive-only, present-when-true-only subset (S2-05 AC8).
+
+### `memo write` v2 (issue #83 / S2-04)
+
+`src/commands/write.ts` implements spec §18.6's eleven-step order on top of the S2-01–S2-03 building blocks (`resolveBank`, `defaultKind`, `policyFor`, `buildDedupeKeyV2`, `normalizeEntry`) — none of them are reimplemented here:
+
+1. Resolve `bank` (`--bank` / `MEMO_BANK` / `config.bank.default` / `kb`), `kind` (`--kind` or `defaultKind(bank)`), and `policy` (`policyFor`) — this alone enforces K1 (`--kind self` in `kb` fails `VALIDATION_FAILED`) before any I/O.
+2. Scope: `repo`/`org`/`domain` are required in `kb` (`REPO_CONTEXT_UNRESOLVED` on miss, unchanged from v1) and optional everywhere else.
+3. `--manual` forces `source = 'manual'`; `entry_type` defaults to `observation` for `episodic`, `decision` otherwise.
+4. Build the v2 payload: retention fields (`stability`, `stability_since`, `retrieval_count`, `used_count`) from policy except for `self`; episodic entries get `session_id`, auto-incremented `seq` (`nextSeq`, `scrollOrdered` on `{ bank, kind: episodic, session_id }` ordered `seq desc, limit 1`, `+1`, `0` when empty) and `expires_at` from `--expires-in` (`src/lib/duration.ts`, `\d+[dhm]`) or the policy default.
+5. Validate with `EntryPayloadV2Schema`.
+6. `--supersedes <id>`: `getById` (`ENTRY_NOT_FOUND` on miss) then `normalizeEntry` the target — mismatched `bank`/`kind` or an already-superseded target fails `VALIDATION_FAILED`; a self-reference (`target.id === id`) is rejected before any I/O.
+7. `self` soft-cap: one `count()` of non-superseded `self` entries in the bank; `>= policy.soft_cap` emits a non-blocking warning with the pre-write count (`self entries in <bank>: <n> (soft cap <cap>)`).
+8. Dedupe via `buildDedupeKeyV2`; a `kb` semantic write also probes the v1 `buildDedupeKey` so a pre-migration duplicate is still caught; `self` never dedupes.
+9. Embed and `upsert`, as in v1.
+10. If step 6 applied, `setPayload` the target (`valid_to`, `superseded: true`, `superseded_by`) — not transactional; a failure here after the upsert succeeded exits 2 with `QDRANT_OPERATION_FAILED` naming both the new and target ids.
+11. Result JSON: the full v2 payload plus `created`/`updated`/`duplicate_detected`/`superseded?`/`warnings?`.
+
+Migration note: this story writes v2 payloads but does not migrate existing data. Existing v1 points remain v1 and stay readable via `normalizeEntry` (S2-09 owns the bulk rewrite, `memo migrate --to-v2`). A v2 point written here is still readable by memo-cli 1.2.x as an ordinary entry — its new fields are simply ignored by a reader that never parses `schema_version`.
+
+### `memo migrate --to-v2` (issue #88 / S2-09)
+
+`src/lib/migrate.ts: planMigration(points, now, rules, policies) -> { ops, byRule, skipped }` is the pure planner; `src/commands/migrate.ts` is a thin wrapper: `scrollAll(filterLacking('schema_version'), { batch: 256 }, page => batchSetPayload(planMigration(page).ops))`, `--dry-run` runs the identical planner and prints identical counts without ever calling `batchSetPayload`. No collection or vector change (spec §5.5) — this is a payload-only rewrite.
+
+A point with `schema_version === '2'` is `skipped`. Every other point is matched against `rules` (default: FR-2.8's two-rule table, or a `--rules <file>` JSON array, first match wins) and gets:
+
+- The rule's own `set` fields: `kind` (required, `episodic | semantic` — `self` cannot appear, since every migrated point lands in `bank: 'kb'` and K1 forbids `self` there), plus, for `episodic` rules only, `session_from` (`story | legacy`) and `expires_in_days`.
+- The FR-2.8 "all" row: `bank` (existing value preserved if already present, `'kb'` otherwise — in practice every v1 point has no `bank` field, so this is indistinguishable from "every migrated point gets `bank = 'kb'`" for real data), `schema_version = '2'`, `consolidated/archived/superseded/pinned = false`, `retrieval_count = used_count = 0`, `stability` from `banks.kb.<kind>.initial_stability_days`, `stability_since = now`.
+- `kind = episodic`: `session_id = story ?? 'legacy'` (any non-string/empty `story` also resolves to `'legacy'`), `expires_at = timestamp_utc + expires_in_days` (rule's own value, else the `kb` episodic policy default).
+- `kind = semantic`: `valid_from = timestamp_utc`.
+- `dedupe_key_version` is never included in the returned payload — Qdrant's `set_payload` merges rather than replaces, so an omitted key is left unchanged on the stored point (v1 keys remain valid, per FR-2.3).
+
+A `--rules` file is validated with a `.strict()` Zod schema (`MigrationRulesSchema`) before any scan: `set.kind` is required, `session_from`/`expires_in_days` are rejected on a non-`episodic` `set`, and the rule set must be exhaustive — at least one rule with an empty `when: {}` (evaluated in order, so it does not need to be literally last). A non-array file, invalid JSON, or a non-exhaustive rule set all fail `VALIDATION_FAILED` before `scrollAll` is ever called (zero network calls on validation failure).
 
 ---
 

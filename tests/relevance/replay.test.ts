@@ -30,6 +30,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { computeTop3HitRate } from '../../src/lib/eval';
 import type { QueryResult } from '../../src/lib/eval';
+import { buildBaseFilter } from '../../src/lib/filters';
+import type { QdrantFilter } from '../../src/lib/qdrant';
 import {
   rankResults,
   DEFAULT_RANKING_WEIGHTS,
@@ -173,5 +175,233 @@ describe('relevance replay (offline, no network)', () => {
     // the >= baseline assertion below fails loudly rather than silently
     // passing — this is the behavior this test locks in.
     expect(report.overall_top3).toBeLessThan(baseline.overall_top3);
+  });
+});
+
+/**
+ * Story S2-05, AC2 (PRD AC-2.3, regression gate) — test plan §7.
+ *
+ * Today's replay (above) feeds `candidates.json` straight into `rankResults`
+ * with no filter step at all: a ranking-identity guard, not a filter-identity
+ * guard. This block routes each recorded candidate's payload through the
+ * exact same `base`-filter predicate `search.ts`/`list.ts` apply at query
+ * time (constructed with **no flags supplied** — the default/v1-compatible
+ * `base`) and asserts:
+ *
+ *   1. no false exclusion — every id in a query's recorded candidate list
+ *      still passes the v2 filter (v1-shaped payloads have no
+ *      `bank`/`kind`/`archived`/`superseded` fields, so the `is_empty`
+ *      fallback and the `kind != self` exclusion must both no-op on them);
+ *   2. no false inclusion — the filter step never adds an id that was not in
+ *      the recorded candidate list (trivially true for a pure `Array#filter`,
+ *      asserted explicitly here rather than assumed);
+ *   3. ordering identity — the ranked top-N id order computed from the
+ *      filtered candidate set exactly matches the ranked top-N order computed
+ *      from the raw recorded candidate set, for every query.
+ *
+ * `candidates.json`/`baseline.json` are the fixtures of record and MUST NOT
+ * be regenerated to make this test pass — regenerating either file to paper
+ * over a real filter-path regression is itself a Critical-severity finding
+ * (test plan §7).
+ */
+describe('AC2 / AC-2.3: v2 filter-path identity (regression gate)', () => {
+  const queries = readJson<EvalQuery[]>('queries.json');
+  const candidates = readJson<QueryCandidates[]>('candidates.json');
+  const baseline = readJson<BaselineArtifact>('baseline.json');
+
+  /**
+   * A minimal, test-only Qdrant filter evaluator supporting exactly the
+   * clause shapes `buildBaseFilter` produces (`must`/`must_not`/`should`,
+   * `key`+`match.value`/`match.any`, `key`+`range`, `is_empty`, and nested
+   * `should` groups) — not a general-purpose Qdrant filter engine. This is
+   * deliberately independent of any production code path so it can act as
+   * an oracle, not a mirror of the implementation under test.
+   */
+  function matchesClause(
+    clause: Record<string, unknown>,
+    payload: Record<string, unknown>,
+  ): boolean {
+    if ('is_empty' in clause) {
+      const key = (clause['is_empty'] as { key: string }).key;
+      const value = payload[key];
+      return (
+        value === undefined ||
+        value === null ||
+        value === '' ||
+        (Array.isArray(value) && value.length === 0)
+      );
+    }
+
+    if ('should' in clause) {
+      const nested = clause['should'] as Record<string, unknown>[];
+      return nested.some((c) => matchesClause(c, payload));
+    }
+
+    if ('key' in clause) {
+      const key = clause['key'] as string;
+      const value = payload[key];
+
+      if ('match' in clause) {
+        const match = clause['match'] as { value?: unknown; any?: unknown[] };
+        if (match.value !== undefined) return value === match.value;
+        if (match.any !== undefined) {
+          return Array.isArray(value)
+            ? value.some((v) => match.any?.includes(v))
+            : match.any.includes(value);
+        }
+        return false;
+      }
+
+      if ('range' in clause) {
+        const range = clause['range'] as {
+          lte?: string;
+          gte?: string;
+          gt?: string;
+          lt?: string;
+        };
+        if (typeof value !== 'string') return false;
+        if (range.lte !== undefined && !(value <= range.lte)) return false;
+        if (range.gte !== undefined && !(value >= range.gte)) return false;
+        if (range.gt !== undefined && !(value > range.gt)) return false;
+        if (range.lt !== undefined && !(value < range.lt)) return false;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function evaluateBaseFilter(filter: QdrantFilter, payload: Record<string, unknown>): boolean {
+    const f = filter as {
+      must?: Record<string, unknown>[];
+      must_not?: Record<string, unknown>[];
+      should?: Record<string, unknown>[];
+    };
+
+    if (f.must && !f.must.every((clause) => matchesClause(clause, payload))) return false;
+    if (f.must_not && !f.must_not.every((clause) => !matchesClause(clause, payload))) {
+      return false;
+    }
+    if (
+      f.should &&
+      f.should.length > 0 &&
+      !f.should.some((clause) => matchesClause(clause, payload))
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  function rankIds(candidateEntries: CandidateEntry[], query: string): (string | number)[] {
+    const ranked = rankResults(
+      candidateEntries.map((c) => ({
+        id: c.id,
+        similarity: c.score,
+        timestampUtc:
+          typeof c.payload?.['timestamp_utc'] === 'string' ? c.payload['timestamp_utc'] : undefined,
+        source: c.payload?.['source'],
+        tags: Array.isArray(c.payload?.['tags']) ? c.payload['tags'] : undefined,
+      })),
+      DEFAULT_RANKING_WEIGHTS,
+      DEFAULT_RECENCY_HALF_LIFE_DAYS,
+      Date.now(),
+      query,
+      DEFAULT_TAG_BOOST_FACTOR,
+    );
+    return ranked.map((r) => r.id);
+  }
+
+  // The default/v1-compatible base: no flags supplied at all (bank = 'kb',
+  // kind = 'all' minus self, archived/superseded excluded, no session/as-of).
+  const defaultBase = buildBaseFilter({ bank: 'kb', kind: 'all' });
+
+  it('no false exclusion: every recorded candidate id still passes the v2 default filter', () => {
+    for (const queryCandidates of candidates) {
+      const filteredIds = queryCandidates.candidates
+        .filter((c) => evaluateBaseFilter(defaultBase, c.payload ?? {}))
+        .map((c) => c.id);
+      const recordedIds = queryCandidates.candidates.map((c) => c.id);
+      expect(filteredIds).toEqual(recordedIds);
+    }
+  });
+
+  it('no false inclusion: the filter step never introduces an id absent from the recorded set', () => {
+    for (const queryCandidates of candidates) {
+      const filtered = queryCandidates.candidates.filter((c) =>
+        evaluateBaseFilter(defaultBase, c.payload ?? {}),
+      );
+      const recordedIdSet = new Set(queryCandidates.candidates.map((c) => c.id));
+      for (const c of filtered) {
+        expect(recordedIdSet.has(c.id)).toBe(true);
+      }
+      expect(filtered.length).toBe(queryCandidates.candidates.length);
+    }
+  });
+
+  it('ordering identity: ranked top-N order is unchanged after routing candidates through the v2 filter', () => {
+    const candidatesByQueryId = new Map(candidates.map((c) => [c.query_id, c.candidates]));
+
+    for (const q of queries) {
+      const raw = candidatesByQueryId.get(q.id) ?? [];
+      const filtered = raw.filter((c) => evaluateBaseFilter(defaultBase, c.payload ?? {}));
+
+      const rawOrder = rankIds(raw, q.query);
+      const filteredOrder = rankIds(filtered, q.query);
+
+      expect(filteredOrder).toEqual(rawOrder);
+    }
+  });
+
+  it('the filter is not vacuously true: it actually excludes archived/superseded/self-kind synthetic candidates', () => {
+    const synthetic: CandidateEntry[] = [
+      { id: 'kept-v1', score: 0.5, payload: { timestamp_utc: '2026-01-01T00:00:00.000Z' } },
+      {
+        id: 'kept-kb-explicit',
+        score: 0.5,
+        payload: { bank: 'kb', kind: 'semantic', timestamp_utc: '2026-01-01T00:00:00.000Z' },
+      },
+      {
+        id: 'excluded-archived',
+        score: 0.9,
+        payload: { archived: true, timestamp_utc: '2026-01-01T00:00:00.000Z' },
+      },
+      {
+        id: 'excluded-superseded',
+        score: 0.9,
+        payload: { superseded: true, timestamp_utc: '2026-01-01T00:00:00.000Z' },
+      },
+      {
+        id: 'excluded-self-kind',
+        score: 0.9,
+        payload: { kind: 'self', timestamp_utc: '2026-01-01T00:00:00.000Z' },
+      },
+      {
+        id: 'excluded-other-bank',
+        score: 0.9,
+        payload: { bank: 'jarvis-memory', timestamp_utc: '2026-01-01T00:00:00.000Z' },
+      },
+    ];
+
+    const kept = synthetic
+      .filter((c) => evaluateBaseFilter(defaultBase, c.payload ?? {}))
+      .map((c) => c.id);
+
+    expect(kept).toEqual(['kept-v1', 'kept-kb-explicit']);
+  });
+
+  it('recomputed overall top-3 hit rate through the v2 filter path meets the recorded baseline floor', () => {
+    const candidatesByQueryId = new Map(candidates.map((c) => [c.query_id, c.candidates]));
+    const results: QueryResult[] = queries.map((q) => {
+      const raw = candidatesByQueryId.get(q.id) ?? [];
+      const filtered = raw.filter((c) => evaluateBaseFilter(defaultBase, c.payload ?? {}));
+      return {
+        category: q.category,
+        expectedIds: q.expected_ids,
+        top3Ids: rankIds(filtered, q.query).slice(0, 3),
+      };
+    });
+
+    const report = computeTop3HitRate(results);
+    expect(report.overall_top3).toBeGreaterThanOrEqual(baseline.overall_top3);
   });
 });

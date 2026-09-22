@@ -55,6 +55,13 @@ export interface SearchHumanResult {
    * pass `--explain` keep the exact same output with no table at all.
    */
   explain?: ExplainFactors;
+  /**
+   * `[archived]`/`[superseded]` prefix flags (S2-05 AC6). Optional so a
+   * result that predates bank-aware read flags (or is simply active) renders
+   * with no prefix at all - the same convention as `stale`/`explain` above.
+   */
+  archived?: boolean;
+  superseded?: boolean;
 }
 
 /**
@@ -72,6 +79,19 @@ const TIER_COLOR: Record<ConfidenceTierLabel, (text: string) => string> = {
 function renderTierPrefix(tier: ConfidenceTierLabel | undefined): string {
   if (!tier) return '';
   return `${TIER_COLOR[tier](`[${tier}]`)} `;
+}
+
+/**
+ * `[archived]`/`[superseded]` human-output prefix (S2-05 AC6). Shared by
+ * `searchResults`, `searchResultsUnranked`, and `listResults` so the three
+ * read-side human renderers never drift on this convention. Renders neither
+ * label for an active entry (both flags falsy).
+ */
+function renderStatePrefix(archived?: boolean, superseded?: boolean): string {
+  const labels: string[] = [];
+  if (archived) labels.push(chalk.gray.bold('[archived]'));
+  if (superseded) labels.push(chalk.gray.bold('[superseded]'));
+  return labels.length > 0 ? `${labels.join(' ')} ` : '';
 }
 
 /**
@@ -95,6 +115,25 @@ export interface ListHumanResult {
   story?: string;
   commit?: string;
   timestamp_utc?: string;
+  /** `[archived]`/`[superseded]` prefix flags (S2-05 AC6). */
+  archived?: boolean;
+  superseded?: boolean;
+}
+
+/** Fields common to every unranked human-line renderer (S2-05 AC5/AC6). */
+export interface UnrankedSearchHumanResult {
+  id: string | number;
+  repo?: string;
+  rationale?: string;
+  entry_type?: string;
+  source?: string;
+  org?: string;
+  tags?: string[];
+  story?: string;
+  commit?: string;
+  timestamp_utc?: string;
+  archived?: boolean;
+  superseded?: boolean;
 }
 
 function toLead(text?: string): string {
@@ -104,7 +143,12 @@ function toLead(text?: string): string {
   return `${singleLine.slice(0, 137)}...`;
 }
 
-function renderMetadata(result: SearchHumanResult): string {
+type MetadataFields = Pick<
+  SearchHumanResult,
+  'org' | 'entry_type' | 'source' | 'story' | 'commit' | 'timestamp_utc' | 'tags'
+>;
+
+function renderMetadata(result: MetadataFields): string {
   const parts = [
     result.org ? `org:${result.org}` : null,
     result.entry_type ? `type:${result.entry_type}` : null,
@@ -166,6 +210,60 @@ function renderListMetadata(result: ListHumanResult): string {
   return parts.join('  ');
 }
 
+/**
+ * One line per entry, `seq  timestamp  lead  id`, per spec §10 (S2-06 AC6).
+ * `timeline` never ranks - no `[tier]`/score prefix, unlike `searchResults`.
+ */
+export interface TimelineHumanResult {
+  id: string | number;
+  seq?: number;
+  timestamp_utc?: string;
+  rationale?: string;
+}
+
+/** One grouped-shape session (S2-06 AC2): a header line, then its entries in source order. */
+export interface TimelineHumanGroup {
+  session_id: string;
+  entries: TimelineHumanResult[];
+}
+
+function renderTimelineLine(result: TimelineHumanResult): string {
+  const seq = result.seq !== undefined ? String(result.seq) : '-';
+  const timestamp = result.timestamp_utc ?? 'unknown-time';
+  return `${chalk.gray(seq)}  ${chalk.gray(timestamp)}  ${chalk.bold(toLead(result.rationale))}  ${chalk.gray(String(result.id))}`;
+}
+
+/**
+ * One `memo recall` section entry as rendered for humans (S2-07, spec §10):
+ * `SELF` and `CONFLICTS` lines carry neither `score`/`confidenceTier` (never
+ * ranked) nor `seq`; `LAST SESSION` lines carry `seq` only; `POLICIES`/
+ * `SHARED`/`MINE` lines carry `score`/`confidenceTier` only.
+ */
+export interface RecallHumanEntry {
+  id: string | number;
+  rationale?: string;
+  confidenceTier?: ConfidenceTierLabel;
+  score?: number;
+  seq?: number;
+}
+
+export interface RecallHumanSection {
+  /** Uppercase section header (`SELF`, `POLICIES`, `SHARED`, `MINE`, `LAST SESSION`, `CONFLICTS`). */
+  header: string;
+  entries: RecallHumanEntry[];
+  /** `true` for `POLICIES`/`SHARED`/`MINE` - drives the `[tier] score` prefix. */
+  ranked: boolean;
+}
+
+function renderRecallLine(entry: RecallHumanEntry, ranked: boolean): string {
+  const seqPrefix = entry.seq !== undefined ? `${chalk.gray(String(entry.seq))}  ` : '';
+  const scorePrefix =
+    ranked && entry.score !== undefined
+      ? `${renderTierPrefix(entry.confidenceTier)}${chalk.gray(`${String(Math.round(entry.score * 100))}%`)}  `
+      : '';
+  return `${seqPrefix}${scorePrefix}${chalk.bold(toLead(entry.rationale))}  ${chalk.gray(String(entry.id))}`;
+}
+
 export const output = {
   result(data: unknown, opts?: { json?: boolean }): void {
     if (opts?.json) {
@@ -204,7 +302,7 @@ export const output = {
       const metadata = renderMetadata(result);
 
       process.stdout.write(
-        `${renderTierPrefix(result.confidenceTier)}${chalk.cyan(repoLabel)}  ${chalk.gray(score)}  ${chalk.bold(toLead(result.rationale))}\n`,
+        `${renderStatePrefix(result.archived, result.superseded)}${renderTierPrefix(result.confidenceTier)}${chalk.cyan(repoLabel)}  ${chalk.gray(score)}  ${chalk.bold(toLead(result.rationale))}\n`,
       );
 
       if (metadata.length > 0) {
@@ -220,6 +318,29 @@ export const output = {
         const [header, values] = renderExplainTable(result.explain);
         process.stdout.write(`${chalk.gray(header)}\n`);
         process.stdout.write(`${chalk.gray(values)}\n`);
+      }
+
+      process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
+    }
+  },
+
+  /**
+   * `--kind self` human rendering (S2-05 AC5): no score, no confidence tier,
+   * no stale/explain annotations - `self` entries never enter `rankResults`,
+   * so there is no score to show. Still honors the `[archived]`/
+   * `[superseded]` prefix convention (AC6).
+   */
+  searchResultsUnranked(results: UnrankedSearchHumanResult[]): void {
+    for (const result of results) {
+      const repoLabel = result.repo ?? 'unknown-repo';
+      const metadata = renderMetadata(result);
+
+      process.stdout.write(
+        `${renderStatePrefix(result.archived, result.superseded)}${chalk.cyan(repoLabel)}  ${chalk.bold(toLead(result.rationale))}\n`,
+      );
+
+      if (metadata.length > 0) {
+        process.stdout.write(`${chalk.gray(metadata)}\n`);
       }
 
       process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
@@ -253,7 +374,7 @@ export const output = {
       const metadata = renderListMetadata(result);
 
       process.stdout.write(
-        `${chalk.gray(timestamp)}  ${chalk.cyan(repoLabel)}  ${chalk.bold(toLead(result.rationale))}\n`,
+        `${renderStatePrefix(result.archived, result.superseded)}${chalk.gray(timestamp)}  ${chalk.cyan(repoLabel)}  ${chalk.bold(toLead(result.rationale))}\n`,
       );
 
       if (metadata.length > 0) {
@@ -262,6 +383,56 @@ export const output = {
 
       process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
     }
+  },
+
+  /** Session shape (`--session`, S2-06 AC1): one `seq  timestamp  lead  id` line per entry, no header. */
+  timelineSession(results: TimelineHumanResult[]): void {
+    for (const result of results) {
+      process.stdout.write(`${renderTimelineLine(result)}\n`);
+    }
+  },
+
+  /** Grouped shape (no `--session`, S2-06 AC2): one header line per `session_id`, then its entries. */
+  timelineGrouped(groups: TimelineHumanGroup[]): void {
+    for (const group of groups) {
+      process.stdout.write(`${chalk.bold.cyan(`session: ${group.session_id}`)}\n`);
+      for (const result of group.entries) {
+        process.stdout.write(`${renderTimelineLine(result)}\n`);
+      }
+    }
+  },
+
+  /** Empty bank/session (S2-06 AC5): no error, just an explicit zero-count indication. */
+  timelineEmpty(): void {
+    process.stdout.write(`${chalk.yellow('No entries found.')}\n`);
+    process.stdout.write(`${chalk.gray('count: 0')}\n`);
+  },
+
+  /**
+   * `memo recall` human output (S2-07, spec §10): uppercase section header,
+   * one line per entry, an explicit `(none)` placeholder for an empty
+   * section (recall's sections are always structurally present in human
+   * output too - `bank = kb` simply omits the whole section, per AC7).
+   */
+  recallSections(sections: RecallHumanSection[]): void {
+    for (const section of sections) {
+      process.stdout.write(`${chalk.bold.cyan(section.header)}\n`);
+      if (section.entries.length === 0) {
+        process.stdout.write(`${chalk.gray('  (none)')}\n`);
+        continue;
+      }
+      for (const entry of section.entries) {
+        process.stdout.write(`${renderRecallLine(entry, section.ranked)}\n`);
+      }
+    }
+  },
+
+  /** `budget: used/max tokens · truncated: …` footer (S2-07 AC9, spec §10). */
+  recallFooter(usedTokens: number, maxTokens: number, truncated: string[]): void {
+    const truncatedLabel = truncated.length > 0 ? truncated.join(', ') : 'none';
+    process.stdout.write(
+      `${chalk.gray(`budget: ${String(usedTokens)}/${String(maxTokens)} tokens · truncated: ${truncatedLabel}`)}\n`,
+    );
   },
 
   listEmpty(activeFilters: string[]): void {

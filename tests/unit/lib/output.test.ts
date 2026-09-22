@@ -289,5 +289,110 @@ describe('output', () => {
         expect(written).toContain('0.12');
       });
     });
+
+    // S2-05 AC6: [archived]/[superseded] human-output prefixes.
+    describe('archived/superseded prefixes (AC6)', () => {
+      it('prefixes an archived result with [archived]', () => {
+        output.searchResults([
+          { id: '1', similarity: 0.5, repo: 'memo-cli', rationale: 'An old note', archived: true },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).toContain('[archived]');
+      });
+
+      it('prefixes a superseded result with [superseded]', () => {
+        output.searchResults([
+          {
+            id: '1',
+            similarity: 0.5,
+            repo: 'memo-cli',
+            rationale: 'A replaced note',
+            superseded: true,
+          },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).toContain('[superseded]');
+      });
+
+      it('shows both prefixes when both are true', () => {
+        output.searchResults([
+          {
+            id: '1',
+            similarity: 0.5,
+            repo: 'memo-cli',
+            rationale: 'Both',
+            archived: true,
+            superseded: true,
+          },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).toContain('[archived]');
+        expect(written).toContain('[superseded]');
+      });
+
+      it('shows neither prefix for an active entry', () => {
+        output.searchResults([
+          { id: '1', similarity: 0.5, repo: 'memo-cli', rationale: 'Active entry' },
+        ]);
+        const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+        expect(written).not.toContain('[archived]');
+        expect(written).not.toContain('[superseded]');
+      });
+    });
+  });
+
+  describe('listResults()', () => {
+    it('renders timestamp, repo, and rationale', () => {
+      output.listResults([
+        { id: '1', repo: 'memo-cli', rationale: 'A decision', timestamp_utc: '2026-01-01' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('memo-cli');
+      expect(written).toContain('A decision');
+      expect(written).toContain('2026-01-01');
+    });
+
+    // S2-05 AC6.
+    it('prefixes an archived row with [archived] and a superseded row with [superseded]', () => {
+      output.listResults([
+        { id: '1', repo: 'memo-cli', rationale: 'Old', archived: true },
+        { id: '2', repo: 'memo-cli', rationale: 'Replaced', superseded: true },
+        { id: '3', repo: 'memo-cli', rationale: 'Active' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[archived]');
+      expect(written).toContain('[superseded]');
+    });
+  });
+
+  describe('listEmpty()', () => {
+    it('renders count:0 and the active filters', () => {
+      output.listEmpty(['scope:repo']);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('No entries found.');
+      expect(written).toContain('count: 0');
+      expect(written).toContain('scope:repo');
+    });
+  });
+
+  // S2-05 AC5: `--kind self` unranked human rendering — no score, no tier.
+  describe('searchResultsUnranked()', () => {
+    it('renders id/repo/rationale without a score or tier prefix', () => {
+      output.searchResultsUnranked([
+        { id: 'self-1', repo: 'memo-cli', rationale: 'A self note', timestamp_utc: '2026-01-01' },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('memo-cli');
+      expect(written).toContain('A self note');
+      expect(written).not.toMatch(/\d+%/);
+    });
+
+    it('prefixes archived/superseded entries', () => {
+      output.searchResultsUnranked([
+        { id: 'self-1', repo: 'memo-cli', rationale: 'Old self note', archived: true },
+      ]);
+      const written = stdoutSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(written).toContain('[archived]');
+    });
   });
 });

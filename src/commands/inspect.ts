@@ -17,7 +17,12 @@ export interface InspectDeps {
 }
 
 function hasEntries(facets: MultiFacetResult): boolean {
-  return facets.orgs.length > 0 || facets.repos.length > 0 || facets.domains.length > 0;
+  return (
+    facets.orgs.length > 0 ||
+    facets.repos.length > 0 ||
+    facets.domains.length > 0 ||
+    facets.banks.length > 0
+  );
 }
 
 function sortByAlpha<T extends { name: string }>(items: T[]): T[] {
@@ -54,8 +59,13 @@ export async function handleInspect(flags: InspectFlags, deps: InspectDeps = {})
   const orgs = displayOrgs ? sortByAlpha(facets.orgs) : [];
   const repos = displayRepos ? sortByAlpha(facets.repos) : [];
   const domains = displayDomains ? sortByAlpha(facets.domains) : [];
+  // `banks` is an orthogonal axis (§18.14 item 13): it never respects the
+  // --orgs/--repos/--domains narrowing flags — private-bank entries may have
+  // no repo/org/domain at all, so narrowing by those would silently hide
+  // them. It is always computed and always shown.
+  const banks = sortByAlpha(facets.banks);
 
-  const totalEntries = orgs.length + repos.length + domains.length;
+  const totalEntries = orgs.length + repos.length + domains.length + banks.length;
 
   if (!hasEntries(facets)) {
     output.result('No entries found.');
@@ -74,6 +84,7 @@ export async function handleInspect(flags: InspectFlags, deps: InspectDeps = {})
       });
     }
     if (displayDomains) jsonResult['domains'] = domains.map(({ name, count }) => ({ name, count }));
+    jsonResult['banks'] = banks.map(({ name, count }) => ({ name, count }));
     output.result(jsonResult, { json: true });
     return;
   }
@@ -107,6 +118,14 @@ export async function handleInspect(flags: InspectFlags, deps: InspectDeps = {})
     if (lines.length > 0) lines.push('');
     lines.push(`Domains (${String(domains.length)}):`);
     for (const { name, count } of domains) {
+      lines.push(`  ${name}  (${String(count)} ${count === 1 ? 'entry' : 'entries'})`);
+    }
+  }
+
+  if (banks.length > 0) {
+    if (lines.length > 0) lines.push('');
+    lines.push(`Banks (${String(banks.length)}):`);
+    for (const { name, count } of banks) {
       lines.push(`  ${name}  (${String(count)} ${count === 1 ? 'entry' : 'entries'})`);
     }
   }
