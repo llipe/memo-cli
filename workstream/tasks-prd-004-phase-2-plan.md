@@ -301,13 +301,15 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [ ] 10.4 Update the `developer` agent/prompt: intent/outcome entries become `memo write --kind episodic --session ISSUE-<n> --bank $MEMO_BANK …`; ADR/decision entries stay `memo write --kind semantic` in `kb` with `--provenance` or `--manual`
   - [ ] 10.5 Update the `technical-writer`, `product-engineer`, `planner` definitions: declare `MEMO_BANK=<agent>-memory`, export it for the session
   - [ ] 10.6 Document session close as "no memo action in Phase 2; `memo used` and `memo decay` arrive with memo-cli 1.4.0"
-  - [ ] 10.7 Copy the updated skill files into this repository's `.claude/skills/memo-cli-usage/` so both copies are byte-identical
+  - [x] 10.7 Copy the updated skill files into this repository's `.claude/skills/memo-cli-usage/` so both copies are byte-identical
+
+    > Note: 10.7 was **not** completed within this story's own PR — the original delegation incorrectly assumed this repository's copy was already a placeholder and skipped the sync. It was completed as a follow-up under issue #89, sourced from `llipe/dev-tasks#240`'s `issue/89-memo-cli-usage-v13` branch content. See that PR for the fix. Note: after this repository's `prettier` markdown formatting pass (required by its own `format:check` gate), the two repos' copies are content-identical but not byte-identical — `dev-tasks` does not run the same prettier markdown-table normalization, so `diff -r` shows cosmetic-only differences (quote style, table column padding). See 10.13.
   - [ ] 10.8 Verify AC1: bank id declared and exported per agent
   - [ ] 10.9 Verify AC2 (PRD AC-2.9, recall half): single-call session start documented, fallback preserved
   - [ ] 10.10 Verify AC3 (PRD AC-2.9, write half): episodic-in-bank vs semantic-in-kb write examples correct
   - [ ] 10.11 Verify AC4: session-close documentation
   - [ ] 10.12 Verify AC5: skill/reference command examples all valid against the 1.3.0 build
-  - [ ] 10.13 Verify AC6: `diff -r` between the two skill directories shows no difference
+  - [ ] 10.13 Verify AC6: `diff -r` between the two skill directories shows no difference — **partially verified by the 10.7 follow-up**: content is semantically identical (sourced from the same PR content), but a literal byte-for-byte `diff -r` shows cosmetic-only differences from `memo-cli`'s mandatory prettier markdown formatting pass, which `dev-tasks` does not apply identically; full AC6 sign-off remains owned by the S2-10 story
   - [ ] 10.14 Verify AC7: "installed but unconfigured" / "not installed" behaviors unchanged
   - [ ] 10.15 Manual: run one `developer` session end-to-end with `MEMO_BANK=developer-memory` against `memo_eval` — `recall` at start, two episodic writes with `--session ISSUE-<n>`, `memo timeline` confirms them, `kb` receives no episodic entry; attach a transcript summary to the PR
   - [ ] 10.16 Edge cases: `MEMO_BANK` unset falls back to `kb` (private sections omitted, documented); memo-cli 1.2.x installed uses the fallback sequence; `memo recall` embeddings failure surfaces a warning and the session continues without context
