@@ -35,18 +35,19 @@ graph LR
 
 ### Commands (`src/commands/`)
 
-| Command          | File          | Purpose                                                                                                                                                      |
-| ---------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `memo setup`     | `setup.ts`    | Initialize `memo.config.json`, show effective config, validate config                                                                                        |
-| `memo write`     | `write.ts`    | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant                                                                               |
-| `memo search`    | `search.ts`   | Semantic vector search with exact pre-filters (repo, tags, scope)                                                                                            |
-| `memo list`      | `list.ts`     | Chronological entry listing with optional date-range filtering                                                                                               |
-| `memo tags list` | `tags.ts`     | Browse all unique tags stored in the collection with counts and sort options                                                                                 |
-| `memo inspect`   | `inspect.ts`  | Discover orgs, repos, and domains across the knowledge base with facet filters                                                                               |
-| `memo delete`    | `delete.ts`   | Safely delete a single entry by ID or bulk-delete by repo/org                                                                                                |
-| `memo read`      | `read.ts`     | Read one exact entry by ID with human or JSON output                                                                                                         |
-| `memo timeline`  | `timeline.ts` | Replay `episodic` memory in sequence order — `seq` asc within a session, else grouped by session; never embeds, never ranks (spec §18.8, S2-06)              |
-| `memo recall`    | `recall.ts`   | One call to restore context: SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS within a token budget; read-only, embeds exactly once (spec §8.5/§18.9, S2-07) |
+| Command          | File          | Purpose                                                                                                                                                                                                                |
+| ---------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `memo setup`     | `setup.ts`    | Initialize `memo.config.json`, show effective config, validate config                                                                                                                                                  |
+| `memo write`     | `write.ts`    | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant                                                                                                                                         |
+| `memo search`    | `search.ts`   | Semantic vector search with exact pre-filters (repo, tags, scope)                                                                                                                                                      |
+| `memo list`      | `list.ts`     | Chronological entry listing with optional date-range filtering                                                                                                                                                         |
+| `memo tags list` | `tags.ts`     | Browse all unique tags stored in the collection with counts and sort options                                                                                                                                           |
+| `memo inspect`   | `inspect.ts`  | Discover orgs, repos, domains, and banks across the knowledge base with facet filters                                                                                                                                  |
+| `memo delete`    | `delete.ts`   | Safely delete a single entry by ID or bulk-delete by repo/org                                                                                                                                                          |
+| `memo read`      | `read.ts`     | Read one exact entry by ID with human or JSON output                                                                                                                                                                   |
+| `memo timeline`  | `timeline.ts` | Replay `episodic` memory in sequence order — `seq` asc within a session, else grouped by session; never embeds, never ranks (spec §18.8, S2-06)                                                                        |
+| `memo recall`    | `recall.ts`   | One call to restore context: SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS within a token budget; read-only, embeds exactly once (spec §8.5/§18.9, S2-07)                                                           |
+| `memo bank`      | `bank.ts`     | `init`/`list`/`show` subcommands: create a bank by writing its first `self` entry, list every bank with per-kind counts, show one bank's self entries and per-kind/per-state counts (spec §18.10, decision A13, S2-08) |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
@@ -55,7 +56,7 @@ All commands support `--json` for machine-readable output. Human mode uses color
 | Module               | Purpose                                                                                                                                                                          |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `qdrant.ts`          | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                                                    |
-| `facets.ts`          | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting                                                           |
+| `facets.ts`          | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain/bank faceting                                                      |
 | `embeddings.ts`      | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                                                              |
 | `config.ts`          | Load, write, and validate `memo.config.json`                                                                                                                                     |
 | `registry.ts`        | Resolve related repositories from config for cross-repo search scope                                                                                                             |
@@ -159,9 +160,10 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 
 1. Auto-bootstrap Qdrant collection if needed
 2. Scroll all entries (no repo filter — global view) via `aggregateMultipleFields(scroll)`
-3. Simultaneously accumulate counts for `org`, `repo`, and `domain` fields in a single pass
-4. Apply facet flags (`--orgs`, `--repos`, `--domains`) to narrow displayed sections
-5. Output grouped facet sections with counts (human or `--json`)
+3. Simultaneously accumulate counts for `org`, `repo`, `domain`, and `bank` fields in a single pass (`bank`-absent points fold into `kb`, S2-08 spec §18.10)
+4. Apply facet flags (`--orgs`, `--repos`, `--domains`) to narrow the `orgs`/`repos`/`domains` sections
+5. The `banks` facet is an independent axis (§18.14 item 13): it is always computed and always shown, never narrowed by `--orgs`/`--repos`/`--domains` — a private-bank entry may have no `repo`/`org`/`domain` at all
+6. Output grouped facet sections with counts (human or `--json`)
 
 ### Delete Flow
 
@@ -222,6 +224,18 @@ sequenceDiagram
 3. `assembleRecall` (`src/lib/recall.ts`, pure — no I/O) then: (a) deduplicates ids across sections in canonical order `self, policies, shared, mine, last_session, conflicts`, dropping a later duplicate before any cap is applied; (b) applies section caps (`SHARED` 8, `MINE` 5, `LAST SESSION` 15 most-recent-by-`seq`, `CONFLICTS` 5; `SELF`/`POLICIES` uncapped); (c) trims lowest-priority-first — `conflicts → last_session (oldest first) → mine → shared → policies` — stopping at the first budget that fits; `SELF` is never trimmed, even when it alone exceeds `--max-tokens` (in which case every other active section is trimmed to empty and named in `truncated`, and `budget.used_tokens` is reported honestly, never clamped)
 4. Read-only per decision A14: no `setPayload`/`batchSetPayload` call and no `~/.memo/` filesystem write occurs anywhere in the command — `query_id` is emitted but no snapshot is persisted (that lands in Phase 3 alongside `memo used`)
 5. JSON: `{ query_id, bank, budget: { max_tokens, used_tokens }, sections: { self?, policies, shared, mine?, last_session?: { session_id, entries }, conflicts }, truncated }` — `self`/`mine`/`last_session` are **omitted keys**, not empty arrays, at `bank = kb` (FR-2.6). Human: uppercase section headers, one line per entry (`[tier] score  lead  id`; `SELF`/`CONFLICTS` omit tier/score; `LAST SESSION` is `seq`-prefixed), footer `budget: <used>/<max> tokens · truncated: <list or none>`
+
+### Bank Flow (spec §18.10, decision A13, S2-08)
+
+There is no separate bank registry (PRD B5) — a bank exists exactly when it has at least one point whose `bank` field equals its id.
+
+1. **`init`** — validates `--id` as `KebabOrUuid`, rejecting `kb` (reserved for the shared knowledge base) with `VALIDATION_FAILED`; when `--set-default` is passed, `loadConfig()` runs _before any Qdrant I/O at all_ so a missing/invalid `memo.config.json` fails loud with zero Qdrant calls. `count({ bank: id })` decides the branch:
+   - `> 0` (bank already exists): writes nothing, resolves `self_id` from the bank's newest active `self` entry, `created: false`.
+   - `0` (fresh bank): delegates to `src/commands/write.ts`'s `handleWrite` with fixed flags (`kind: self`, `source: manual`, `entry_type: structure`, default `rationale`/`tags` unless overridden) over the same `QdrantRepository` instance, with stdout temporarily suppressed so the delegated write's own output envelope never leaks; `self_id` is captured from the `upsert` call it makes, `created: true`.
+   - `--set-default` then unconditionally calls `writeConfig({ ...cfg, bank: { default: id } })` whenever the flag is passed — regardless of `created` (§18.14 item 11, idempotent write, no read-compare-skip) — so it is the _only_ path that ever touches `memo.config.json`.
+2. **`list`** — `aggregateField('bank', scroll)` discovers every explicit bank name in one scroll pass; a separate `count({ is_empty: { key: 'bank' } })` check folds v1-legacy (bank-absent) points into `kb` even when no point has an _explicit_ `bank: 'kb'` value. Per discovered bank, three `count()` calls (`buildBaseFilter({ bank, kind })` for `self`/`episodic`/`semantic`, default `archived`/`superseded` exclusions) produce `{ bank, counts: { self, episodic, semantic }, total }`.
+3. **`show`** — a single `scroll` over the whole bank (all kinds, all states) derives both the printed list and the counts from one pass: non-superseded `self` entries (newest-first, inherited from `scroll`'s own `timestamp_utc desc` ordering) populate `entries`; every point buckets into `counts[kind][state]` where `state` is `superseded > archived > active` precedence (§18.14 item 12 — counts are broken down per kind **and** per state, so `counts.self.superseded` reflects the raw count even when those entries are excluded from `entries`); `last_session_id` is the most recent non-archived, non-superseded episodic entry's `session_id`, mirroring `recall`'s `LAST SESSION` derivation. An unknown bank id returns zero counts, an empty `entries` array, and `last_session_id: null` — exit `0`, not an error; `--id kb` is accepted here (unlike `init`, which rejects it) since `kb` is a legitimate read target, not a bank a user creates.
+4. No migration surface: `init` writes exactly one _new_ point via the already-tested `write` path — it does not touch `schema_version` and requires no `filterLacking('schema_version')`-style backfill scan the way `memo migrate --to-v2` does.
 
 ---
 

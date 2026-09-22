@@ -26,6 +26,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
   - [Step 9: Read a Single Entry](#step-9-read-a-single-entry)
   - [Step 10: Replay Episodic History](#step-10-replay-episodic-history)
   - [Step 11: Restore Context in One Call (memo recall)](#step-11-restore-context-in-one-call-memo-recall)
+  - [Step 12: Manage Banks (memo bank)](#step-12-manage-banks-memo-bank)
 - [Command Reference](#command-reference)
 - [Agent Integration](#agent-integration)
   - [Agent Skill (memo-cli-usage)](#agent-skill-memo-cli-usage)
@@ -820,6 +821,63 @@ memo recall "plan the next story" --bank my-agent --json
 
 ---
 
+### Step 12: Manage Banks (`memo bank`)
+
+A bank is created simply by writing its first `self` entry (PRD B5) — there is no separate bank registry. `memo bank init|list|show` gives you visibility into that: who has memory, how much, and lets you bootstrap a new bank's `self` entry without hand-crafting a `memo write` call.
+
+```bash
+# Create a bank (writes one self entry, entry_type=structure, source=manual)
+memo bank init --id my-agent
+
+# Idempotent: a second call writes nothing and reports the existing bank
+memo bank init --id my-agent
+# { "bank": "my-agent", "created": false, "self_id": "...", "default_set": false }
+
+# Override the default rationale/tags
+memo bank init --id my-agent --rationale "Agent bootstrap" --tags "team,agent"
+
+# Set this bank as config.bank.default (writes memo.config.json) — the only
+# way memo.config.json is touched by `bank init` (decision A13)
+memo bank init --id my-agent --set-default
+```
+
+`--id` is validated as kebab-case or a UUID; `kb` is rejected (`VALIDATION_FAILED`) since it's the reserved shared-knowledge-base id, not a bank a user creates.
+
+```bash
+# List every bank with per-kind counts (v1 legacy points with no `bank` field fold into "kb")
+memo bank list
+# Banks (2):
+#   kb        self=0 episodic=0 semantic=44  total=44
+#   my-agent  self=1 episodic=3 semantic=1   total=5
+
+memo bank list --json
+# { "banks": [{ "bank": "kb", "counts": { "self": 0, "episodic": 0, "semantic": 44 }, "total": 44 }, ...] }
+
+# Show one bank's non-superseded self entries (newest first), counts per
+# kind AND per state (active/archived/superseded), and the last session id
+memo bank show --id my-agent
+memo bank show --id my-agent --json
+```
+
+An unknown bank id is not an error for `list`/`show` — `show --id never-created` exits `0` with zero counts and an empty entries list; there's no ownership check on any bank id (PRD §9, bank ids are labels, not identities).
+
+`memo inspect` also gains a `banks` facet (counts only) alongside `orgs`/`repos`/`domains`. Unlike those three, `banks` is an **independent axis**: it is never narrowed by `--orgs`/`--repos`/`--domains`, since a private-bank entry may have no `repo`/`org`/`domain` at all.
+
+```bash
+memo inspect
+# ... Organizations / Repositories / Domains ...
+# Banks (2):
+#   kb        (44 entries)
+#   my-agent  (5 entries)
+
+memo inspect --orgs --json
+# { "orgs": [...], "banks": [...] }   <- banks is still present even though --orgs narrows the rest
+```
+
+> **1.2.x compatibility note:** a bank created by 1.3.0 is a single `self` point. Since 1.2.x has no `kind` filter, `memo list`/`memo search` on a 1.2.x client would show that `self` entry as an ordinary decision entry rather than hiding it. No data is lost or corrupted — this is a display-only forward-compatibility caveat for mixed-version deployments.
+
+---
+
 ## Command Reference
 
 | Command               | Purpose                                                                        | Key Flags                                                                       |
@@ -831,11 +889,14 @@ memo recall "plan the next story" --bank my-agent --json
 | `memo search <query>` | Semantic search                                                                | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
 | `memo list`           | Chronological listing                                                          | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
 | `memo tags list`      | Browse unique tags                                                             | `--scope`, `--sort`, `--json`                                                   |
-| `memo inspect`        | Discover orgs/repos/domains                                                    | `--orgs`, `--repos`, `--domains`, `--json`                                      |
+| `memo inspect`        | Discover orgs/repos/domains/banks                                              | `--orgs`, `--repos`, `--domains`, `--json`                                      |
 | `memo delete`         | Delete entries                                                                 | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
 | `memo read`           | Read one specific entry by id                                                  | `--id`, `--json`                                                                |
 | `memo timeline`       | Replay episodic memory in sequence order                                       | `--bank`, `--session`, `--last`, `--since`, `--json`                            |
 | `memo recall <task>`  | One call to restore context (SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS) | `--bank`, `--scope`, `--max-tokens`, `--json`                                   |
+| `memo bank init`      | Create a bank (writes its first `self` entry)                                  | `--id`, `--rationale`, `--tags`, `--set-default`, `--json`                      |
+| `memo bank list`      | List every bank with per-kind counts                                           | `--json`                                                                        |
+| `memo bank show`      | Show a bank's self entries and per-kind/per-state counts                       | `--id`, `--json`                                                                |
 
 ### Global flags
 
@@ -1147,7 +1208,8 @@ src/
 │   ├── inspect.ts        # memo inspect (org/repo/domain facets)
 │   ├── delete.ts         # memo delete (safe single + bulk delete)
 │   ├── read.ts           # memo read (single entry by ID)
-│   └── timeline.ts       # memo timeline (episodic replay, never ranked)
+│   ├── timeline.ts       # memo timeline (episodic replay, never ranked)
+│   └── bank.ts           # memo bank (init / list / show) + inspect banks facet
 ├── lib/
 │   ├── qdrant.ts         # Qdrant collection management & queries
 │   ├── facets.ts         # Scroll-based facet aggregation

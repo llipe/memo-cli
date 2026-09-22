@@ -1,4 +1,5 @@
 import type { QdrantFilter, ScrollResult } from './qdrant.js';
+import { DEFAULT_BANK_ID } from '../types/config.js';
 
 export interface FacetEntry {
   name: string;
@@ -16,6 +17,14 @@ export interface MultiFacetResult {
   orgs: FacetEntry[];
   repos: RepoFacetEntry[];
   domains: FacetEntry[];
+  /**
+   * Bank-id counts (S2-08, spec §18.10): an independent axis from
+   * `orgs`/`repos`/`domains` - a private-bank point may have no
+   * `repo`/`org`/`domain` at all, so this facet is never filtered by those.
+   * A point with no `bank` field (pre-Phase-2 v1 legacy point) folds into
+   * `'kb'`, matching every other bank/kb-fold-in convention in the codebase.
+   */
+  banks: FacetEntry[];
 }
 
 export type FacetScrollFn = (filter?: QdrantFilter, limit?: number) => Promise<ScrollResult[]>;
@@ -69,6 +78,7 @@ export async function aggregateMultipleFields(scroll: FacetScrollFn): Promise<Mu
   const repoCounts = new Map<string, number>();
   const repoMeta = new Map<string, { org?: string; domain?: string }>();
   const domainCounts = new Map<string, number>();
+  const bankCounts = new Map<string, number>();
 
   for (const result of results) {
     const p = result.payload;
@@ -78,6 +88,8 @@ export async function aggregateMultipleFields(scroll: FacetScrollFn): Promise<Mu
     const repoVal = typeof p['repo'] === 'string' && p['repo'].length > 0 ? p['repo'] : undefined;
     const domainVal =
       typeof p['domain'] === 'string' && p['domain'].length > 0 ? p['domain'] : undefined;
+    const bankVal =
+      typeof p['bank'] === 'string' && p['bank'].length > 0 ? p['bank'] : DEFAULT_BANK_ID;
 
     if (orgVal) {
       orgCounts.set(orgVal, (orgCounts.get(orgVal) ?? 0) + 1);
@@ -93,6 +105,8 @@ export async function aggregateMultipleFields(scroll: FacetScrollFn): Promise<Mu
     if (domainVal) {
       domainCounts.set(domainVal, (domainCounts.get(domainVal) ?? 0) + 1);
     }
+
+    bankCounts.set(bankVal, (bankCounts.get(bankVal) ?? 0) + 1);
   }
 
   const orgs: FacetEntry[] = Array.from(orgCounts.entries()).map(([name, count]) => ({
@@ -113,5 +127,10 @@ export async function aggregateMultipleFields(scroll: FacetScrollFn): Promise<Mu
     count,
   }));
 
-  return { orgs, repos, domains };
+  const banks: FacetEntry[] = Array.from(bankCounts.entries()).map(([name, count]) => ({
+    name,
+    count,
+  }));
+
+  return { orgs, repos, domains, banks };
 }
