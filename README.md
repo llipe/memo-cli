@@ -878,25 +878,78 @@ memo inspect --orgs --json
 
 ---
 
+### Step 13: Migrate to Schema v2 (`memo migrate --to-v2`)
+
+Existing v1 entries stay fully readable without migration — `normalizeEntry` (S2-01) fills in `bank`/`kind`/`schema_version` defaults on every read. `memo migrate --to-v2` is the **opt-in, idempotent bulk rewrite** that gives those entries real v2 payloads (bank membership, kind, retention/stability fields), per PRD FR-2.8 and spec §5.5/§18.11.
+
+**Always dry-run first.** `--dry-run` runs the exact same planner and prints the same counts a real run would produce, and is guaranteed to issue zero writes:
+
+```bash
+memo migrate --to-v2 --dry-run
+# Migration (dry-run) summary:
+#   scanned:  44
+#   migrated: 44
+#   skipped:  0
+#   by_rule:  {"1":6,"2":38}
+
+memo migrate --to-v2 --dry-run --json
+# { "scanned": 44, "migrated": 44, "skipped": 0, "by_rule": { "1": 6, "2": 38 }, "dry_run": true }
+```
+
+Review the `by_rule` counts, then run for real:
+
+```bash
+memo migrate --to-v2
+# ... one progress line per scanned page on stderr ...
+# Migration summary:
+#   scanned:  44
+#   migrated: 44
+#   skipped:  0
+#   by_rule:  {"1":6,"2":38}
+
+# Idempotent: a second run reports zero further changes
+memo migrate --to-v2
+# Migration summary:
+#   scanned:  0
+#   migrated: 0
+#   skipped:  0
+#   by_rule:  {}
+```
+
+**What changes:** every scanned point (any point lacking `schema_version`) gets `bank = kb`, `schema_version = "2"`, `consolidated/archived/superseded/pinned = false`, `retrieval_count = used_count = 0`, `stability`/`stability_since`, and either (a) `kind = episodic`, `session_id = story ?? "legacy"`, `expires_at = timestamp_utc + 90d` for entries tagged `intent`/`outcome`, or (b) `kind = semantic`, `valid_from = timestamp_utc` for everything else.
+
+**What does not change:** no entry is archived, deleted, or re-embedded; no vector is ever read or written; `dedupe_key_version` is left exactly as it was (v1 keys remain valid, per FR-2.3); a point already at `schema_version: "2"` is skipped, not touched again.
+
+Replace the default rules with `--rules <file>` (a JSON array, evaluated in order, first match wins — see spec §18.11 for the full `when`/`set` shape). A rules file with no catch-all rule (a rule with `when: {}`) fails `VALIDATION_FAILED` before any scan is attempted:
+
+```bash
+memo migrate --to-v2 --dry-run --rules ./custom-migration-rules.json
+```
+
+> **This command never targets the production `decisions` collection as part of ordinary use — you point it there yourself.** memo-cli 1.3.0's own release process runs `memo migrate --to-v2 --dry-run` against `decisions`, reviews the counts, and only then runs the real migration — that is a separate, human-run step performed once, after upgrading, not something this README's examples do for you. Point `MEMO_COLLECTION` at an isolated collection (e.g. `memo_eval`) to try the command out safely first.
+
+---
+
 ## Command Reference
 
-| Command               | Purpose                                                                        | Key Flags                                                                       |
-| --------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `memo setup init`     | Create `memo.config.json`                                                      | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
-| `memo setup show`     | Display current config                                                         | `--json`                                                                        |
-| `memo setup validate` | Check config validity                                                          | —                                                                               |
-| `memo write`          | Capture a decision                                                             | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
-| `memo search <query>` | Semantic search                                                                | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
-| `memo list`           | Chronological listing                                                          | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
-| `memo tags list`      | Browse unique tags                                                             | `--scope`, `--sort`, `--json`                                                   |
-| `memo inspect`        | Discover orgs/repos/domains/banks                                              | `--orgs`, `--repos`, `--domains`, `--json`                                      |
-| `memo delete`         | Delete entries                                                                 | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
-| `memo read`           | Read one specific entry by id                                                  | `--id`, `--json`                                                                |
-| `memo timeline`       | Replay episodic memory in sequence order                                       | `--bank`, `--session`, `--last`, `--since`, `--json`                            |
-| `memo recall <task>`  | One call to restore context (SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS) | `--bank`, `--scope`, `--max-tokens`, `--json`                                   |
-| `memo bank init`      | Create a bank (writes its first `self` entry)                                  | `--id`, `--rationale`, `--tags`, `--set-default`, `--json`                      |
-| `memo bank list`      | List every bank with per-kind counts                                           | `--json`                                                                        |
-| `memo bank show`      | Show a bank's self entries and per-kind/per-state counts                       | `--id`, `--json`                                                                |
+| Command                | Purpose                                                                        | Key Flags                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `memo setup init`      | Create `memo.config.json`                                                      | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
+| `memo setup show`      | Display current config                                                         | `--json`                                                                        |
+| `memo setup validate`  | Check config validity                                                          | —                                                                               |
+| `memo write`           | Capture a decision                                                             | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
+| `memo search <query>`  | Semantic search                                                                | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
+| `memo list`            | Chronological listing                                                          | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
+| `memo tags list`       | Browse unique tags                                                             | `--scope`, `--sort`, `--json`                                                   |
+| `memo inspect`         | Discover orgs/repos/domains/banks                                              | `--orgs`, `--repos`, `--domains`, `--json`                                      |
+| `memo delete`          | Delete entries                                                                 | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
+| `memo read`            | Read one specific entry by id                                                  | `--id`, `--json`                                                                |
+| `memo timeline`        | Replay episodic memory in sequence order                                       | `--bank`, `--session`, `--last`, `--since`, `--json`                            |
+| `memo recall <task>`   | One call to restore context (SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS) | `--bank`, `--scope`, `--max-tokens`, `--json`                                   |
+| `memo bank init`       | Create a bank (writes its first `self` entry)                                  | `--id`, `--rationale`, `--tags`, `--set-default`, `--json`                      |
+| `memo bank list`       | List every bank with per-kind counts                                           | `--json`                                                                        |
+| `memo bank show`       | Show a bank's self entries and per-kind/per-state counts                       | `--id`, `--json`                                                                |
+| `memo migrate --to-v2` | Idempotently rewrite v1 payloads to schema v2                                  | `--dry-run`, `--rules`, `--json`                                                |
 
 ### Global flags
 
