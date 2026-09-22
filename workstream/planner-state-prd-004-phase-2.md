@@ -6,29 +6,29 @@
 - Integration branch: `integration/prd-004-phase-2-banks-kinds-sessions-recall`
 - Repository: `llipe/memo-cli`
 - Started: 2026-09-21
-- Last updated: 2026-09-22 (post issue #98 fix merge)
+- Last updated: 2026-09-22 (post S2-07 merge)
 
 ## Story Status
 
-| Sequence | Story ID | Issue # | Status     | PR                                               | Branch                                               |
-| -------- | -------- | ------- | ---------- | ------------------------------------------------ | ---------------------------------------------------- |
-| 1        | S2-01    | #53     | ✅ Merged  | [#92](https://github.com/llipe/memo-cli/pull/92) | `story/s2-01-config-v2-schema-v2` (deleted)          |
-| 2        | S2-02    | #81     | ✅ Merged  | [#93](https://github.com/llipe/memo-cli/pull/93) | `story/S2-02-qdrant-repository-extensions` (deleted) |
-| 3        | S2-03    | #82     | ✅ Merged  | [#94](https://github.com/llipe/memo-cli/pull/94) | `story/S2-03-bank-filters-dedupe-v2` (deleted)       |
-| 4        | S2-04    | #83     | ✅ Merged  | [#95](https://github.com/llipe/memo-cli/pull/95) | `story/S2-04-memo-write-v2` (deleted)                |
-| 5        | S2-05    | #84     | ✅ Merged  | [#96](https://github.com/llipe/memo-cli/pull/96) | `story/S2-05-read-flags-bank-staleness` (deleted)    |
-| 6        | S2-06    | #85     | ✅ Merged  | [#97](https://github.com/llipe/memo-cli/pull/97) | `story/S2-06-memo-timeline` (deleted)                |
-| 7        | S2-07    | #86     | ⏳ Pending | —                                                | —                                                    |
-| 8        | S2-08    | #87     | ⏳ Pending | —                                                | —                                                    |
-| 9        | S2-09    | #88     | ⏳ Pending | —                                                | —                                                    |
-| 10       | S2-10    | #89     | ⏳ Pending | —                                                | —                                                    |
-| 11       | S2-11    | #90     | ⏳ Pending | —                                                | —                                                    |
+| Sequence | Story ID | Issue # | Status     | PR                                                 | Branch                                               |
+| -------- | -------- | ------- | ---------- | -------------------------------------------------- | ---------------------------------------------------- |
+| 1        | S2-01    | #53     | ✅ Merged  | [#92](https://github.com/llipe/memo-cli/pull/92)   | `story/s2-01-config-v2-schema-v2` (deleted)          |
+| 2        | S2-02    | #81     | ✅ Merged  | [#93](https://github.com/llipe/memo-cli/pull/93)   | `story/S2-02-qdrant-repository-extensions` (deleted) |
+| 3        | S2-03    | #82     | ✅ Merged  | [#94](https://github.com/llipe/memo-cli/pull/94)   | `story/S2-03-bank-filters-dedupe-v2` (deleted)       |
+| 4        | S2-04    | #83     | ✅ Merged  | [#95](https://github.com/llipe/memo-cli/pull/95)   | `story/S2-04-memo-write-v2` (deleted)                |
+| 5        | S2-05    | #84     | ✅ Merged  | [#96](https://github.com/llipe/memo-cli/pull/96)   | `story/S2-05-read-flags-bank-staleness` (deleted)    |
+| 6        | S2-06    | #85     | ✅ Merged  | [#97](https://github.com/llipe/memo-cli/pull/97)   | `story/S2-06-memo-timeline` (deleted)                |
+| 7        | S2-07    | #86     | ✅ Merged  | [#100](https://github.com/llipe/memo-cli/pull/100) | `story/S2-07-memo-recall` (deleted)                  |
+| 8        | S2-08    | #87     | ⏳ Pending | —                                                  | —                                                    |
+| 9        | S2-09    | #88     | ⏳ Pending | —                                                  | —                                                    |
+| 10       | S2-10    | #89     | ⏳ Pending | —                                                  | —                                                    |
+| 11       | S2-11    | #90     | ⏳ Pending | —                                                  | —                                                    |
 
 ## Current Position
 
-- Next story: S2-07
-- Last merged PR: [#99](https://github.com/llipe/memo-cli/pull/99) (issue #98 drift fix, squash-merged, branch deleted)
-- Integration branch HEAD: `c869d70`
+- Next story: S2-08
+- Last merged PR: [#100](https://github.com/llipe/memo-cli/pull/100) (S2-07, squash-merged, story branch deleted)
+- Integration branch HEAD: `4f44945`
 
 ## Decisions Log
 
@@ -46,4 +46,5 @@
 - 2026-09-22: S2-06 merged (PR #97). `qa-engineer`: **`coverage_gate: FAIL`** — `timeline.ts` branch coverage 63.82% (below 75% threshold); two test-plan-committed scenarios (grouped/empty human-mode rendering) have zero test coverage. `verifier`: Fidelity Medium, highest drift **Major/Unintended (D-1)**: `parseSince()`'s date-only validation checks digit-shape but not calendar validity — `--since 2026-13-40` silently passes instead of failing `VALIDATION_FAILED`. Same bug inherited in the already-merged `list-filters.ts` (`normalizeIsoBoundary`, from S2-03). Per this run's merge-gate contract, FAIL/drift results don't block the merge (only an omitted result would) — merged as-is. **D-1 actioned immediately as a new follow-up issue** (not reopening the closed S2-03/S2-06 tasks, per drift-reconciliation convention for closed scope): a correct reference implementation already exists in `read-flags.ts` (`normalizeAsOf`/`isValidCalendarDate`), so the fix is to extract it into a shared module and reuse it in both broken call sites. Issue creation delegated to `github-ops`; fix delegated to `developer` as its own small PR before S2-07 resumes. The coverage gaps (grouped/empty rendering tests) are folded into that same fix issue.
 - **Drift reconciliation queue (batched, non-blocking, for the S2-11 exit gate or sooner):** S2-01 D-1 (AC2 wording), S2-02 D-1 (`scrollAll` zero-page handling), S2-04 D-1 (dedupe fallback condition, Undetermined), S2-04 write.ts-coverage gap, `TESTING.md` narrative correction, S2-05 live `memo_eval` manual check outstanding.
 - 2026-09-22: Issue #98 fix merged (PR #99). First `developer` attempt at this fix **also failed mid-run from a transient network error** (same class as S2-04's) while opening the PR — but it had already committed a complete, correct fix before failing, so nothing was lost. Recovery run critically re-verified the salvaged commit against issue #98's 6 acceptance criteria line-by-line rather than trusting it, found it sound, and finished the PR. `qa-engineer`: `coverage_gate: PASS` — confirmed the calendar-validity check is a genuine round-trip (not a naive isNaN), confirmed `read-flags.ts`'s refactor is behavior-neutral (subtractive-only diff), confirmed the new output tests assert real rendered content. `verifier` Audit Mode: Fidelity High, **zero drift**, explicitly re-checked and confirmed D-1 is genuinely closed. This closes out the one non-batched drift item; the rest remain queued below.
+- 2026-09-22: S2-07 merged (PR #100) — the phase's headline feature (PRD goal 3, "one call to restore context"). Found and fixed a genuine production-affecting infra bug during live manual validation: `pending_contradiction` (needed by the CONFLICTS section) had no Qdrant payload index, causing a 400 on a strict-mode cluster — added as the 13th v2 index, additive-only, verified not to disturb the other 22. `rankCandidates()` was extracted from `search.ts` with a confirmed zero-diff on `search.ts`'s own tests (genuine behavior-preserving refactor). `qa-engineer`: `coverage_gate: PASS` — verified the AC8 zero-writes guarantee via real mock-call assertions and the SELF-never-trimmed adversarial test (SELF alone exceeding budget; every other section, including ones that started empty, correctly dropped into `truncated`). `verifier` Audit Mode: Fidelity High, **zero drift** on all 10 ACs, independently re-verified structurally (grepped for absent setPayload/fs imports, diff-inspected the index addition, re-ran the full suite on a clean worktree). Report: `workstream/fidelity-report-issue-86.md`. Also cleaned up 19 stray macOS/iCloud "keep both" duplicate files (`* 2.ts`/`* 2.md`) left behind by cloud-sync conflicts across several subagents writing to this shared working directory over the session — all confirmed harmless/stale before deletion.
 - 2026-09-22: **Incident — accidental direct push to `main`.** After merging PR #99, a routine `git pull origin integration/prd-004-phase-2-banks-kinds-sessions-recall --ff-only` was run without first re-confirming the checked-out branch name; local HEAD had silently drifted to `main` at some point (most likely a `developer` subagent — which shares this session's working directory — running its own internal `git checkout` earlier, e.g. during S2-01's manual CLI validation against a built binary). `git pull origin <branch>` merges the named _remote_ branch into whatever is _currently checked out_, regardless of name match, so this fast-forwarded local `main` to the integration branch's tip; the next commit+push (the routine checkpoint update) landed directly on `origin/main` (`b34f7e2` → `c16f4be`), fully bypassing the consolidated-PR review/approval step. Caught immediately via the push output's `main -> main` line, reported to the user in full before any further action. The content itself was not corrupted (every commit had already passed `qa-engineer` + `verifier` gates before reaching the integration branch) — the violation was procedural: skipping the user's review checkpoint. **Resolved**: user confirmed revert; local `main` reset to `b34f7e2` (`git reset --hard`), but the push-to-main was blocked by this repo's own `git-guard.sh` hook even for the corrective action — reported verbatim rather than routed around, and the user ran the force-push themselves (`git push origin main --force-with-lease`, confirmed `c16f4be...b34f7e2 main -> main (forced update)`). The one real checkpoint commit made during the incident (`c16f4be`, the routine "post issue #98 merge" log update) was recovered via `git cherry-pick` onto the correct integration branch rather than lost. **Process fix going forward:** every `git checkout`/`git pull`/`git push` from here on is preceded by an explicit `git branch --show-current` check, not just `git status`, since `git status --short` alone does not print the branch name.
