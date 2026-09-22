@@ -62,3 +62,27 @@ export function normalizeEntry(payload: Record<string, unknown>): StoredEntry {
     valid_from,
   };
 }
+
+/**
+ * Projects the additive-only subset of v2 fields that `search`/`list` add to
+ * each JSON result (spec §18.7, story S2-05 AC8): `bank`/`kind` are always
+ * present (every entry has both, defaulted by `normalizeEntry`); every other
+ * field is included only when actually present/true on the source entry, so
+ * a v1-shaped or otherwise-default entry gets none of the noise of a
+ * synthesized `false`/`undefined` value (CT-1's additive-diff contract - a
+ * pre-story consumer reading only pre-existing keys must see zero change).
+ */
+export function projectV2Fields(entry: StoredEntry): Record<string, unknown> {
+  return {
+    bank: entry.bank,
+    kind: entry.kind,
+    ...(entry['session_id'] !== undefined ? { session_id: entry['session_id'] } : {}),
+    ...(entry['seq'] !== undefined ? { seq: entry['seq'] } : {}),
+    ...(entry.valid_from !== undefined ? { valid_from: entry.valid_from } : {}),
+    ...(entry['valid_to'] !== undefined ? { valid_to: entry['valid_to'] } : {}),
+    ...(entry['superseded_by'] !== undefined ? { superseded_by: entry['superseded_by'] } : {}),
+    ...(entry.archived ? { archived: true as const } : {}),
+    ...(entry.superseded ? { superseded: true as const } : {}),
+    ...(entry.pinned ? { pinned: true as const } : {}),
+  };
+}

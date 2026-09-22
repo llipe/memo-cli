@@ -92,7 +92,17 @@ describe('tags list integration', () => {
     await handleTagsList({}, deps);
 
     expect(mockQdrant.scroll).toHaveBeenCalledWith(
-      { must: [{ key: 'repo', match: { value: 'memo-cli' } }] },
+      {
+        must: [
+          { should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }] },
+          { key: 'repo', match: { value: 'memo-cli' } },
+        ],
+        must_not: [
+          { key: 'kind', match: { value: 'self' } },
+          { key: 'archived', match: { value: true } },
+          { key: 'superseded', match: { value: true } },
+        ],
+      },
       10_000,
     );
   });
@@ -104,6 +114,14 @@ describe('tags list integration', () => {
 
     expect(mockQdrant.scroll).toHaveBeenCalledWith(
       {
+        must: [
+          { should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }] },
+        ],
+        must_not: [
+          { key: 'kind', match: { value: 'self' } },
+          { key: 'archived', match: { value: true } },
+          { key: 'superseded', match: { value: true } },
+        ],
         should: [
           { key: 'repo', match: { value: 'memo-cli' } },
           { key: 'repo', match: { value: 'platform-docs' } },
@@ -156,5 +174,39 @@ describe('tags list integration', () => {
     const tags = result['tags'] as Array<{ name: string; count: number }>;
     expect(tags).toEqual([{ name: 'api', count: 1 }]);
     expect(result['total']).toBe(1);
+  });
+
+  // S2-05 EC-11 / AC3 (PRD AC-2.4).
+  describe('bank scoping (S2-05)', () => {
+    it('EC-11: an empty private bank returns exit 0 and count 0, not an error', async () => {
+      mockQdrant.scroll.mockResolvedValueOnce([]);
+
+      await handleTagsList({ bank: 'empty-bank', json: true }, deps);
+
+      const result = JSON.parse(stdoutData) as Record<string, unknown>;
+      expect(result['tags']).toEqual([]);
+      expect(result['total']).toBe(0);
+      expect(result['bank']).toBe('empty-bank');
+    });
+
+    it('AC3: tags list --bank a-memory never returns a b-memory tag', async () => {
+      mockQdrant.scroll.mockImplementation((filter: Record<string, unknown>) => {
+        const must = (filter['must'] ?? []) as Record<string, unknown>[];
+        const direct = must.find(
+          (c) =>
+            c['key'] === 'bank' && typeof (c['match'] as { value?: unknown })?.value === 'string',
+        );
+        const bank = direct ? (direct['match'] as { value: string }).value : 'kb';
+        const corpus: Record<string, { id: string; payload: Record<string, unknown> }[]> = {
+          'a-memory': [{ id: 'a-1', payload: { bank: 'a-memory', tags: ['a-tag'] } }],
+          'b-memory': [{ id: 'b-1', payload: { bank: 'b-memory', tags: ['b-tag'] } }],
+        };
+        return Promise.resolve(corpus[bank] ?? []);
+      });
+
+      await handleTagsList({ bank: 'a-memory', json: true }, deps);
+      const result = JSON.parse(stdoutData) as { tags: { name: string }[] };
+      expect(result.tags.map((t) => t.name)).toEqual(['a-tag']);
+    });
   });
 });

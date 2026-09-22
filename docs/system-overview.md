@@ -50,23 +50,27 @@ All commands support `--json` for machine-readable output. Human mode uses color
 
 ### Libraries (`src/lib/`)
 
-| Module              | Purpose                                                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `qdrant.ts`         | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                    |
-| `facets.ts`         | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting                           |
-| `embeddings.ts`     | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                              |
-| `config.ts`         | Load, write, and validate `memo.config.json`                                                                                                     |
-| `registry.ts`       | Resolve related repositories from config for cross-repo search scope                                                                             |
-| `output.ts`         | Centralized human/JSON output with chalk colors and ora spinners                                                                                 |
-| `errors.ts`         | `MemoError` class with typed error codes and deterministic exit codes                                                                            |
-| `dedupe.ts`         | Deduplication key generation (SHA-256), confidence inference, merge strategies                                                                   |
-| `search-filters.ts` | Build Qdrant pre-filter objects for search operations                                                                                            |
-| `ranking.ts`        | Pure composite ranking score for `memo search` — `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults` (issue #34) |
-| `staleness.ts`      | Pure staleness detection for `memo search` — `computeJaccardOverlap`, `detectStaleness` (issue #38)                                              |
-| `lexical.ts`        | Pure lexical identifier matching for `memo search` — `extractIdentifierTokens`, `tokenizeWord`, `cosine`, `computeLexicalBoost` (issue #62)      |
-| `list-filters.ts`   | Build Qdrant pre-filter objects for list with date range support                                                                                 |
-| `retry.ts`          | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                                                 |
-| `debug.ts`          | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                                          |
+| Module               | Purpose                                                                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `qdrant.ts`          | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                                                    |
+| `facets.ts`          | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain faceting                                                           |
+| `embeddings.ts`      | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                                                              |
+| `config.ts`          | Load, write, and validate `memo.config.json`                                                                                                                                     |
+| `registry.ts`        | Resolve related repositories from config for cross-repo search scope                                                                                                             |
+| `output.ts`          | Centralized human/JSON output with chalk colors and ora spinners                                                                                                                 |
+| `errors.ts`          | `MemoError` class with typed error codes and deterministic exit codes                                                                                                            |
+| `dedupe.ts`          | Deduplication key generation (SHA-256), confidence inference, merge strategies                                                                                                   |
+| `search-filters.ts`  | Build Qdrant pre-filter objects for search operations                                                                                                                            |
+| `ranking.ts`         | Pure composite ranking score for `memo search` — `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults` (issue #34)                                 |
+| `staleness.ts`       | Pure staleness detection for `memo search` — `computeJaccardOverlap`, `detectStaleness` (issue #38)                                                                              |
+| `lexical.ts`         | Pure lexical identifier matching for `memo search` — `extractIdentifierTokens`, `tokenizeWord`, `cosine`, `computeLexicalBoost` (issue #62)                                      |
+| `list-filters.ts`    | Build Qdrant pre-filter objects for list with date range support                                                                                                                 |
+| `retry.ts`           | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                                                                                 |
+| `debug.ts`           | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                                                                          |
+| `bank.ts`            | Bank resolution (`resolveBank`, PRD B3), `isPrivateBank`, `defaultKind`, `policyFor` (spec §18.2/§18.5)                                                                          |
+| `filters.ts`         | `buildBaseFilter` — the one shared bank/kind/state/session/as-of predicate for every read command (spec §8.1/§18.5); `mergeFilters`                                              |
+| `entry-normalize.ts` | `normalizeEntry` — v1→v2 read-side field defaults (spec §18.3); `projectV2Fields` — additive-only JSON projection for `search`/`list` (S2-05 AC8)                                |
+| `read-flags.ts`      | `parseReadFlags` — shared `--bank`/`--kind`/`--session`/`--include-archived`/`--include-superseded`/`--as-of` parsing for `search`/`list`/`tags list`/`read` (spec §18.7, S2-05) |
 
 ### Adapters (`src/adapters/`)
 
@@ -116,32 +120,37 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 
 1. Parse query string and filter flags (scope, tags, entry-type, source, limit)
 2. Load config, resolve related repos if `--scope related`; an invalid config (including invalid `ranking` weights) fails fast with `CONFIG_INVALID` rather than falling back to defaults
-3. Build Qdrant pre-filters
-4. Embed query text (plus tag terms when present)
-5. Compute the over-fetch limit `max(limit, min(limit * 3, 50))` and execute vector search with pre-filters against that many candidates
-   5a. Lexical identifier matching (issue #62): extract identifier-shaped tokens from the query via `src/lib/lexical.ts`'s `extractIdentifierTokens` (file paths, dotted names, kebab/snake_case, `#123`, `PROJ-45`, `--flag`, CamelCase). When at least one identifier is present and `ranking.lexical` is `true` (default), issue exactly one extra `scroll` against the `rationale`/`files_modified` text indexes (`should` per identifier, `min_should: 1`, same pre-filters, `limit 50`, `with_vector: true`), then union-dedupe its results into the candidate set by id: candidates already found by the dense search keep their Qdrant score; lexical-only candidates get a locally computed cosine similarity (`src/lib/lexical.ts`'s `cosine`) against the query vector. If the scroll fails, degrade to dense-only results (logged under `MEMO_DEBUG`, exit code unchanged) rather than failing the command. Every candidate then gets `lexical_boost = identifiers_matched / total_identifiers * ranking.lexical_boost_factor` (all-or-nothing per identifier), computed from the candidate's own payload regardless of which retrieval path found it.
-6. Rank candidates via `src/lib/ranking.ts`'s composite score (`final_score = w_similarity * similarity + w_recency * recency_score + w_source * source_score`, weights from `memo.config.json`'s `ranking` block or its defaults, plus `tag_boost` and `lexical_boost` added before the `1.0` cap), slice back down to `--limit`
-7. Attach `confidence_tier` to every ranked candidate via `computeConfidenceTier(final_score, thresholds)` (issue #35): thresholds come from `ranking.confidence_thresholds` or its defaults, and the tier is derived from the already-final `final_score` — it never feeds back into scoring or ordering
-8. Detect staleness (issue #38): when there is at least one ranked result, fetch the same-repo corpus once via `QdrantRepository.fetchByRepo` (a `scroll`, not `search`, bounded at 1,000 entries, ordered by `timestamp_utc` desc), cache it for the command, then run `src/lib/staleness.ts`'s pure `detectStaleness(results, corpus, config, now)` against the already-ranked, already-sliced results. A result is flagged when its age exceeds `ranking.staleness_threshold_days` (default 120) **and** a strictly newer same-repo entry has Jaccard tag overlap `>= ranking.staleness_tag_overlap_threshold` (default 0.5); the newest qualifying entry wins as `stale_by`. Detection never feeds back into `final_score` or ordering
-9. Format and output results: human mode prefixes each result with `[tier]`, no longer shows the stored `confidence` field, and renders an inline `⚠ STALE — superseded by <id>` warning under any flagged result; `--json` exposes `final_score`, `similarity`, `recency_score`, `source_score`, and `confidence_tier` on every result, with the stored `confidence` field dropped from the projection (it remains in `memo read`/`memo list`/`memo write` output and in the stored payload — search is the only place it is removed), plus `stale`/`stale_by` when flagged (omitted entirely, not `false`/`null`, when not stale)
-10. Attach a fresh `query_id` (UUID v4, `randomUUID`) to the envelope on every invocation (issue #63) — inert in Phase 1, nothing is persisted or read back; it only establishes the contract Phase 3 fills in. When `--explain` is set, project the full factor bag (`similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, and the Phase-2/3-neutral `retention: 1.0`, `use_ratio: 0`, `link_factor: 1.0`) onto every `--json` result as `factors`, and append an aligned factor table plus a `query_id: <uuid>` footer line in human mode. `--explain` never changes ordering, scores, or which results return, and issues no extra Qdrant or embeddings call.
+3. Parse the shared read-side flags via `src/lib/read-flags.ts`'s `parseReadFlags` (spec §18.7, story S2-05): `--bank`, `--kind` (case-insensitive `self`/`episodic`/`semantic`/`all`), `--session`, `--include-archived`, `--include-superseded`, `--as-of` (date-only or full ISO 8601; implies `--include-superseded` only). Invalid `--kind`/`--as-of` fail `VALIDATION_FAILED`.
+4. Build the shared `base` filter via `src/lib/filters.ts`'s `buildBaseFilter` (bank/kind/state/session/as-of) and merge it into `buildSearchFilters` — this is the one `base` shared by the dense query, the lexical scroll, and the staleness corpus below (AC4); no downstream call builds its own copy
+5. **`--kind self` is a distinct, unranked path** (AC5): issue one `scroll` (no embeddings call, no dense/lexical search, no staleness corpus), return results newest-first with `final_score`/`similarity`/`confidence_tier` entirely absent — `self` never enters `rankResults` in any other mode either
+6. Embed query text (plus tag terms when present) — skipped entirely for `--kind self`
+7. Compute the over-fetch limit `max(limit, min(limit * 3, 50))` and execute vector search with the merged pre-filters against that many candidates
+   7a. Lexical identifier matching (issue #62): extract identifier-shaped tokens from the query via `src/lib/lexical.ts`'s `extractIdentifierTokens` (file paths, dotted names, kebab/snake_case, `#123`, `PROJ-45`, `--flag`, CamelCase). When at least one identifier is present and `ranking.lexical` is `true` (default), issue exactly one extra `scroll` against the `rationale`/`files_modified` text indexes (`should` per identifier, `min_should: 1`, same merged pre-filters, `limit 50`, `with_vector: true`), then union-dedupe its results into the candidate set by id: candidates already found by the dense search keep their Qdrant score; lexical-only candidates get a locally computed cosine similarity (`src/lib/lexical.ts`'s `cosine`) against the query vector. If the scroll fails, degrade to dense-only results (logged under `MEMO_DEBUG`, exit code unchanged) rather than failing the command. Every candidate then gets `lexical_boost = identifiers_matched / total_identifiers * ranking.lexical_boost_factor` (all-or-nothing per identifier), computed from the candidate's own payload regardless of which retrieval path found it.
+8. Rank candidates via `src/lib/ranking.ts`'s composite score (`final_score = w_similarity * similarity + w_recency * recency_score + w_source * source_score`, weights from `memo.config.json`'s `ranking` block or its defaults, plus `tag_boost` and `lexical_boost` added before the `1.0` cap), slice back down to `--limit`
+9. Attach `confidence_tier` to every ranked candidate via `computeConfidenceTier(final_score, thresholds)` (issue #35): thresholds come from `ranking.confidence_thresholds` or its defaults, and the tier is derived from the already-final `final_score` — it never feeds back into scoring or ordering
+10. Detect staleness (issue #38, bank-aware per decision A12/S2-05 AC4): when there is at least one ranked result, fetch the staleness corpus once via `QdrantRepository.fetchStalenessCorpus(base)` (a `scroll`, not `search`, bounded at 1,000 entries by default, ordered by `timestamp_utc` desc) — the same `base` filter as the dense query and lexical scroll, plus a `repo` any-match clause layered on top only for the shared `kb` bank (a private bank's corpus is bank-scoped only, so a private bank's entries are never flagged stale by `kb` entries, or vice versa). `fetchByRepo` no longer exists (removed by S2-05; superseded by `fetchStalenessCorpus`). Cache the corpus for the command, then run `src/lib/staleness.ts`'s pure `detectStaleness(results, corpus, config, now)` against the already-ranked, already-sliced results. A result is flagged when its age exceeds `ranking.staleness_threshold_days` (default 120) **and** a strictly newer same-corpus entry has Jaccard tag overlap `>= ranking.staleness_tag_overlap_threshold` (default 0.5); the newest qualifying entry wins as `stale_by`. Detection never feeds back into `final_score` or ordering
+11. Format and output results: human mode prefixes each result with `[tier]`, and additionally with `[archived]`/`[superseded]` when included (S2-05 AC6), no longer shows the stored `confidence` field, and renders an inline `⚠ STALE — superseded by <id>` warning under any flagged result; `--json` exposes `final_score`, `similarity`, `recency_score`, `source_score`, and `confidence_tier` on every result, with the stored `confidence` field dropped from the projection (it remains in `memo read`/`memo list`/`memo write` output and in the stored payload — search is the only place it is removed), plus `stale`/`stale_by` when flagged (omitted entirely, not `false`/`null`, when not stale). Every result also gains `bank`/`kind` (always present, via `src/lib/entry-normalize.ts`'s `projectV2Fields`) and `session_id`/`seq`/`valid_from`/`valid_to`/`superseded_by`/`archived`/`superseded`/`pinned` (present only when set on the source entry — no existing key changes, S2-05 AC8). The envelope's `filters` gains `bank`, `kind`, `session?`, `as_of?`.
+12. Attach a fresh `query_id` (UUID v4, `randomUUID`) to the envelope on every invocation (issue #63) — inert in Phase 1, nothing is persisted or read back; it only establishes the contract Phase 3 fills in. When `--explain` is set, project the full factor bag (`similarity`, `recency_score`, `source_score`, `tag_boost`, `lexical_boost`, and the Phase-2/3-neutral `retention: 1.0`, `use_ratio: 0`, `link_factor: 1.0`) onto every `--json` result as `factors`, and append an aligned factor table plus a `query_id: <uuid>` footer line in human mode. `--explain` never changes ordering, scores, or which results return, and issues no extra Qdrant or embeddings call.
+
+**AC-2.3 (identical default results):** with no new flags, the default `base` (`bank = kb`, `kind = all` minus `self`, archived/superseded excluded) matches every v1 point via the `is_empty`/absent-bank fallback, so `memo search`/`memo list` return exactly the same entries they returned in v1.2.0 — verified by `tests/relevance/replay.test.ts`'s filter-path identity extension. **AC-2.4 (bank isolation):** `--bank a-memory` never returns a `b-memory` entry, and vice versa — there is no cross-bank search.
 
 ### List Flow
 
 1. Parse filter flags (from, to, tags, entry-type, limit)
 2. Load config, resolve repo scope
-3. Build list filters with optional date-range boundaries
-4. Execute Qdrant scroll (ordered by `timestamp_utc` descending)
-5. Format and output results chronologically
+3. Parse the shared read-side flags (same `parseReadFlags`/`buildBaseFilter` as Search Flow steps 3–4) and merge `base` into `buildListFilters`
+4. Execute Qdrant scroll (ordered by `timestamp_utc` descending) against the merged filter
+5. Format and output results chronologically; JSON rows gain the same additive v2 fields as Search Flow step 11, and human rows gain the `[archived]`/`[superseded]` prefix; the envelope's `filters` gains `bank`, `kind`, `session?`, `as_of?`
 
 ### Tags Flow
 
 1. Load config to resolve current repo; fail with `REPO_CONTEXT_UNRESOLVED` if missing
 2. Resolve target repos — current repo only (`--scope repo`) or including `relates_to` repos (`--scope related`)
-3. Build repo pre-filter and scroll all matching entries via `aggregateField('tags', scroll, filter)`
-4. Count each tag occurrence individually (tags is an array field)
-5. Sort by alpha (default) or frequency (`--sort frequency`)
-6. Output tag list with counts (human or `--json`)
+3. Parse the shared read-side flags and build `base` (same as Search/List flows); merge it with the repo pre-filter — the repo clause is applied only for the shared `kb` bank (`tags list` has no `--repo` flag, so a private bank is always repo-unscoped: its entries need not carry a `repo` at all)
+4. Scroll all matching entries via `aggregateField('tags', scroll, filter)`
+5. Count each tag occurrence individually (tags is an array field)
+6. Sort by alpha (default) or frequency (`--sort frequency`)
+7. Output tag list with counts (human or `--json`), including the resolved `bank`/`kind` (and `session`/`as_of` when supplied)
 
 ### Inspect Flow
 
@@ -161,11 +170,13 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 
 ### Read Flow
 
-1. Validate `--id` and normalize non-empty value
+1. Validate `--id` and normalize non-empty value; reject `--bank`/`--kind`/`--session`/`--as-of` with `VALIDATION_FAILED` (S2-05 AC1/EC-12 — an id is explicit, so bank/kind disambiguation does not apply). `--include-archived`/`--include-superseded` are accepted for CLI-surface consistency but have no filtering effect, since `getById` already fetches the exact id regardless of state.
 2. Auto-bootstrap Qdrant collection if needed
 3. Execute exact lookup by ID via `getById(id)`
 4. If no entry is found: return `ENTRY_NOT_FOUND` (exit code 1)
-5. If found: return full payload + `id` as flat object (`--json`) or ordered human-readable fields
+5. If found: normalize the payload via `src/lib/entry-normalize.ts`'s `normalizeEntry` (S2-05 AC9) — unlike Search/List's additive-only, present-when-true-only projection, `read` is a full diagnostic view and shows every v1-fallback default (`bank`, `kind`, `schema_version`, `archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`, `valid_from`) alongside every other field present on the entry
+6. If the entry's `provenance` field is an array of ids: resolve it with exactly one `scroll({ has_id: provenance })` call (capped at the array's own length — never a `getById`-per-id loop, never batched or truncated regardless of size) and replace it with `provenance: [{ id, deleted }]`; an id missing from the scroll result is `deleted: true` and suffixed `(deleted)` in human output
+7. Return the full payload + `id` as flat object (`--json`) or ordered human-readable fields
 
 ---
 

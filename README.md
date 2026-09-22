@@ -357,16 +357,22 @@ memo search "event publishing" \
 
 #### All search flags
 
-| Flag           | Default | Description                                                            |
-| -------------- | ------- | ---------------------------------------------------------------------- |
-| `--scope`      | `repo`  | `repo` (this repo only) or `related` (include `relates_to` repos)      |
-| `--tags`       | —       | Comma-separated tags to require (AND semantics)                        |
-| `--entry-type` | —       | Filter: `decision` \| `integration_point` \| `structure`               |
-| `--source`     | —       | Filter: `agent` \| `scan` \| `manual`                                  |
-| `--limit`      | `5`     | Maximum results to return                                              |
-| `--lexical`    | `on`    | `on` \| `off` — enable/disable lexical identifier matching (issue #62) |
-| `--explain`    | `false` | Show a per-result factor breakdown (issue #63) — see below             |
-| `--json`       | `false` | Output as JSON                                                         |
+| Flag                   | Default                                                    | Description                                                                                                              |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `--scope`              | `repo`                                                     | `repo` (this repo only) or `related` (include `relates_to` repos)                                                        |
+| `--tags`               | —                                                          | Comma-separated tags to require (AND semantics)                                                                          |
+| `--entry-type`         | —                                                          | Filter: `decision` \| `integration_point` \| `structure`                                                                 |
+| `--source`             | —                                                          | Filter: `agent` \| `scan` \| `manual`                                                                                    |
+| `--limit`              | `5`                                                        | Maximum results to return                                                                                                |
+| `--lexical`            | `on`                                                       | `on` \| `off` — enable/disable lexical identifier matching (issue #62)                                                   |
+| `--explain`            | `false`                                                    | Show a per-result factor breakdown (issue #63) — see below                                                               |
+| `--bank <id>`          | `MEMO_BANK` env var, then `config.bank.default`, then `kb` | Target bank (kebab-case or UUID); `--bank a-memory` never returns `b-memory` entries or vice versa                       |
+| `--kind <kind>`        | `all` (minus `self`)                                       | `self` \| `episodic` \| `semantic` \| `all`, case-insensitive; `--kind self` is unranked, newest-first, no `final_score` |
+| `--session <id>`       | —                                                          | Restrict to one episodic session id                                                                                      |
+| `--include-archived`   | `false`                                                    | Include archived entries (prefixed `[archived]` in human output, `archived: true` in JSON)                               |
+| `--include-superseded` | `false`                                                    | Include superseded entries (prefixed `[superseded]` in human output, `superseded: true` in JSON)                         |
+| `--as-of <iso>`        | —                                                          | Point-in-time read (`YYYY-MM-DD` or full ISO 8601 datetime); implies `--include-superseded` only                         |
+| `--json`               | `false`                                                    | Output as JSON                                                                                                           |
 
 #### Reading search results
 
@@ -493,16 +499,22 @@ memo list --source agent --limit 10
 
 #### All list flags
 
-| Flag           | Default | Description                           |
-| -------------- | ------- | ------------------------------------- |
-| `--scope`      | `repo`  | `repo` or `related`                   |
-| `--tags`       | —       | Comma-separated tag filter            |
-| `--entry-type` | —       | Filter by entry type                  |
-| `--source`     | —       | Filter by source                      |
-| `--from`       | —       | Start date (`YYYY-MM-DD` or ISO 8601) |
-| `--to`         | —       | End date (`YYYY-MM-DD` or ISO 8601)   |
-| `--limit`      | `20`    | Maximum entries                       |
-| `--json`       | `false` | Output as JSON                        |
+| Flag                   | Default                                                    | Description                                                                                      |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--scope`              | `repo`                                                     | `repo` or `related`                                                                              |
+| `--tags`               | —                                                          | Comma-separated tag filter                                                                       |
+| `--entry-type`         | —                                                          | Filter by entry type                                                                             |
+| `--source`             | —                                                          | Filter by source                                                                                 |
+| `--from`               | —                                                          | Start date (`YYYY-MM-DD` or ISO 8601)                                                            |
+| `--to`                 | —                                                          | End date (`YYYY-MM-DD` or ISO 8601)                                                              |
+| `--limit`              | `20`                                                       | Maximum entries                                                                                  |
+| `--bank <id>`          | `MEMO_BANK` env var, then `config.bank.default`, then `kb` | Target bank (kebab-case or UUID); isolated from every other bank                                 |
+| `--kind <kind>`        | `all` (minus `self`)                                       | `self` \| `episodic` \| `semantic` \| `all`, case-insensitive                                    |
+| `--session <id>`       | —                                                          | Restrict to one episodic session id                                                              |
+| `--include-archived`   | `false`                                                    | Include archived entries (prefixed `[archived]` in human output, `archived: true` in JSON)       |
+| `--include-superseded` | `false`                                                    | Include superseded entries (prefixed `[superseded]` in human output, `superseded: true` in JSON) |
+| `--as-of <iso>`        | —                                                          | Point-in-time read (`YYYY-MM-DD` or full ISO 8601 datetime); implies `--include-superseded` only |
+| `--json`               | `false`                                                    | Output as JSON                                                                                   |
 
 ---
 
@@ -555,11 +567,17 @@ memo tags list --json
 
 #### All tags list flags
 
-| Flag      | Default     | Description                         |
-| --------- | ----------- | ----------------------------------- |
-| `--scope` | `repo`      | `repo` or `related`                 |
-| `--sort`  | `frequency` | `frequency` (count desc) or `alpha` |
-| `--json`  | `false`     | Output as JSON                      |
+| Flag                   | Default                                                    | Description                                                                                      |
+| ---------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--scope`              | `repo`                                                     | `repo` or `related`                                                                              |
+| `--sort`               | `frequency`                                                | `frequency` (count desc) or `alpha`                                                              |
+| `--bank <id>`          | `MEMO_BANK` env var, then `config.bank.default`, then `kb` | Target bank; a private bank is repo-unscoped (no `--repo` flag on this command)                  |
+| `--kind <kind>`        | `all` (minus `self`)                                       | `self` \| `episodic` \| `semantic` \| `all`, case-insensitive                                    |
+| `--session <id>`       | —                                                          | Restrict to one episodic session id                                                              |
+| `--include-archived`   | `false`                                                    | Include archived entries in the aggregation                                                      |
+| `--include-superseded` | `false`                                                    | Include superseded entries in the aggregation                                                    |
+| `--as-of <iso>`        | —                                                          | Point-in-time read (`YYYY-MM-DD` or full ISO 8601 datetime); implies `--include-superseded` only |
+| `--json`               | `false`                                                    | Output as JSON                                                                                   |
 
 ---
 
@@ -674,14 +692,18 @@ This command is read-only and does not require local `memo.config.json`.
 memo read --id 550e8400-e29b-41d4-a716-446655440000 --json
 ```
 
-Returns the flat entry payload as JSON.
+Returns the flat entry payload as JSON, including every v2 field present (`bank`, `kind`, `session_id`, `seq`, `valid_from`/`valid_to`, `superseded_by`, `archived`, `superseded`, etc. — normalized with their documented v1 defaults, spec §18.3). If the entry's `provenance` array names source episodic ids, `memo read` resolves them with one `scroll` call and reports `provenance: [{ id, deleted }]`; a deleted id is suffixed `(deleted)` in human output.
 
 #### All read flags
 
-| Flag     | Default | Description                |
-| -------- | ------- | -------------------------- |
-| `--id`   | —       | Required entry id to fetch |
-| `--json` | `false` | Output as JSON             |
+| Flag                   | Default | Description                                                                                            |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| `--id`                 | —       | Required entry id to fetch                                                                             |
+| `--include-archived`   | `false` | Accepted for CLI-surface consistency; has no filtering effect (`--id` already fetches the exact entry) |
+| `--include-superseded` | `false` | Accepted for CLI-surface consistency; has no filtering effect                                          |
+| `--json`               | `false` | Output as JSON                                                                                         |
+
+`--bank`/`--kind`/`--session`/`--as-of` do **not** apply to `memo read` — an id is explicit, so passing any of them fails `VALIDATION_FAILED`.
 
 ---
 

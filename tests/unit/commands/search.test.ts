@@ -9,7 +9,7 @@ import { MemoError } from '../../../src/lib/errors.js';
 const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   search: jest.fn().mockResolvedValue([]),
-  fetchByRepo: jest.fn().mockResolvedValue([]),
+  fetchStalenessCorpus: jest.fn().mockResolvedValue([]),
   scroll: jest.fn().mockResolvedValue([]),
 };
 
@@ -38,7 +38,7 @@ beforeEach(() => {
   jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
   jest.clearAllMocks();
   mockQdrant.search.mockResolvedValue([]);
-  mockQdrant.fetchByRepo.mockResolvedValue([]);
+  mockQdrant.fetchStalenessCorpus.mockResolvedValue([]);
   mockQdrant.scroll.mockResolvedValue([]);
 });
 
@@ -100,12 +100,18 @@ describe('handleSearch', () => {
       expect.any(Array),
       {
         must: [
+          { should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }] },
           { key: 'repo', match: { value: 'memo-cli' } },
           { key: 'org', match: { value: 'llipe' } },
           { key: 'tags', match: { value: 'qdrant' } },
           { key: 'tags', match: { value: 'search' } },
           { key: 'entry_type', match: { any: ['decision', 'structure'] } },
           { key: 'source', match: { any: ['agent', 'manual'] } },
+        ],
+        must_not: [
+          { key: 'kind', match: { value: 'self' } },
+          { key: 'archived', match: { value: true } },
+          { key: 'superseded', match: { value: true } },
         ],
       },
       9,
@@ -350,7 +356,7 @@ describe('handleSearch', () => {
           },
         },
       ]);
-      mockQdrant.fetchByRepo.mockResolvedValue([
+      mockQdrant.fetchStalenessCorpus.mockResolvedValue([
         {
           id: 'old-entry',
           payload: {
@@ -370,7 +376,7 @@ describe('handleSearch', () => {
       ]);
     });
 
-    it('calls fetchByRepo exactly once regardless of the number of ranked results (AC5)', async () => {
+    it('calls fetchStalenessCorpus exactly once regardless of the number of ranked results (AC5)', async () => {
       mockQdrant.search.mockResolvedValue([
         {
           id: 'old-entry',
@@ -398,27 +404,59 @@ describe('handleSearch', () => {
 
       await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
 
-      expect(mockQdrant.fetchByRepo).toHaveBeenCalledTimes(1);
+      expect(mockQdrant.fetchStalenessCorpus).toHaveBeenCalledTimes(1);
     });
 
-    it('does not call fetchByRepo when there are no ranked results', async () => {
+    it('does not call fetchStalenessCorpus when there are no ranked results', async () => {
       mockQdrant.search.mockResolvedValue([]);
 
       await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
 
-      expect(mockQdrant.fetchByRepo).not.toHaveBeenCalled();
+      expect(mockQdrant.fetchStalenessCorpus).not.toHaveBeenCalled();
     });
 
-    it('scopes the fetchByRepo call to the resolved repo (AC6)', async () => {
+    it('scopes the fetchStalenessCorpus call to the resolved repo, bank-aware (AC6, S2-05 AC4)', async () => {
       await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
 
-      expect(mockQdrant.fetchByRepo).toHaveBeenCalledWith(['memo-cli']);
+      expect(mockQdrant.fetchStalenessCorpus).toHaveBeenCalledWith({
+        must: [
+          { should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }] },
+          { key: 'repo', match: { any: ['memo-cli'] } },
+        ],
+        must_not: [
+          { key: 'kind', match: { value: 'self' } },
+          { key: 'archived', match: { value: true } },
+          { key: 'superseded', match: { value: true } },
+        ],
+      });
     });
 
-    it('scopes the fetchByRepo call to the full related repo set for --scope related (AC6)', async () => {
+    it('scopes the fetchStalenessCorpus call to the full related repo set for --scope related (AC6)', async () => {
       await handleSearch({ query: 'q', limit: '5', json: true, scope: 'related' }, stalenessDeps);
 
-      expect(mockQdrant.fetchByRepo).toHaveBeenCalledWith(['memo-cli', 'platform-docs']);
+      expect(mockQdrant.fetchStalenessCorpus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          must: expect.arrayContaining([
+            { key: 'repo', match: { any: ['memo-cli', 'platform-docs'] } },
+          ]),
+        }),
+      );
+    });
+
+    it('S2-05 AC4: scopes the fetchStalenessCorpus call to bank only (no repo clause) for a private bank', async () => {
+      await handleSearch(
+        { query: 'q', limit: '5', json: true, bank: 'jarvis-memory' },
+        stalenessDeps,
+      );
+
+      expect(mockQdrant.fetchStalenessCorpus).toHaveBeenCalledWith({
+        must: [{ key: 'bank', match: { value: 'jarvis-memory' } }],
+        must_not: [
+          { key: 'kind', match: { value: 'self' } },
+          { key: 'archived', match: { value: true } },
+          { key: 'superseded', match: { value: true } },
+        ],
+      });
     });
 
     it('flags a stale result with stale:true and stale_by in --json output (AC1, AC2)', async () => {
@@ -443,7 +481,7 @@ describe('handleSearch', () => {
           },
         },
       ]);
-      mockQdrant.fetchByRepo.mockResolvedValue([
+      mockQdrant.fetchStalenessCorpus.mockResolvedValue([
         {
           id: 'fresh-entry',
           payload: { repo: 'memo-cli', tags: ['auth'], timestamp_utc: newTimestamp },
@@ -496,7 +534,7 @@ describe('handleSearch', () => {
       // milliseconds elapse between the two `handleSearch` invocations,
       // each of which reads `Date.now()` independently for recency scoring.
       stdoutData = '';
-      mockQdrant.fetchByRepo.mockResolvedValueOnce([]);
+      mockQdrant.fetchStalenessCorpus.mockResolvedValueOnce([]);
       await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
       const withoutStaleness = JSON.parse(stdoutData) as {
         results: { id: string; final_score: number }[];
@@ -517,7 +555,7 @@ describe('handleSearch', () => {
     });
 
     it('never crashes on an empty corpus and never flags staleness', async () => {
-      mockQdrant.fetchByRepo.mockResolvedValue([]);
+      mockQdrant.fetchStalenessCorpus.mockResolvedValue([]);
 
       await handleSearch({ query: 'q', limit: '5', json: true }, stalenessDeps);
       const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
@@ -771,17 +809,17 @@ describe('handleSearch', () => {
     it('adds no extra Qdrant or embeddings calls under --explain (AC7)', async () => {
       await handleSearch({ query: 'q', limit: '5', json: true }, explainDeps);
       const baselineSearchCalls = mockQdrant.search.mock.calls.length;
-      const baselineFetchByRepoCalls = mockQdrant.fetchByRepo.mock.calls.length;
+      const baselineFetchByRepoCalls = mockQdrant.fetchStalenessCorpus.mock.calls.length;
       const baselineEmbedCalls = mockEmbeddings.embed.mock.calls.length;
       jest.clearAllMocks();
       mockQdrant.search.mockResolvedValue(oneResult);
-      mockQdrant.fetchByRepo.mockResolvedValue([]);
+      mockQdrant.fetchStalenessCorpus.mockResolvedValue([]);
       mockQdrant.scroll.mockResolvedValue([]);
 
       await handleSearch({ query: 'q', limit: '5', json: true, explain: true }, explainDeps);
 
       expect(mockQdrant.search.mock.calls.length).toBe(baselineSearchCalls);
-      expect(mockQdrant.fetchByRepo.mock.calls.length).toBe(baselineFetchByRepoCalls);
+      expect(mockQdrant.fetchStalenessCorpus.mock.calls.length).toBe(baselineFetchByRepoCalls);
       expect(mockEmbeddings.embed.mock.calls.length).toBe(baselineEmbedCalls);
     });
 
@@ -798,6 +836,203 @@ describe('handleSearch', () => {
       expect(stdoutData).toContain('retention');
       expect(stdoutData).toContain('final');
       expect(stdoutData).toContain('query_id:');
+    });
+  });
+
+  describe('S2-05: read-side flags (spec §18.7)', () => {
+    it('AC1: an invalid --kind value fails VALIDATION_FAILED', async () => {
+      await expect(handleSearch({ query: 'q', kind: 'bogus' }, deps)).rejects.toMatchObject({
+        code: 'VALIDATION_FAILED',
+      });
+    });
+
+    it('AC1: a non-ISO --as-of value fails VALIDATION_FAILED', async () => {
+      await expect(handleSearch({ query: 'q', asOf: 'not-a-date' }, deps)).rejects.toMatchObject({
+        code: 'VALIDATION_FAILED',
+      });
+    });
+
+    it('AC3 (PRD AC-2.4): --bank pins the bank clause and never mixes in the sibling bank', async () => {
+      await handleSearch({ query: 'q', bank: 'a-memory' }, deps);
+      expect(mockQdrant.search).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.objectContaining({
+          must: expect.arrayContaining([{ key: 'bank', match: { value: 'a-memory' } }]),
+        }),
+        expect.any(Number),
+      );
+
+      jest.clearAllMocks();
+      mockQdrant.search.mockResolvedValue([]);
+      mockQdrant.fetchStalenessCorpus.mockResolvedValue([]);
+      mockQdrant.scroll.mockResolvedValue([]);
+
+      await handleSearch({ query: 'q', bank: 'b-memory' }, deps);
+      const [, filterArg] = mockQdrant.search.mock.calls[0] as [unknown, Record<string, unknown>];
+      expect(JSON.stringify(filterArg)).not.toContain('a-memory');
+      expect(filterArg).toEqual(
+        expect.objectContaining({
+          must: expect.arrayContaining([{ key: 'bank', match: { value: 'b-memory' } }]),
+        }),
+      );
+    });
+
+    it('AC8: the JSON envelope filters gain bank/kind/session/as_of', async () => {
+      await handleSearch(
+        {
+          query: 'q',
+          json: true,
+          bank: 'a-memory',
+          kind: 'semantic',
+          session: 's-1',
+          asOf: '2026-01-01',
+        },
+        deps,
+      );
+      const parsed = JSON.parse(stdoutData) as { filters: Record<string, unknown> };
+      expect(parsed.filters).toMatchObject({
+        bank: 'a-memory',
+        kind: 'semantic',
+        session: 's-1',
+        as_of: '2026-01-01T00:00:00.000Z',
+      });
+    });
+
+    it('AC7: --as-of implies --include-superseded (must_not omits the superseded exclusion)', async () => {
+      await handleSearch({ query: 'q', asOf: '2026-01-01' }, deps);
+      const [, filterArg] = mockQdrant.search.mock.calls[0] as [unknown, Record<string, unknown>];
+      const mustNot = (filterArg['must_not'] ?? []) as Record<string, unknown>[];
+      expect(mustNot).not.toContainEqual({ key: 'superseded', match: { value: true } });
+    });
+
+    it('AC7: --as-of does not imply --include-archived (must_not still excludes archived)', async () => {
+      await handleSearch({ query: 'q', asOf: '2026-01-01' }, deps);
+      const [, filterArg] = mockQdrant.search.mock.calls[0] as [unknown, Record<string, unknown>];
+      const mustNot = (filterArg['must_not'] ?? []) as Record<string, unknown>[];
+      expect(mustNot).toContainEqual({ key: 'archived', match: { value: true } });
+    });
+
+    it('AC8: JSON results add bank/kind, and archived/superseded only when true (CT-1)', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'active-entry',
+          score: 0.8,
+          payload: { repo: 'memo-cli', rationale: 'Active', source: 'agent' },
+        },
+        {
+          id: 'archived-entry',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'Archived',
+            source: 'agent',
+            archived: true,
+          },
+        },
+      ]);
+
+      await handleSearch({ query: 'q', json: true, includeArchived: true }, deps);
+      const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+      const active = parsed.results.find((r) => r['id'] === 'active-entry');
+      const archived = parsed.results.find((r) => r['id'] === 'archived-entry');
+
+      expect(active).toMatchObject({ bank: 'kb', kind: 'semantic' });
+      expect(active).not.toHaveProperty('archived');
+      expect(archived).toMatchObject({ bank: 'kb', kind: 'semantic', archived: true });
+    });
+
+    it('AC6: prefixes an archived result with [archived] in human output', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'archived-entry',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'An archived note',
+            source: 'agent',
+            archived: true,
+          },
+        },
+      ]);
+
+      await handleSearch({ query: 'q', includeArchived: true }, deps);
+      expect(stdoutData).toContain('[archived]');
+    });
+
+    describe('--kind self (AC5)', () => {
+      it('issues a scroll (not a dense search) and never computes embeddings', async () => {
+        mockQdrant.scroll.mockResolvedValueOnce([
+          { id: 'self-1', payload: { repo: 'memo-cli', rationale: 'Self note 1', kind: 'self' } },
+        ]);
+
+        await handleSearch({ query: 'q', kind: 'self', json: true }, deps);
+
+        expect(mockQdrant.search).not.toHaveBeenCalled();
+        expect(mockEmbeddings.embed).not.toHaveBeenCalled();
+        expect(mockQdrant.fetchStalenessCorpus).not.toHaveBeenCalled();
+      });
+
+      it('omits final_score/similarity/confidence_tier from every JSON result', async () => {
+        mockQdrant.scroll.mockResolvedValueOnce([
+          { id: 'self-1', payload: { repo: 'memo-cli', rationale: 'Self note 1', kind: 'self' } },
+        ]);
+
+        await handleSearch({ query: 'q', kind: 'self', json: true }, deps);
+        const parsed = JSON.parse(stdoutData) as { results: Record<string, unknown>[] };
+        expect(parsed.results[0]).not.toHaveProperty('final_score');
+        expect(parsed.results[0]).not.toHaveProperty('similarity');
+        expect(parsed.results[0]).not.toHaveProperty('confidence_tier');
+        expect(parsed.results[0]).toMatchObject({ id: 'self-1', bank: 'kb', kind: 'self' });
+      });
+
+      it('renders results via the unranked human path with no score', async () => {
+        mockQdrant.scroll.mockResolvedValueOnce([
+          { id: 'self-1', payload: { repo: 'memo-cli', rationale: 'Self note 1', kind: 'self' } },
+        ]);
+
+        await handleSearch({ query: 'q', kind: 'self' }, deps);
+        expect(stdoutData).toContain('Self note 1');
+        expect(stdoutData).not.toMatch(/\d+%/);
+      });
+
+      it('the search filter passed to scroll pins kind=self', async () => {
+        mockQdrant.scroll.mockResolvedValueOnce([]);
+        await handleSearch({ query: 'q', kind: 'self' }, deps);
+        expect(mockQdrant.scroll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            must: expect.arrayContaining([{ key: 'kind', match: { value: 'self' } }]),
+          }),
+          expect.any(Number),
+        );
+      });
+    });
+
+    // Edge-case matrix (task 5.21).
+    it('EC-9: --session with --kind semantic is a valid combination, not VALIDATION_FAILED (empty result, not an error)', async () => {
+      await expect(
+        handleSearch({ query: 'q', kind: 'semantic', session: 's-1', json: true }, deps),
+      ).resolves.toBeUndefined();
+      const parsed = JSON.parse(stdoutData) as { count: number };
+      expect(parsed.count).toBe(0);
+    });
+
+    it('EC-4-style: --kind all --include-archived returns archived entries on an all-archived bank instead of empty', async () => {
+      mockQdrant.search.mockResolvedValue([
+        {
+          id: 'archived-only',
+          score: 0.8,
+          payload: {
+            repo: 'memo-cli',
+            rationale: 'Archived only',
+            source: 'agent',
+            archived: true,
+          },
+        },
+      ]);
+
+      await handleSearch({ query: 'q', kind: 'all', includeArchived: true, json: true }, deps);
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results.map((r) => r.id)).toEqual(['archived-only']);
     });
   });
 });

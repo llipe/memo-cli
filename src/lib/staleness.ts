@@ -36,7 +36,7 @@ export const DEFAULT_STALENESS_CONFIG: StalenessDetectionConfig = {
 
 /**
  * A single entry (either a ranked candidate or a corpus member fetched via
- * `QdrantRepository.fetchByRepo`) as seen by staleness detection. Both sides
+ * `QdrantRepository.fetchStalenessCorpus`) as seen by staleness detection. Both sides
  * of the comparison share this shape - a candidate can also appear as (or
  * alongside) a corpus member.
  */

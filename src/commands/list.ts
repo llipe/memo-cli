@@ -1,14 +1,18 @@
 import { Command } from 'commander';
 import { loadConfig } from '../lib/config.js';
+import { normalizeEntry, projectV2Fields } from '../lib/entry-normalize.js';
 import { MemoError } from '../lib/errors.js';
+import { buildBaseFilter } from '../lib/filters.js';
 import { buildListFilters, normalizeListDateRange } from '../lib/list-filters.js';
 import { output } from '../lib/output.js';
 import { QdrantRepository } from '../lib/qdrant.js';
+import { parseReadFlags } from '../lib/read-flags.js';
+import type { RawReadFlags } from '../lib/read-flags.js';
 import { resolveScopeRepos } from '../lib/registry.js';
 import type { ScrollResult } from '../lib/qdrant.js';
 import type { MemoConfig } from '../types/config.js';
 
-export interface ListFlags {
+export interface ListFlags extends RawReadFlags {
   scope?: string;
   repo?: string;
   org?: string;
@@ -30,6 +34,10 @@ export interface ListDeps {
 export interface ListResponseFilters {
   scope: 'repo' | 'related';
   repo: string;
+  bank: string;
+  kind: string;
+  session?: string;
+  as_of?: string;
   org?: string;
   tags?: string[];
   entry_type?: string[];
@@ -90,6 +98,9 @@ function toJsonResult(result: ScrollResult): Record<string, unknown> {
   return {
     id: result.id,
     ...(result.payload ?? {}),
+    // S2-05 AC8: additive-only v2 fields (bank/kind always; the rest only
+    // when present/true on the source entry).
+    ...projectV2Fields(normalizeEntry(result.payload ?? {})),
   };
 }
 
@@ -126,22 +137,54 @@ export async function handleList(flags: ListFlags, deps: ListDeps = {}): Promise
   const limit = parseLimit(flags.limit);
   const { from, to } = normalizeListDateRange({ from: flags.from, to: flags.to });
 
-  const resolvedRepos = resolveRepos({ repo, scope, config });
-  const filters = buildListFilters({
-    repo,
-    scope,
-    relatedRepos: resolvedRepos.filter((candidate) => candidate !== repo),
-    org,
-    tags,
-    entryTypes,
-    sources,
-    from,
-    to,
+  // S2-05 AC1/AC4: the shared read-side flags and the one `base` filter
+  // shared by every read command (spec §18.7).
+  const readFlags = parseReadFlags(
+    {
+      bank: flags.bank,
+      kind: flags.kind,
+      session: flags.session,
+      includeArchived: flags.includeArchived,
+      includeSuperseded: flags.includeSuperseded,
+      asOf: flags.asOf,
+    },
+    process.env,
+    config ?? undefined,
+  );
+  const base = buildBaseFilter({
+    bank: readFlags.bank,
+    kind: readFlags.kind,
+    includeArchived: readFlags.includeArchived,
+    includeSuperseded: readFlags.includeSuperseded,
+    ...(readFlags.session !== undefined ? { session: readFlags.session } : {}),
+    ...(readFlags.asOf !== undefined ? { asOf: readFlags.asOf } : {}),
   });
+
+  const resolvedRepos = resolveRepos({ repo, scope, config });
+  const filters = buildListFilters(
+    {
+      repo,
+      scope,
+      relatedRepos: resolvedRepos.filter((candidate) => candidate !== repo),
+      org,
+      tags,
+      entryTypes,
+      sources,
+      from,
+      to,
+      bank: readFlags.bank,
+      explicitRepo: flags.repo !== undefined,
+    },
+    base,
+  );
 
   const responseFilters: ListResponseFilters = {
     scope,
     repo,
+    bank: readFlags.bank,
+    kind: readFlags.kind,
+    ...(readFlags.session !== undefined ? { session: readFlags.session } : {}),
+    ...(readFlags.asOf !== undefined ? { as_of: readFlags.asOf } : {}),
     ...(org ? { org } : {}),
     ...(tags.length > 0 ? { tags } : {}),
     ...(entryTypes.length > 0 ? { entry_type: entryTypes } : {}),
@@ -181,10 +224,16 @@ export async function handleList(flags: ListFlags, deps: ListDeps = {}): Promise
   }
 
   output.listResults(
-    results.map((result) => ({
-      id: result.id,
-      ...(result.payload ?? {}),
-    })),
+    results.map((result) => {
+      const normalized = normalizeEntry(result.payload ?? {});
+      return {
+        id: result.id,
+        ...(result.payload ?? {}),
+        // S2-05 AC6: drives the `[archived]`/`[superseded]` prefix.
+        ...(normalized.archived ? { archived: true as const } : {}),
+        ...(normalized.superseded ? { superseded: true as const } : {}),
+      };
+    }),
   );
 }
 
@@ -199,6 +248,15 @@ const list = new Command('list')
   .option('--from <iso>', 'inclusive ISO 8601 lower bound for timestamp_utc')
   .option('--to <iso>', 'inclusive ISO 8601 upper bound for timestamp_utc')
   .option('--limit <n>', 'maximum number of results', '20')
+  .option('--bank <id>', 'bank id (default: MEMO_BANK, config.bank.default, or "kb")')
+  .option('--kind <kind>', 'self|episodic|semantic|all (default: all, case-insensitive)')
+  .option('--session <id>', 'restrict to an episodic session id')
+  .option('--include-archived', 'include archived entries')
+  .option('--include-superseded', 'include superseded entries')
+  .option(
+    '--as-of <iso>',
+    'point-in-time read (ISO 8601 date or datetime); implies --include-superseded',
+  )
   .option('--json', 'output as JSON')
   .action(async (opts: Record<string, unknown>) => {
     await handleList({
@@ -211,6 +269,12 @@ const list = new Command('list')
       from: opts['from'] as string | undefined,
       to: opts['to'] as string | undefined,
       limit: opts['limit'] as string | undefined,
+      bank: opts['bank'] as string | undefined,
+      kind: opts['kind'] as string | undefined,
+      session: opts['session'] as string | undefined,
+      includeArchived: opts['includeArchived'] as boolean | undefined,
+      includeSuperseded: opts['includeSuperseded'] as boolean | undefined,
+      asOf: opts['asOf'] as string | undefined,
       json: opts['json'] as boolean | undefined,
     });
   });

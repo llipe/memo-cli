@@ -33,7 +33,13 @@ function validateBankId(value: string, source: string): void {
 export function resolveBank(
   flag: string | undefined,
   env: NodeJS.ProcessEnv = process.env,
-  config?: Pick<MemoConfig, 'bank'>,
+  // `bank` itself is optional here (unlike `Pick<MemoConfig, 'bank'>`)
+  // because several existing command test doubles pass a hand-built config
+  // object that was never run through `MemoConfigSchema.parse` and so may
+  // omit `bank` entirely - this function's own contract already promises a
+  // `kb` fallback "when nothing is set anywhere" (see docstring), and a
+  // present-but-bank-less config is exactly that case, not a type error.
+  config?: { bank?: MemoConfig['bank'] },
 ): string {
   if (flag !== undefined) {
     validateBankId(flag, '--bank');
@@ -46,7 +52,7 @@ export function resolveBank(
     return envBank;
   }
 
-  const configDefault = config?.bank.default;
+  const configDefault = config?.bank?.default;
   if (configDefault !== undefined) {
     validateBankId(configDefault, 'config.bank.default');
     return configDefault;

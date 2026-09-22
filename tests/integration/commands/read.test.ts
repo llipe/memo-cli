@@ -4,6 +4,7 @@ import type { ReadDeps } from '../../../src/commands/read.js';
 const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   getById: jest.fn(),
+  scroll: jest.fn().mockResolvedValue([]),
 };
 
 let stdoutData = '';
@@ -68,6 +69,14 @@ describe('read integration', () => {
       repo: 'memo-cli',
       tags: ['read', 'json'],
       rationale: 'Return flat object in JSON mode.',
+      bank: 'kb',
+      kind: 'semantic',
+      schema_version: '1',
+      archived: false,
+      superseded: false,
+      consolidated: false,
+      pinned: false,
+      pending_contradiction: false,
     });
   });
 
@@ -78,5 +87,31 @@ describe('read integration', () => {
       code: 'ENTRY_NOT_FOUND',
       message: 'Entry not found: missing-id',
     });
+  });
+
+  // S2-05 AC9 — story's explicit integration scenario: provenance naming a
+  // deleted id.
+  it('AC9: memo read --id on a semantic entry whose provenance names a deleted id', async () => {
+    mockQdrant.getById.mockResolvedValueOnce({
+      id: 'semantic-entry',
+      payload: {
+        repo: 'memo-cli',
+        kind: 'semantic',
+        rationale: 'A semantic entry with mixed provenance',
+        provenance: ['live-episodic-1', 'deleted-episodic-2'],
+      },
+    });
+    mockQdrant.scroll.mockResolvedValueOnce([{ id: 'live-episodic-1', payload: {} }]);
+
+    await handleRead({ id: 'semantic-entry', json: true }, deps());
+
+    const result = JSON.parse(stdoutData) as {
+      provenance: { id: string; deleted: boolean }[];
+    };
+    expect(result.provenance).toEqual([
+      { id: 'live-episodic-1', deleted: false },
+      { id: 'deleted-episodic-2', deleted: true },
+    ]);
+    expect(mockQdrant.scroll).toHaveBeenCalledTimes(1);
   });
 });

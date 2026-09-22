@@ -103,6 +103,16 @@ describe('resolveBank (AC1, PRD B3)', () => {
     const result = resolveBank('kb', { MEMO_BANK: 'env-bank' }, cfg);
     expect(result).toBe('kb');
   });
+
+  // S2-05 integration fix: a config object present but entirely missing a
+  // `bank` key (e.g. a hand-built test double bypassing `MemoConfigSchema`,
+  // as several pre-S2-01 command test suites use) must fall back to `kb`
+  // rather than throwing on `config.bank.default` - `resolveBank`'s own
+  // documented contract already promises a `kb` fallback "when nothing is
+  // set anywhere" and a present-but-bank-less config is exactly that case.
+  it('EC-23: a config object with no bank key at all falls back to "kb" instead of throwing', () => {
+    expect(resolveBank(undefined, {}, {})).toBe('kb');
+  });
 });
 
 describe('defaultKind (AC2, PRD K1)', () => {

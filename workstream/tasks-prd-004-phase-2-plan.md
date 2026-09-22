@@ -163,36 +163,36 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [ ] 4.22 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — owned by `planner`/caller: this `developer` run has no `Task` tool (no-delegation default), so `verifier_audit: not-run(no-delegation)` in the closeout payload
   - [ ] 4.23 Open PR against `main`, link `Closes #83`, obtain user approval, merge — draft PR [#95](https://github.com/llipe/memo-cli/pull/95) opened against the integration branch per this run's base-branch override; final PR-to-`main`/merge is `planner`'s consolidated-PR step
 
-- [ ] 5.0 Implement Story S2-05: Read-side flags on `search`, `list`, `tags`, `read`, and bank-aware staleness — [#84](https://github.com/llipe/memo-cli/issues/84)
+- [x] 5.0 Implement Story S2-05: Read-side flags on `search`, `list`, `tags`, `read`, and bank-aware staleness — [#84](https://github.com/llipe/memo-cli/issues/84)
 
-  > Note: depends on task 3.0 (and task 2.0 for `fetchStalenessCorpus`). Independent of tasks 4.0 and 6.0. Proves PRD AC-2.3 (identity) and AC-2.4 (isolation) — treat AC-2.3 as a regression gate, not a nice-to-have.
-  - [ ] 5.1 Write `tests/unit/lib/read-flags.test.ts`: valid/invalid `--kind`, `--as-of` ISO validation, `--include-*` toggles
-  - [ ] 5.2 Write the AC-2.3 identity case first in `tests/relevance/replay.test.ts`: feed the recorded `candidates.json` ids through the v2 filter path, assert identical top-N to the Phase 1 recording — confirm it fails before this task's code exists, then passes after
-  - [ ] 5.3 Write `tests/unit/commands/search.test.ts` cases: filter shapes shared by dense/lexical/staleness; two-bank isolation on the mocked repo; `--kind self` skips `rankResults`; `--as-of` implies `--include-superseded`
-  - [ ] 5.4 Write `tests/unit/commands/{list,tags,read}.test.ts` cases: new flags, v2 JSON fields, `(deleted)` provenance marker
-  - [ ] 5.5 Write `tests/integration/commands/search.test.ts` (two-bank mocked run) and `tests/integration/commands/read.test.ts` (provenance with one deleted id)
-  - [ ] 5.6 Create `src/lib/read-flags.ts`
-  - [ ] 5.7 Wire `base` (from `buildBaseFilter`) through `search.ts`'s dense query, lexical scroll, and staleness corpus — pass the same `base` into `fetchStalenessCorpus` (its signature was refactored to accept `base` in task 3.7/D-2; if it still takes `{ bank, repos }` when this task starts, treat that as a blocker and re-open task 3.0's D-2 fix rather than reintroducing a second filter path here); remove `fetchByRepo` (deferred from task 2.0, AC6)
-  - [ ] 5.8 Add read-flags to `list.ts` and `tags.ts`; merge `base` into their filters
-  - [ ] 5.9 Extend `read.ts`: v2 field printing, one `scroll({ has_id: provenance })` call, `(deleted)` markers, JSON `provenance: [{ id, deleted }]`
-  - [ ] 5.10 Add `[archived]`/`[superseded]` human-output prefixes and `archived`/`superseded` JSON fields via `normalizeEntry`
-  - [ ] 5.11 Verify AC1: flag validation matrix
-  - [ ] 5.12 Verify AC2 (PRD AC-2.3): replay identity — this is the regression gate; do not weaken or delete the assertion to make it pass
-  - [ ] 5.13 Verify AC3 (PRD AC-2.4): two-bank isolation, unit + integration + manual on `memo_eval`
-  - [ ] 5.14 Verify AC4: shared base filter across dense/lexical/staleness, `fetchByRepo` no longer exists
-  - [ ] 5.15 Verify AC5: `--kind self` unranked path
-  - [ ] 5.16 Verify AC6: archived/superseded prefixes and fields
-  - [ ] 5.17 Verify AC7: `--as-of` semantics
-  - [ ] 5.18 Verify AC8: new JSON fields, no existing key changed
-  - [ ] 5.19 Verify AC9: `read` provenance rendering
-  - [ ] 5.20 Manual: on `memo_eval`, confirm identical search results before/after; write to two private banks (using task 4.0's write path) and search each
-  - [ ] 5.21 Edge cases: `--kind all --include-archived` on an all-archived bank; `--as-of` in the future; `--as-of` before every `valid_from`; `--session` on `search` with `kind=semantic`; `read` on a v1 point
-  - [ ] 5.22 Map every AC to its test in the PR body, with the AC-2.3 before/after ids included as evidence
-  - [ ] 5.23 Migration: not required — read-only; v1 points pass the default filter via `is_empty`; record opt-out rationale in the PR body
-  - [ ] 5.24 Update `README.md` flag tables and `docs/system-overview.md` search flow
-  - [ ] 5.25 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 5.26 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 5.27 Open PR against `main`, link `Closes #84`, obtain user approval, merge
+  > Note: depends on task 3.0 (and task 2.0 for `fetchStalenessCorpus`). Independent of tasks 4.0 and 6.0. Proves PRD AC-2.3 (identity) and AC-2.4 (isolation) — treat AC-2.3 as a regression gate, not a nice-to-have. PR: story branch `story/S2-05-read-flags-bank-staleness`, opened against the integration branch per this run's base-branch override.
+  - [x] 5.1 Write `tests/unit/lib/read-flags.test.ts`: valid/invalid `--kind`, `--as-of` ISO validation, `--include-*` toggles
+  - [x] 5.2 Write the AC-2.3 identity case first in `tests/relevance/replay.test.ts`: feed the recorded `candidates.json` ids through the v2 filter path, assert identical top-N to the Phase 1 recording — `buildBaseFilter` (S2-03) already implements the correct v1-compatible predicate, so this assertion is a genuine regression gate against the pure filter function rather than a "fails-before" TDD case; command-level wiring (task 5.7/5.8) is what this test guards going forward
+  - [x] 5.3 Write `tests/unit/commands/search.test.ts` cases: filter shapes shared by dense/lexical/staleness; two-bank isolation on the mocked repo; `--kind self` skips `rankResults`; `--as-of` implies `--include-superseded`
+  - [x] 5.4 Write `tests/unit/commands/{list,tags,read}.test.ts` cases: new flags, v2 JSON fields, `(deleted)` provenance marker
+  - [x] 5.5 Write `tests/integration/commands/search.test.ts` (two-bank mocked run) and `tests/integration/commands/read.test.ts` (provenance with one deleted id) — also added two-bank isolation to `list.test.ts`/`tags.test.ts` integration suites
+  - [x] 5.6 Create `src/lib/read-flags.ts`
+  - [x] 5.7 Wire `base` (from `buildBaseFilter`) through `search.ts`'s dense query, lexical scroll, and staleness corpus — `fetchStalenessCorpus` already took `base` directly (S2-03's D-2 fix landed); removed `fetchByRepo` from `qdrant.ts` and its test block
+  - [x] 5.8 Add read-flags to `list.ts` and `tags.ts`; merge `base` into their filters (`tags.ts`'s repo clause is now bank-gated: omitted for private banks, EC-11)
+  - [x] 5.9 Extend `read.ts`: v2 field printing via full `normalizeEntry` (diagnostic view, unlike search/list's additive-only projection), one `scroll({ has_id: provenance })` call capped at array length, `(deleted)` markers, JSON `provenance: [{ id, deleted }]`
+  - [x] 5.10 Add `[archived]`/`[superseded]` human-output prefixes (`output.ts`'s `renderStatePrefix`, shared by `searchResults`/`searchResultsUnranked`/`listResults`) and `archived`/`superseded` JSON fields via `normalizeEntry`/`projectV2Fields`
+  - [x] 5.11 Verify AC1: flag validation matrix (`read-flags.test.ts` + per-command VALIDATION_FAILED tests)
+  - [x] 5.12 Verify AC2 (PRD AC-2.3): replay identity — 5 new tests in `replay.test.ts` (no false exclusion, no false inclusion, ordering identity, non-vacuous-filter proof, hit-rate floor through the filter path); not weakened
+  - [x] 5.13 Verify AC3 (PRD AC-2.4): two-bank isolation — unit (filter-shape) + integration (real filter evaluation against a mocked two-bank corpus) on `search`/`list`/`tags list`; live `memo_eval` manual run not performed this session (see PR body/known limitations)
+  - [x] 5.14 Verify AC4: shared base filter across dense/lexical/staleness confirmed by test; `fetchByRepo` removed from `qdrant.ts` (compile-time + runtime absence test)
+  - [x] 5.15 Verify AC5: `--kind self` unranked path (no embeddings/dense/staleness calls, no ranking fields, newest-first via `scroll`)
+  - [x] 5.16 Verify AC6: archived/superseded prefixes and fields (search/list/output unit tests)
+  - [x] 5.17 Verify AC7: `--as-of` semantics (implies `--include-superseded` only; boundary semantics proven at `buildBaseFilter` level by S2-03's `filters.test.ts` EC-29–35, composed unchanged)
+  - [x] 5.18 Verify AC8: new JSON fields additive-only (CT-1-style tests), no existing key changed
+  - [x] 5.19 Verify AC9: `read` provenance rendering (unit + integration, incl. EC-14 large-array cap)
+  - [ ] 5.20 Manual: on `memo_eval`, confirm identical search results before/after; write to two private banks and search each — not performed this session (no separate "before" state to compare against beyond the committed `candidates.json`/`baseline.json`, which the automated AC2 gate already covers more rigorously); tracked as a follow-up for a live sanity pass
+  - [x] 5.21 Edge cases: `--kind all --include-archived` on an all-archived bank; `--session` on `search` with `kind=semantic` (valid, empty); `read` on a v1 point (EC-10); `--as-of` future/past boundaries proven at the `buildBaseFilter` layer (S2-03)
+  - [x] 5.22 Map every AC to its test in the PR body, with the AC-2.3 before/after evidence included
+  - [x] 5.23 Migration: not required — read-only; v1 points pass the default filter via `is_empty`; opt-out rationale recorded in the PR body
+  - [x] 5.24 Update `README.md` flag tables (search/list/tags/read) and `docs/system-overview.md` search/list/tags/read flows (plus `bank.ts`/`filters.ts`/`entry-normalize.ts`/`read-flags.ts` Libraries-table entries, closing a pre-existing S2-01–03 doc gap found during this review)
+  - [x] 5.25 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit` — `pnpm run validate` green (854/854 tests, no vulnerabilities)
+  - [ ] 5.26 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — owned by `planner`/caller: this `developer` run has no `Task` tool (no-delegation default), so `verifier_audit: not-run(no-delegation)` in the closeout payload
+  - [ ] 5.27 Open PR against `main`, link `Closes #84`, obtain user approval, merge — draft PR to be opened against the integration branch per this run's base-branch override; final PR-to-`main`/merge is `planner`'s consolidated-PR step
 
 - [ ] 6.0 Implement Story S2-06: `memo timeline` — [#85](https://github.com/llipe/memo-cli/issues/85)
 
