@@ -84,30 +84,31 @@ Validated at write time via Zod (`EntryPayloadSchema`):
 
 ### Payload Indexes
 
-| Field               | Index Type | Purpose                                             |
-| ------------------- | ---------- | --------------------------------------------------- |
-| `repo`              | keyword    | Pre-filter by repository                            |
-| `org`               | keyword    | Pre-filter by organization                          |
-| `entry_type`        | keyword    | Filter by entry category                            |
-| `source`            | keyword    | Filter by creation source                           |
-| `tags`              | keyword    | AND-semantics tag filtering                         |
-| `timestamp_utc`     | datetime   | Chronological ordering and date-range queries       |
-| `commit`            | keyword    | Lookup by commit SHA                                |
-| `dedupe_key_sha256` | keyword    | Duplicate detection lookup                          |
-| `rationale`         | text       | Lexical identifier matching (issue #62)             |
-| `files_modified`    | text       | Lexical identifier matching (issue #62)             |
-| `bank`              | keyword    | Bank isolation (PRD-004 Phase 2, issue #81)         |
-| `kind`              | keyword    | Filter by memory kind (episodic/semantic/self, #81) |
-| `session_id`        | keyword    | Filter/group episodic entries by session (#81)      |
-| `contexts`          | keyword    | AND-semantics context filtering (#81)               |
-| `seq`               | integer    | Ordered scans within a session (#81)                |
-| `archived`          | bool       | Default-exclude archived entries (#81)              |
-| `superseded`        | bool       | Default-exclude superseded entries (#81)            |
-| `consolidated`      | bool       | Filter by consolidation state (#81)                 |
-| `pinned`            | bool       | Filter by pinned state (#81)                        |
-| `valid_to`          | datetime   | Point-in-time (`--as-of`) validity queries (#81)    |
-| `expires_at`        | datetime   | Expiry-based staleness/archival queries (#81)       |
-| `archived_at`       | datetime   | Archival timestamp queries (#81)                    |
+| Field                   | Index Type | Purpose                                             |
+| ----------------------- | ---------- | --------------------------------------------------- |
+| `repo`                  | keyword    | Pre-filter by repository                            |
+| `org`                   | keyword    | Pre-filter by organization                          |
+| `entry_type`            | keyword    | Filter by entry category                            |
+| `source`                | keyword    | Filter by creation source                           |
+| `tags`                  | keyword    | AND-semantics tag filtering                         |
+| `timestamp_utc`         | datetime   | Chronological ordering and date-range queries       |
+| `commit`                | keyword    | Lookup by commit SHA                                |
+| `dedupe_key_sha256`     | keyword    | Duplicate detection lookup                          |
+| `rationale`             | text       | Lexical identifier matching (issue #62)             |
+| `files_modified`        | text       | Lexical identifier matching (issue #62)             |
+| `bank`                  | keyword    | Bank isolation (PRD-004 Phase 2, issue #81)         |
+| `kind`                  | keyword    | Filter by memory kind (episodic/semantic/self, #81) |
+| `session_id`            | keyword    | Filter/group episodic entries by session (#81)      |
+| `contexts`              | keyword    | AND-semantics context filtering (#81)               |
+| `seq`                   | integer    | Ordered scans within a session (#81)                |
+| `archived`              | bool       | Default-exclude archived entries (#81)              |
+| `superseded`            | bool       | Default-exclude superseded entries (#81)            |
+| `consolidated`          | bool       | Filter by consolidation state (#81)                 |
+| `pinned`                | bool       | Filter by pinned state (#81)                        |
+| `valid_to`              | datetime   | Point-in-time (`--as-of`) validity queries (#81)    |
+| `expires_at`            | datetime   | Expiry-based staleness/archival queries (#81)       |
+| `archived_at`           | datetime   | Archival timestamp queries (#81)                    |
+| `pending_contradiction` | bool       | `memo recall`'s CONFLICTS filter (#86)              |
 
 The two `text` indexes use `tokenizer: word`, `lowercase: true`, `min_token_len: 2`,
 `max_token_len: 20` — mirrored client-side by `src/lib/lexical.ts`'s `tokenizeWord` so a
