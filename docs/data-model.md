@@ -270,6 +270,20 @@ A single `superRefine` enforces PRD §2.5's rules:
 
 Migration note: this story writes v2 payloads but does not migrate existing data. Existing v1 points remain v1 and stay readable via `normalizeEntry` (S2-09 owns the bulk rewrite, `memo migrate --to-v2`). A v2 point written here is still readable by memo-cli 1.2.x as an ordinary entry — its new fields are simply ignored by a reader that never parses `schema_version`.
 
+### `memo migrate --to-v2` (issue #88 / S2-09)
+
+`src/lib/migrate.ts: planMigration(points, now, rules, policies) -> { ops, byRule, skipped }` is the pure planner; `src/commands/migrate.ts` is a thin wrapper: `scrollAll(filterLacking('schema_version'), { batch: 256 }, page => batchSetPayload(planMigration(page).ops))`, `--dry-run` runs the identical planner and prints identical counts without ever calling `batchSetPayload`. No collection or vector change (spec §5.5) — this is a payload-only rewrite.
+
+A point with `schema_version === '2'` is `skipped`. Every other point is matched against `rules` (default: FR-2.8's two-rule table, or a `--rules <file>` JSON array, first match wins) and gets:
+
+- The rule's own `set` fields: `kind` (required, `episodic | semantic` — `self` cannot appear, since every migrated point lands in `bank: 'kb'` and K1 forbids `self` there), plus, for `episodic` rules only, `session_from` (`story | legacy`) and `expires_in_days`.
+- The FR-2.8 "all" row: `bank` (existing value preserved if already present, `'kb'` otherwise — in practice every v1 point has no `bank` field, so this is indistinguishable from "every migrated point gets `bank = 'kb'`" for real data), `schema_version = '2'`, `consolidated/archived/superseded/pinned = false`, `retrieval_count = used_count = 0`, `stability` from `banks.kb.<kind>.initial_stability_days`, `stability_since = now`.
+- `kind = episodic`: `session_id = story ?? 'legacy'` (any non-string/empty `story` also resolves to `'legacy'`), `expires_at = timestamp_utc + expires_in_days` (rule's own value, else the `kb` episodic policy default).
+- `kind = semantic`: `valid_from = timestamp_utc`.
+- `dedupe_key_version` is never included in the returned payload — Qdrant's `set_payload` merges rather than replaces, so an omitted key is left unchanged on the stored point (v1 keys remain valid, per FR-2.3).
+
+A `--rules` file is validated with a `.strict()` Zod schema (`MigrationRulesSchema`) before any scan: `set.kind` is required, `session_from`/`expires_in_days` are rejected on a non-`episodic` `set`, and the rule set must be exhaustive — at least one rule with an empty `when: {}` (evaluated in order, so it does not need to be literally last). A non-array file, invalid JSON, or a non-exhaustive rule set all fail `VALIDATION_FAILED` before `scrollAll` is ever called (zero network calls on validation failure).
+
 ---
 
 ## Invariants
