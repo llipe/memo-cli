@@ -255,18 +255,18 @@ memo write \
 
 #### Banks, kinds, sessions, and supersede (schema v2)
 
-| Flag               | Required                | Default                                             | Description                                                                     |
-| ------------------ | ------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `--bank <id>`       | No                       | `MEMO_BANK` env var, then `config.bank.default`, then `kb` | Target bank (kebab-case or UUID); `kb` is the shared knowledge base, every other bank is private |
-| `--kind <kind>`     | No                       | `episodic` in private banks, `semantic` in `kb`      | `self` \| `episodic` \| `semantic`; `--kind self` in `kb` fails `VALIDATION_FAILED` |
-| `--session <id>`    | Yes, for `episodic`     | —                                                     | Groups episodic entries into a sequence                                          |
-| `--seq <n>`         | No                       | auto-incremented per bank+session                    | Explicit episodic sequence number                                                |
-| `--context <ctx>`   | No                       | —                                                     | Context tag (repeatable, deduplicated)                                           |
-| `--provenance <csv>`| Yes, for agent-authored `semantic` (unless `--manual`) | — | Comma-separated UUIDs of the episodic entries this fact was derived from       |
-| `--manual`          | No                       | `false`                                              | Forces `source = manual` (also satisfies the provenance requirement above)       |
-| `--supersedes <id>` | No                       | —                                                     | Id of an existing entry this write supersedes (same bank and kind required)     |
-| `--pin`             | No                       | `false`                                              | Pins the entry (exempt from decay/archival)                                     |
-| `--expires-in <d>`  | No                       | bank/kind policy default (30d private, 90d kb)       | Episodic expiry override: `\d+[dhm]` (e.g. `2d`, `12h`, `30m`)                   |
+| Flag                 | Required                                               | Default                                                    | Description                                                                                      |
+| -------------------- | ------------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--bank <id>`        | No                                                     | `MEMO_BANK` env var, then `config.bank.default`, then `kb` | Target bank (kebab-case or UUID); `kb` is the shared knowledge base, every other bank is private |
+| `--kind <kind>`      | No                                                     | `episodic` in private banks, `semantic` in `kb`            | `self` \| `episodic` \| `semantic`; `--kind self` in `kb` fails `VALIDATION_FAILED`              |
+| `--session <id>`     | Yes, for `episodic`                                    | —                                                          | Groups episodic entries into a sequence                                                          |
+| `--seq <n>`          | No                                                     | auto-incremented per bank+session                          | Explicit episodic sequence number                                                                |
+| `--context <ctx>`    | No                                                     | —                                                          | Context tag (repeatable, deduplicated)                                                           |
+| `--provenance <csv>` | Yes, for agent-authored `semantic` (unless `--manual`) | —                                                          | Comma-separated UUIDs of the episodic entries this fact was derived from                         |
+| `--manual`           | No                                                     | `false`                                                    | Forces `source = manual` (also satisfies the provenance requirement above)                       |
+| `--supersedes <id>`  | No                                                     | —                                                          | Id of an existing entry this write supersedes (same bank and kind required)                      |
+| `--pin`              | No                                                     | `false`                                                    | Pins the entry (exempt from decay/archival)                                                      |
+| `--expires-in <d>`   | No                                                     | bank/kind policy default (30d private, 90d kb)             | Episodic expiry override: `\d+[dhm]` (e.g. `2d`, `12h`, `30m`)                                   |
 
 A private bank never requires `--repo`/`--org`/`--domain` (they are stored only when given); `kb` still requires them, unchanged from v1. A `self` write against a bank already holding `>= soft_cap` (default 50) non-superseded `self` entries still succeeds, but emits a warning (`self entries in <bank>: <n> (soft cap <cap>)`, on stderr in human mode, in the JSON envelope's `warnings` array otherwise) — the soft cap never blocks a write.
 
