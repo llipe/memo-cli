@@ -957,20 +957,20 @@ Auto-write is not part of MVP, but the recommended implementation path is:
 
 ## 18. Environment Variables Reference
 
-| Variable              | Required     | Default                  | Description                                            |
-| --------------------- | ------------ | ------------------------ | ------------------------------------------------------ |
-| `QDRANT_URL`          | ✅           | —                        | Qdrant instance URL (e.g., `https://xyz.qdrant.tech`)  |
-| `QDRANT_API_KEY`      | ✅ for cloud | —                        | Qdrant API key (omit for local unauthenticated)        |
-| `EMBEDDINGS_PROVIDER` | —            | `openai`                 | Provider: `openai` \| `voyage` \| `cohere` \| `ollama` |
-| `EMBEDDINGS_API_KEY`  | ✅           | —                        | API key for the embeddings provider                    |
-| `EMBEDDINGS_MODEL`    | —            | Provider default         | Override embeddings model name                         |
-| `LLM_PROVIDER`        | for scan     | `openai`                 | LLM provider for `memo scan`                           |
-| `LLM_API_KEY`         | for scan     | `EMBEDDINGS_API_KEY`     | LLM API key (defaults to embeddings key for OpenAI)    |
-| `LLM_MODEL`           | —            | `gpt-4o-mini`            | LLM model for scan analysis                            |
-| `OLLAMA_BASE_URL`     | for Ollama   | `http://localhost:11434` | Ollama server base URL                                 |
-| `MEMO_TELEMETRY`      | —            | `false`                  | Enable telemetry: `true` \| `false`                    |
-| `MEMO_DEBUG`          | —            | `false`                  | Enable verbose debug output to stderr                  |
-| `MEMO_COLLECTION`     | —            | `decisions`              | Qdrant collection name (e.g., `memo_eval` for the relevance harness/dry runs) |
+| Variable              | Required     | Default                       | Description                                                                                                                                                |
+| --------------------- | ------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QDRANT_URL`          | ✅           | —                             | Qdrant instance URL (e.g., `https://xyz.qdrant.tech`)                                                                                                      |
+| `QDRANT_API_KEY`      | ✅ for cloud | —                             | Qdrant API key (omit for local unauthenticated)                                                                                                            |
+| `EMBEDDINGS_PROVIDER` | —            | `openai`                      | Provider: `openai` \| `voyage` \| `cohere` \| `ollama`                                                                                                     |
+| `EMBEDDINGS_API_KEY`  | ✅           | —                             | API key for the embeddings provider                                                                                                                        |
+| `EMBEDDINGS_MODEL`    | —            | Provider default              | Override embeddings model name                                                                                                                             |
+| `LLM_PROVIDER`        | for scan     | `openai`                      | LLM provider for `memo scan`                                                                                                                               |
+| `LLM_API_KEY`         | for scan     | `EMBEDDINGS_API_KEY`          | LLM API key (defaults to embeddings key for OpenAI)                                                                                                        |
+| `LLM_MODEL`           | —            | `gpt-4o-mini`                 | LLM model for scan analysis                                                                                                                                |
+| `OLLAMA_BASE_URL`     | for Ollama   | `http://localhost:11434`      | Ollama server base URL                                                                                                                                     |
+| `MEMO_TELEMETRY`      | —            | `false`                       | Enable telemetry: `true` \| `false`                                                                                                                        |
+| `MEMO_DEBUG`          | —            | `false`                       | Enable verbose debug output to stderr                                                                                                                      |
+| `MEMO_COLLECTION`     | —            | `decisions`                   | Qdrant collection name (e.g., `memo_eval` for the relevance harness/dry runs)                                                                              |
 | `MEMO_BANK`           | —            | `config.bank.default` or `kb` | Default bank id for commands that accept `--bank` (PRD-004 Phase 2); resolution order is `--bank`, then `MEMO_BANK`, then `config.bank.default`, then `kb` |
 
 All variables can be provided via a `.env` file (loaded via `dotenv` in development). In CI/CD and agent environments, inject directly into the process environment — do not use `.env` files in automated pipelines.
