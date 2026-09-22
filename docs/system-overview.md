@@ -48,33 +48,35 @@ graph LR
 | `memo timeline`  | `timeline.ts` | Replay `episodic` memory in sequence order — `seq` asc within a session, else grouped by session; never embeds, never ranks (spec §18.8, S2-06)                                                                        |
 | `memo recall`    | `recall.ts`   | One call to restore context: SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS within a token budget; read-only, embeds exactly once (spec §8.5/§18.9, S2-07)                                                           |
 | `memo bank`      | `bank.ts`     | `init`/`list`/`show` subcommands: create a bank by writing its first `self` entry, list every bank with per-kind counts, show one bank's self entries and per-kind/per-state counts (spec §18.10, decision A13, S2-08) |
+| `memo migrate`   | `migrate.ts`  | `--to-v2`: idempotent, payload-only bulk rewrite of legacy v1 points to schema v2 per the FR-2.8 rule table (or a validated `--rules <file>`); `--dry-run` writes nothing (spec §5.5/§18.11, S2-09)                    |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
 ### Libraries (`src/lib/`)
 
-| Module               | Purpose                                                                                                                                                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `qdrant.ts`          | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                                                    |
-| `facets.ts`          | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain/bank faceting                                                      |
-| `embeddings.ts`      | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                                                              |
-| `config.ts`          | Load, write, and validate `memo.config.json`                                                                                                                                     |
-| `registry.ts`        | Resolve related repositories from config for cross-repo search scope                                                                                                             |
-| `output.ts`          | Centralized human/JSON output with chalk colors and ora spinners                                                                                                                 |
-| `errors.ts`          | `MemoError` class with typed error codes and deterministic exit codes                                                                                                            |
-| `dedupe.ts`          | Deduplication key generation (SHA-256), confidence inference, merge strategies                                                                                                   |
-| `search-filters.ts`  | Build Qdrant pre-filter objects for search operations                                                                                                                            |
-| `ranking.ts`         | Pure composite ranking score for `memo search` — `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults` (issue #34)                                 |
-| `staleness.ts`       | Pure staleness detection for `memo search` — `computeJaccardOverlap`, `detectStaleness` (issue #38)                                                                              |
-| `lexical.ts`         | Pure lexical identifier matching for `memo search` — `extractIdentifierTokens`, `tokenizeWord`, `cosine`, `computeLexicalBoost` (issue #62)                                      |
-| `list-filters.ts`    | Build Qdrant pre-filter objects for list with date range support                                                                                                                 |
-| `retry.ts`           | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                                                                                 |
-| `debug.ts`           | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                                                                          |
-| `bank.ts`            | Bank resolution (`resolveBank`, PRD B3), `isPrivateBank`, `defaultKind`, `policyFor` (spec §18.2/§18.5)                                                                          |
-| `filters.ts`         | `buildBaseFilter` — the one shared bank/kind/state/session/as-of predicate for every read command (spec §8.1/§18.5); `mergeFilters`                                              |
-| `entry-normalize.ts` | `normalizeEntry` — v1→v2 read-side field defaults (spec §18.3); `projectV2Fields` — additive-only JSON projection for `search`/`list` (S2-05 AC8)                                |
-| `read-flags.ts`      | `parseReadFlags` — shared `--bank`/`--kind`/`--session`/`--include-archived`/`--include-superseded`/`--as-of` parsing for `search`/`list`/`tags list`/`read` (spec §18.7, S2-05) |
-| `recall.ts`          | `assembleRecall` — pure section dedup/cap/trim for `memo recall` (spec §8.5/§18.9, S2-07); no I/O                                                                                |
+| Module               | Purpose                                                                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `qdrant.ts`          | `QdrantRepository` — collection bootstrap, upsert, search, scroll, delete by ID and by filter                                                                                                   |
+| `facets.ts`          | Scroll-based aggregation utility — `aggregateField()` and `aggregateMultipleFields()` for tag/org/repo/domain/bank faceting                                                                     |
+| `embeddings.ts`      | `EmbeddingsAdapter` interface + `createEmbeddingsAdapter()` factory                                                                                                                             |
+| `config.ts`          | Load, write, and validate `memo.config.json`                                                                                                                                                    |
+| `registry.ts`        | Resolve related repositories from config for cross-repo search scope                                                                                                                            |
+| `output.ts`          | Centralized human/JSON output with chalk colors and ora spinners                                                                                                                                |
+| `errors.ts`          | `MemoError` class with typed error codes and deterministic exit codes                                                                                                                           |
+| `dedupe.ts`          | Deduplication key generation (SHA-256), confidence inference, merge strategies                                                                                                                  |
+| `search-filters.ts`  | Build Qdrant pre-filter objects for search operations                                                                                                                                           |
+| `ranking.ts`         | Pure composite ranking score for `memo search` — `computeRecencyScore`, `computeSourceScore`, `computeCompositeScore`, `rankResults` (issue #34)                                                |
+| `staleness.ts`       | Pure staleness detection for `memo search` — `computeJaccardOverlap`, `detectStaleness` (issue #38)                                                                                             |
+| `lexical.ts`         | Pure lexical identifier matching for `memo search` — `extractIdentifierTokens`, `tokenizeWord`, `cosine`, `computeLexicalBoost` (issue #62)                                                     |
+| `list-filters.ts`    | Build Qdrant pre-filter objects for list with date range support                                                                                                                                |
+| `retry.ts`           | Generic exponential backoff wrapper (max 3 attempts, 500ms base)                                                                                                                                |
+| `debug.ts`           | Conditional debug logging to stderr (`MEMO_DEBUG=true`)                                                                                                                                         |
+| `bank.ts`            | Bank resolution (`resolveBank`, PRD B3), `isPrivateBank`, `defaultKind`, `policyFor` (spec §18.2/§18.5)                                                                                         |
+| `filters.ts`         | `buildBaseFilter` — the one shared bank/kind/state/session/as-of predicate for every read command (spec §8.1/§18.5); `mergeFilters`                                                             |
+| `entry-normalize.ts` | `normalizeEntry` — v1→v2 read-side field defaults (spec §18.3); `projectV2Fields` — additive-only JSON projection for `search`/`list` (S2-05 AC8)                                               |
+| `read-flags.ts`      | `parseReadFlags` — shared `--bank`/`--kind`/`--session`/`--include-archived`/`--include-superseded`/`--as-of` parsing for `search`/`list`/`tags list`/`read` (spec §18.7, S2-05)                |
+| `recall.ts`          | `assembleRecall` — pure section dedup/cap/trim for `memo recall` (spec §8.5/§18.9, S2-07); no I/O                                                                                               |
+| `migrate.ts`         | `planMigration` — pure FR-2.8 rule-table planner for `memo migrate --to-v2`; `parseMigrationRules` — `.strict()` Zod rules-file schema with exhaustiveness validation (spec §5.5/§18.11, S2-09) |
 
 ### Adapters (`src/adapters/`)
 
@@ -236,6 +238,16 @@ There is no separate bank registry (PRD B5) — a bank exists exactly when it ha
 2. **`list`** — `aggregateField('bank', scroll)` discovers every explicit bank name in one scroll pass; a separate `count({ is_empty: { key: 'bank' } })` check folds v1-legacy (bank-absent) points into `kb` even when no point has an _explicit_ `bank: 'kb'` value. Per discovered bank, three `count()` calls (`buildBaseFilter({ bank, kind })` for `self`/`episodic`/`semantic`, default `archived`/`superseded` exclusions) produce `{ bank, counts: { self, episodic, semantic }, total }`.
 3. **`show`** — a single `scroll` over the whole bank (all kinds, all states) derives both the printed list and the counts from one pass: non-superseded `self` entries (newest-first, inherited from `scroll`'s own `timestamp_utc desc` ordering) populate `entries`; every point buckets into `counts[kind][state]` where `state` is `superseded > archived > active` precedence (§18.14 item 12 — counts are broken down per kind **and** per state, so `counts.self.superseded` reflects the raw count even when those entries are excluded from `entries`); `last_session_id` is the most recent non-archived, non-superseded episodic entry's `session_id`, mirroring `recall`'s `LAST SESSION` derivation. An unknown bank id returns zero counts, an empty `entries` array, and `last_session_id: null` — exit `0`, not an error; `--id kb` is accepted here (unlike `init`, which rejects it) since `kb` is a legitimate read target, not a bank a user creates.
 4. No migration surface: `init` writes exactly one _new_ point via the already-tested `write` path — it does not touch `schema_version` and requires no `filterLacking('schema_version')`-style backfill scan the way `memo migrate --to-v2` does.
+
+### Migrate Flow (spec §5.5/§18.11, S2-09)
+
+No collection or vector change — a payload-only, idempotent bulk rewrite.
+
+1. Resolve `rules`: `--rules <file>` is read, JSON-parsed, and validated (`.strict()` Zod shape + exhaustiveness — at least one rule with an empty `when: {}`) before any Qdrant I/O; the default FR-2.8 two-rule table is used otherwise. A missing/invalid file, malformed JSON, or a non-exhaustive rule set all fail `VALIDATION_FAILED` with zero `scrollAll` calls.
+2. `scrollAll(filterLacking('schema_version'), { batch: 256 }, onPage)` scans every point lacking `schema_version` (`must: [{ is_empty: { key: 'schema_version' } }]`); each page is handed to the pure `planMigration(page, now, rules, policies)`.
+3. Per point: `schema_version === '2'` is `skipped`; otherwise the first matching rule (first-match-wins) supplies `kind` plus, for `episodic`, `session_from`/`expires_in_days`; every migrated point additionally gets the FR-2.8 "all" row (`bank`, `schema_version: '2'`, `consolidated/archived/superseded/pinned: false`, counters `0`, `stability` from `banks.kb.<kind>.initial_stability_days`, `stability_since: now`). `dedupe_key_version` is never included in the returned payload — Qdrant's `set_payload` merges, so an omitted key is left unchanged.
+4. `--dry-run` runs the identical scan-and-plan path and prints the identical counts, but skips the `batchSetPayload` call entirely — one call per non-empty page otherwise. Progress prints to stderr per page unless `--json`.
+5. JSON: `{ scanned, migrated, skipped, by_rule, dry_run }`. A second run over an already-migrated collection reports `scanned: 0` (idempotent by construction, since the scan filter itself excludes already-migrated points).
 
 ---
 
