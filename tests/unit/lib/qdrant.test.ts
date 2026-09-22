@@ -268,6 +268,9 @@ describe('QdrantRepository', () => {
     archived_at: {},
     // S2-07 (#86): added post-S2-02 for `memo recall`'s CONFLICTS filter.
     pending_contradiction: {},
+    // S2-09 (#88): added post-S2-02 for `memo migrate --to-v2`'s
+    // `is_empty schema_version` filter.
+    schema_version: {},
   };
 
   const V2_NEW_FIELD_NAMES = Object.keys(V2_NEW_FIELDS);
@@ -283,8 +286,9 @@ describe('QdrantRepository', () => {
       await repo.ensureIndexes();
 
       // 8 shipped fields present; missing: rationale, files_modified (#62) +
-      // 12 new (S2-02) + pending_contradiction (S2-07) = 15.
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(15);
+      // 12 new (S2-02) + pending_contradiction (S2-07) + schema_version
+      // (S2-09) = 16.
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(16);
       expect(mockCreatePayloadIndex).toHaveBeenCalledWith(
         'decisions',
         expect.objectContaining({
@@ -327,7 +331,7 @@ describe('QdrantRepository', () => {
 
     // --- Story S2-02 / issue #81 AC1 -----------------------------------------
 
-    it('AC1: on a v1.2.0-shaped schema (10 shipped fields, none of the 13 new), creates exactly the 13 new indexes and none of the 10 existing', async () => {
+    it('AC1: on a v1.2.0-shaped schema (10 shipped fields, none of the 14 new), creates exactly the 14 new indexes and none of the 10 existing', async () => {
       mockGetCollection.mockResolvedValueOnce({
         payload_schema: { ...V1_2_0_SHIPPED_FIELDS, rationale: {}, files_modified: {} },
       });
@@ -336,7 +340,7 @@ describe('QdrantRepository', () => {
       const repo = new QdrantRepository('http://localhost:6333');
       await repo.ensureIndexes();
 
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(13);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(14);
       const createdFieldNames = mockCreatePayloadIndex.mock.calls.map(
         (call) => (call[1] as { field_name: string }).field_name,
       );
@@ -356,6 +360,7 @@ describe('QdrantRepository', () => {
         expires_at: 'datetime',
         archived_at: 'datetime',
         pending_contradiction: 'bool',
+        schema_version: 'keyword',
       };
       for (const call of mockCreatePayloadIndex.mock.calls) {
         const [, { field_name, field_schema }] = call as [
@@ -383,14 +388,14 @@ describe('QdrantRepository', () => {
 
       const repo = new QdrantRepository('http://localhost:6333');
       await repo.ensureIndexes();
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(13);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(14);
 
       mockCreatePayloadIndex.mockClear();
       await repo.ensureIndexes();
       expect(mockCreatePayloadIndex).not.toHaveBeenCalled();
     });
 
-    it('AC1: creates exactly the 8 still-missing v2 fields on a partially-migrated schema', async () => {
+    it('AC1: creates exactly the 9 still-missing v2 fields on a partially-migrated schema', async () => {
       mockGetCollection.mockResolvedValueOnce({
         payload_schema: {
           ...V1_2_0_SHIPPED_FIELDS,
@@ -408,7 +413,7 @@ describe('QdrantRepository', () => {
       const repo = new QdrantRepository('http://localhost:6333');
       await repo.ensureIndexes();
 
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(8);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(9);
       const createdFieldNames = new Set(
         mockCreatePayloadIndex.mock.calls.map(
           (call) => (call[1] as { field_name: string }).field_name,
@@ -424,18 +429,19 @@ describe('QdrantRepository', () => {
           'expires_at',
           'archived_at',
           'pending_contradiction',
+          'schema_version',
         ]),
       );
     });
 
-    it('AC1: treats a missing payload_schema key identically to an empty schema (creates all 23)', async () => {
+    it('AC1: treats a missing payload_schema key identically to an empty schema (creates all 24)', async () => {
       mockGetCollection.mockResolvedValueOnce({});
       mockCreatePayloadIndex.mockResolvedValue({});
 
       const repo = new QdrantRepository('http://localhost:6333');
       await repo.ensureIndexes();
 
-      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(23);
+      expect(mockCreatePayloadIndex).toHaveBeenCalledTimes(24);
     });
   });
 

@@ -120,6 +120,12 @@ const PAYLOAD_INDEXES = [
   // this story's live manual validation (a strict-mode Qdrant cluster
   // rejects a filter on an unindexed field with 400 Bad Request).
   { field: 'pending_contradiction', schema: 'bool' },
+  // S2-09 (issue #88): `memo migrate --to-v2` filters on `is_empty
+  // schema_version` (spec §18.11's `filterLacking`) - discovered missing
+  // from the S2-02 twelve-index list during this story's live manual
+  // validation, the same strict-mode-Qdrant-rejects-unindexed-filter-fields
+  // failure mode documented above for `pending_contradiction`.
+  { field: 'schema_version', schema: 'keyword' },
 ] as const;
 
 export class QdrantRepository {
