@@ -197,22 +197,22 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
 - [ ] 6.0 Implement Story S2-06: `memo timeline` — [#85](https://github.com/llipe/memo-cli/issues/85)
 
   > Note: depends on tasks 2.0 and 3.0. Independent of tasks 4.0 and 5.0.
-  - [ ] 6.1 Write `tests/unit/commands/timeline.test.ts`: scrambled-order mock → sorted output; grouping without `--session`; `--last` clamp at 500; `--since` filter shape; no `createEmbeddings` call; empty results
-  - [ ] 6.2 Write `tests/integration/commands/timeline.test.ts`: three mocked episodic writes replayed in `seq` order
-  - [ ] 6.3 Create `src/commands/timeline.ts`: `--bank`, `--session`, `--last` (default 50, max 500), `--since`, `--json`; `scrollOrdered` (session shape) vs `scroll` + grouping (no-session shape); register in `src/index.ts`
-  - [ ] 6.4 Verify AC1 (PRD AC-2.5): seq-then-timestamp ordering regardless of content
-  - [ ] 6.5 Verify AC2: grouped-by-session shape and human header
-  - [ ] 6.6 Verify AC3: `--since` filter and invalid-ISO rejection
-  - [ ] 6.7 Verify AC4: episodic-only, default exclusions, no embeddings/ranking call (asserted)
-  - [ ] 6.8 Verify AC5–AC6: empty-result envelope; human line format
-  - [ ] 6.9 Manual: on `memo_eval` after task 4.0's manual writes, run with and without `--session`
-  - [ ] 6.10 Edge cases: `--last 0` rejected; `--last 501` clamped with warning; equal `seq` values; session id existing only in another bank
-  - [ ] 6.11 Map every AC to its test in the PR body
-  - [ ] 6.12 Migration: not required — read-only; record opt-out rationale in the PR body
-  - [ ] 6.13 Update `README.md` command section and `docs/system-overview.md`
-  - [ ] 6.14 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
-  - [ ] 6.15 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
-  - [ ] 6.16 Open PR against `main`, link `Closes #85`, obtain user approval, merge
+  - [x] 6.1 Write `tests/unit/commands/timeline.test.ts`: scrambled-order mock → sorted output; grouping without `--session`; `--last` clamp at 500; `--since` filter shape; no `createEmbeddings` call; empty results
+  - [x] 6.2 Write `tests/integration/commands/timeline.test.ts`: three mocked episodic writes replayed in `seq` order
+  - [x] 6.3 Create `src/commands/timeline.ts`: `--bank`, `--session`, `--last` (default 50, max 500), `--since`, `--json`; `scrollOrdered` (session shape) vs `scroll` + grouping (no-session shape); register in `src/index.ts`
+  - [x] 6.4 Verify AC1 (PRD AC-2.5): seq-then-timestamp ordering regardless of content
+  - [x] 6.5 Verify AC2: grouped-by-session shape and human header
+  - [x] 6.6 Verify AC3: `--since` filter and invalid-ISO rejection
+  - [x] 6.7 Verify AC4: episodic-only, default exclusions, no embeddings/ranking call (asserted)
+  - [x] 6.8 Verify AC5–AC6: empty-result envelope; human line format
+  - [ ] 6.9 Manual: on `memo_eval` after task 4.0's manual writes, run with and without `--session` — **not run**: no live Qdrant/`memo_eval` environment available in this execution context; left for human verification before merge
+  - [x] 6.10 Edge cases: `--last 0` rejected; `--last 501` clamped with warning; equal `seq` values; session id existing only in another bank
+  - [x] 6.11 Map every AC to its test in the PR body
+  - [x] 6.12 Migration: not required — read-only; record opt-out rationale in the PR body
+  - [x] 6.13 Update `README.md` command section and `docs/system-overview.md`
+  - [x] 6.14 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [ ] 6.15 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer` — not run by `developer` (no-delegation subagent context, no `Task` tool); `planner` owns this invocation, scoped to this story's diff/branch/PR
+  - [ ] 6.16 Open PR against `main`, link `Closes #85`, obtain user approval, merge — draft PR opened against the integration branch per this run's base-branch override ([#97](https://github.com/llipe/memo-cli/pull/97)); final PR-to-`main`/merge is `planner`'s consolidated-PR step
 
 - [ ] 7.0 Implement Story S2-07: `memo recall` — [#86](https://github.com/llipe/memo-cli/issues/86)
 

@@ -35,16 +35,17 @@ graph LR
 
 ### Commands (`src/commands/`)
 
-| Command          | File         | Purpose                                                                        |
-| ---------------- | ------------ | ------------------------------------------------------------------------------ |
-| `memo setup`     | `setup.ts`   | Initialize `memo.config.json`, show effective config, validate config          |
-| `memo write`     | `write.ts`   | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant |
-| `memo search`    | `search.ts`  | Semantic vector search with exact pre-filters (repo, tags, scope)              |
-| `memo list`      | `list.ts`    | Chronological entry listing with optional date-range filtering                 |
-| `memo tags list` | `tags.ts`    | Browse all unique tags stored in the collection with counts and sort options   |
-| `memo inspect`   | `inspect.ts` | Discover orgs, repos, and domains across the knowledge base with facet filters |
-| `memo delete`    | `delete.ts`  | Safely delete a single entry by ID or bulk-delete by repo/org                  |
-| `memo read`      | `read.ts`    | Read one exact entry by ID with human or JSON output                           |
+| Command          | File          | Purpose                                                                                                                                         |
+| ---------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `memo setup`     | `setup.ts`    | Initialize `memo.config.json`, show effective config, validate config                                                                           |
+| `memo write`     | `write.ts`    | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant                                                                  |
+| `memo search`    | `search.ts`   | Semantic vector search with exact pre-filters (repo, tags, scope)                                                                               |
+| `memo list`      | `list.ts`     | Chronological entry listing with optional date-range filtering                                                                                  |
+| `memo tags list` | `tags.ts`     | Browse all unique tags stored in the collection with counts and sort options                                                                    |
+| `memo inspect`   | `inspect.ts`  | Discover orgs, repos, and domains across the knowledge base with facet filters                                                                  |
+| `memo delete`    | `delete.ts`   | Safely delete a single entry by ID or bulk-delete by repo/org                                                                                   |
+| `memo read`      | `read.ts`     | Read one exact entry by ID with human or JSON output                                                                                            |
+| `memo timeline`  | `timeline.ts` | Replay `episodic` memory in sequence order — `seq` asc within a session, else grouped by session; never embeds, never ranks (spec §18.8, S2-06) |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
@@ -177,6 +178,15 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 5. If found: normalize the payload via `src/lib/entry-normalize.ts`'s `normalizeEntry` (S2-05 AC9) — unlike Search/List's additive-only, present-when-true-only projection, `read` is a full diagnostic view and shows every v1-fallback default (`bank`, `kind`, `schema_version`, `archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`, `valid_from`) alongside every other field present on the entry
 6. If the entry's `provenance` field is an array of ids: resolve it with exactly one `scroll({ has_id: provenance })` call (capped at the array's own length — never a `getById`-per-id loop, never batched or truncated regardless of size) and replace it with `provenance: [{ id, deleted }]`; an id missing from the scroll result is `deleted: true` and suffixed `(deleted)` in human output
 7. Return the full payload + `id` as flat object (`--json`) or ordered human-readable fields
+
+### Timeline Flow (spec §18.8, S2-06)
+
+1. Resolve `--bank` (PRD B3), validate and normalize `--since` (date-only → midnight UTC; invalid → `VALIDATION_FAILED`), and validate/clamp `--last` (default 50; `0` or negative → `VALIDATION_FAILED`; above 500 clamps to 500 with a stderr-only warning — never a JSON `warnings` field, spec §18.14 item 8)
+2. Build the base filter via `buildBaseFilter({ bank, kind: 'episodic', session? })` (default `archived`/`superseded` exclusions apply; no `--include-archived`/`--include-superseded` flags on this command) and merge in a `timestamp_utc >= since` clause via `mergeFilters` when `--since` is present
+3. **With `--session`:** `scrollOrdered(filter, { orderBy: { key: 'seq', direction: 'asc' }, limit })`, then a client-side stable sort (`seq` asc, `timestamp_utc` asc tie-break) that never trusts the returned order — ties are only possible with an explicit `--seq` collision
+4. **Without `--session`:** the shipped `scroll(filter, limit)` (`timestamp_utc` desc), then grouped by `session_id` client-side, preserving both first-appearance group order and each entry's relative order within its group
+5. Never constructs an embeddings adapter and never calls `rankResults` — this file imports neither
+6. JSON: session shape `{ bank, session_id, entries, count }`; grouped shape `{ bank, sessions: [{ session_id, entries }], count }`. Human: `seq  timestamp  lead  id` per line (spec §10), with a `session: <id>` header per group in the grouped shape. An empty bank/session exits `0` with `count: 0`, never an error.
 
 ---
 

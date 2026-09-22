@@ -210,6 +210,29 @@ function renderListMetadata(result: ListHumanResult): string {
   return parts.join('  ');
 }
 
+/**
+ * One line per entry, `seq  timestamp  lead  id`, per spec §10 (S2-06 AC6).
+ * `timeline` never ranks - no `[tier]`/score prefix, unlike `searchResults`.
+ */
+export interface TimelineHumanResult {
+  id: string | number;
+  seq?: number;
+  timestamp_utc?: string;
+  rationale?: string;
+}
+
+/** One grouped-shape session (S2-06 AC2): a header line, then its entries in source order. */
+export interface TimelineHumanGroup {
+  session_id: string;
+  entries: TimelineHumanResult[];
+}
+
+function renderTimelineLine(result: TimelineHumanResult): string {
+  const seq = result.seq !== undefined ? String(result.seq) : '-';
+  const timestamp = result.timestamp_utc ?? 'unknown-time';
+  return `${chalk.gray(seq)}  ${chalk.gray(timestamp)}  ${chalk.bold(toLead(result.rationale))}  ${chalk.gray(String(result.id))}`;
+}
+
 export const output = {
   result(data: unknown, opts?: { json?: boolean }): void {
     if (opts?.json) {
@@ -329,6 +352,29 @@ export const output = {
 
       process.stdout.write(`${chalk.gray(`id:${String(result.id)}`)}\n\n`);
     }
+  },
+
+  /** Session shape (`--session`, S2-06 AC1): one `seq  timestamp  lead  id` line per entry, no header. */
+  timelineSession(results: TimelineHumanResult[]): void {
+    for (const result of results) {
+      process.stdout.write(`${renderTimelineLine(result)}\n`);
+    }
+  },
+
+  /** Grouped shape (no `--session`, S2-06 AC2): one header line per `session_id`, then its entries. */
+  timelineGrouped(groups: TimelineHumanGroup[]): void {
+    for (const group of groups) {
+      process.stdout.write(`${chalk.bold.cyan(`session: ${group.session_id}`)}\n`);
+      for (const result of group.entries) {
+        process.stdout.write(`${renderTimelineLine(result)}\n`);
+      }
+    }
+  },
+
+  /** Empty bank/session (S2-06 AC5): no error, just an explicit zero-count indication. */
+  timelineEmpty(): void {
+    process.stdout.write(`${chalk.yellow('No entries found.')}\n`);
+    process.stdout.write(`${chalk.gray('count: 0')}\n`);
   },
 
   listEmpty(activeFilters: string[]): void {
