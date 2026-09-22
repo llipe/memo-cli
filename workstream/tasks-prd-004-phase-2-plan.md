@@ -304,6 +304,7 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [x] 10.7 Copy the updated skill files into this repository's `.claude/skills/memo-cli-usage/` so both copies are byte-identical
 
     > Note: 10.7 was **not** completed within this story's own PR — the original delegation incorrectly assumed this repository's copy was already a placeholder and skipped the sync. It was completed as a follow-up under issue #89, sourced from `llipe/dev-tasks#240`'s `issue/89-memo-cli-usage-v13` branch content. See that PR for the fix. Note: after this repository's `prettier` markdown formatting pass (required by its own `format:check` gate), the two repos' copies are content-identical but not byte-identical — `dev-tasks` does not run the same prettier markdown-table normalization, so `diff -r` shows cosmetic-only differences (quote style, table column padding). See 10.13.
+
   - [ ] 10.8 Verify AC1: bank id declared and exported per agent
   - [ ] 10.9 Verify AC2 (PRD AC-2.9, recall half): single-call session start documented, fallback preserved
   - [ ] 10.10 Verify AC3 (PRD AC-2.9, write half): episodic-in-bank vs semantic-in-kb write examples correct
