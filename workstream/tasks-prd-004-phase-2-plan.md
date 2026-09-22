@@ -265,30 +265,30 @@ Every task except **9.0** changes no stored payload — new v2 fields are writte
   - [ ] 8.17 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
   - [ ] 8.18 Open PR against `main`, link `Closes #87`, obtain user approval, merge
 
-- [ ] 9.0 Implement Story S2-09: `memo migrate --to-v2` — [#88](https://github.com/llipe/memo-cli/issues/88)
+- [x] 9.0 Implement Story S2-09: `memo migrate --to-v2` — [#88](https://github.com/llipe/memo-cli/issues/88)
 
   > Note: depends on tasks 1.0 and 2.0. Independent of task 8.0. **This is the one task in the plan with an active migration lifecycle — read the Migration subtasks before starting.**
-  - [ ] 9.1 Write `tests/unit/lib/migrate.test.ts`: rule 1 vs rule 2 fixtures; `story` → `session_id`, absent → `legacy`; `expires_at` arithmetic; v2 points skipped; every "all" field set correctly; custom rules file incl. each `when` operator (`tags_any`, `tags_all`, `entry_type_in`, `source_in`, `repo_in`); exhaustiveness rejection when no catch-all rule exists
-  - [ ] 9.2 Write `tests/unit/commands/migrate.test.ts`: dry-run issues zero write calls; page-loop call count; JSON envelope shape
-  - [ ] 9.3 Write `tests/integration/commands/migrate.test.ts`: three mocked pages of v1 points — dry-run (zero writes) → real run (one `batchSetPayload` per page) → second real run (`scanned: 0`); assert no `delete*` call ever; replay-identity check after migration
-  - [ ] 9.4 Create `src/lib/migrate.ts`: `planMigration` (pure), rules Zod schema with exhaustiveness validation
-  - [ ] 9.5 Create `src/commands/migrate.ts`: `scrollAll` over `is_empty schema_version` → plan → `batchSetPayload` per page; `--dry-run`, `--rules <file>`, `--json`; stderr progress unless `--json`; register in `src/index.ts`
-  - [ ] 9.6 Verify AC1: full planner rule table, including the "all" fields
-  - [ ] 9.7 Verify AC2 (PRD AC-2.7, dry-run half): zero write calls, correct printed counts
-  - [ ] 9.8 Verify AC3 (PRD AC-2.7, real-run half): one `batchSetPayload` per page; second run `scanned: 0`; no `delete*` call ever; no vector sent
-  - [ ] 9.9 Verify AC4: custom `--rules` file behavior and exhaustiveness rejection
-  - [ ] 9.10 Verify AC5: progress/exit-0 behavior
-  - [ ] 9.11 Verify AC6: replay identity holds across the rewrite (feeds task 5.0's AC-2.3 assertion with migrated payloads)
-  - [ ] 9.12 **Migration — create artifact:** `memo migrate --to-v2` itself, with `--dry-run` and `--rules`, is the migration artifact (already built in 9.4–9.5)
-  - [ ] 9.13 **Migration — rollback/impact notes:** document in the PR that this is payload-only (vectors untouched), that 1.2.x ignores the added fields, and that there is no automated rollback — the practical rollback is reinstalling memo-cli 1.2.x (per spec §15)
-  - [ ] 9.14 **Migration — dry-run against `memo_eval`:** `MEMO_COLLECTION=memo_eval pnpm exec node dist/index.js migrate --to-v2 --dry-run`; record the printed `by_rule` counts in the PR body
-  - [ ] 9.15 **Migration — request user confirmation before any real apply:** present the dry-run counts and ask the user to confirm before running the real migration against `memo_eval` (development/testing only — **never against `decisions` in this task**)
-  - [ ] 9.16 **Migration — apply (after confirmation, `memo_eval` only):** `MEMO_COLLECTION=memo_eval pnpm exec node dist/index.js migrate --to-v2`; run a second time to confirm `scanned: 0`
-  - [ ] 9.17 **Migration — verify applied state:** `pnpm run eval:relevance` against `memo_eval` unchanged at 96.4%; `memo bank list` shows all migrated points under `kb`
-  - [ ] 9.18 Edge cases: point with both `intent` and `outcome` tags (rule 1 applies once); `intent`-tagged point with no `story` (`legacy`); point with `bank` set but no `schema_version` (migrated, existing `bank` preserved); empty collection; non-array rules file; page boundary exactly at 256
-  - [ ] 9.19 Map every AC to its test in the PR body
-  - [ ] 9.20 Update `README.md` migration section (dry-run first, what changes, what does not — and that applying to `decisions` is a separate post-release step) and `docs/data-model.md`
-  - [ ] 9.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
+  - [x] 9.1 Write `tests/unit/lib/migrate.test.ts`: rule 1 vs rule 2 fixtures; `story` → `session_id`, absent → `legacy`; `expires_at` arithmetic; v2 points skipped; every "all" field set correctly; custom rules file incl. each `when` operator (`tags_any`, `tags_all`, `entry_type_in`, `source_in`, `repo_in`); exhaustiveness rejection when no catch-all rule exists
+  - [x] 9.2 Write `tests/unit/commands/migrate.test.ts`: dry-run issues zero write calls; page-loop call count; JSON envelope shape
+  - [x] 9.3 Write `tests/integration/commands/migrate.test.ts`: three mocked pages of v1 points — dry-run (zero writes) → real run (one `batchSetPayload` per page) → second real run (`scanned: 0`); assert no `delete*` call ever; replay-identity check after migration
+  - [x] 9.4 Create `src/lib/migrate.ts`: `planMigration` (pure), rules Zod schema with exhaustiveness validation
+  - [x] 9.5 Create `src/commands/migrate.ts`: `scrollAll` over `is_empty schema_version` → plan → `batchSetPayload` per page; `--dry-run`, `--rules <file>`, `--json`; stderr progress unless `--json`; register in `src/index.ts`
+  - [x] 9.6 Verify AC1: full planner rule table, including the "all" fields
+  - [x] 9.7 Verify AC2 (PRD AC-2.7, dry-run half): zero write calls, correct printed counts
+  - [x] 9.8 Verify AC3 (PRD AC-2.7, real-run half): one `batchSetPayload` per page; second run `scanned: 0`; no `delete*` call ever; no vector sent
+  - [x] 9.9 Verify AC4: custom `--rules` file behavior and exhaustiveness rejection
+  - [x] 9.10 Verify AC5: progress/exit-0 behavior
+  - [x] 9.11 Verify AC6: replay identity holds across the rewrite (feeds task 5.0's AC-2.3 assertion with migrated payloads)
+  - [x] 9.12 **Migration — create artifact:** `memo migrate --to-v2` itself, with `--dry-run` and `--rules`, is the migration artifact (already built in 9.4–9.5)
+  - [x] 9.13 **Migration — rollback/impact notes:** document in the PR that this is payload-only (vectors untouched), that 1.2.x ignores the added fields, and that there is no automated rollback — the practical rollback is reinstalling memo-cli 1.2.x (per spec §15)
+  - [x] 9.14 **Migration — dry-run against `memo_eval`:** `MEMO_COLLECTION=memo_eval pnpm exec node dist/index.js migrate --to-v2 --dry-run`; record the printed `by_rule` counts in the PR body
+  - [x] 9.15 **Migration — request user confirmation before any real apply:** present the dry-run counts and ask the user to confirm before running the real migration against `memo_eval` (development/testing only — **never against `decisions` in this task**)
+  - [x] 9.16 **Migration — apply (after confirmation, `memo_eval` only):** `MEMO_COLLECTION=memo_eval pnpm exec node dist/index.js migrate --to-v2`; run a second time to confirm `scanned: 0`
+  - [x] 9.17 **Migration — verify applied state:** `pnpm run eval:relevance` against `memo_eval` unchanged at 96.4%; `memo bank list` shows all migrated points under `kb`
+  - [x] 9.18 Edge cases: point with both `intent` and `outcome` tags (rule 1 applies once); `intent`-tagged point with no `story` (`legacy`); point with `bank` set but no `schema_version` (migrated, existing `bank` preserved); empty collection; non-array rules file; page boundary exactly at 256
+  - [x] 9.19 Map every AC to its test in the PR body
+  - [x] 9.20 Update `README.md` migration section (dry-run first, what changes, what does not — and that applying to `decisions` is a separate post-release step) and `docs/data-model.md`
+  - [x] 9.21 Run quality gate: `pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test && pnpm audit`
   - [ ] 9.22 Run `verifier` audit (mandatory, pre-PR-ready); route drift findings to `product-engineer`
   - [ ] 9.23 Open PR against `main`, link `Closes #88`, obtain user approval, merge — note in the PR description that the `decisions` collection migration is intentionally **not** run by this PR and remains a user-run step after the 1.3.0 release
 
