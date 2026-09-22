@@ -4,7 +4,7 @@ import type { SearchDeps } from '../../../src/commands/search.js';
 const mockQdrant = {
   ensureCollection: jest.fn().mockResolvedValue(undefined),
   search: jest.fn(),
-  fetchByRepo: jest.fn().mockResolvedValue([]),
+  fetchStalenessCorpus: jest.fn().mockResolvedValue([]),
 };
 
 const mockEmbeddings = {
@@ -96,7 +96,15 @@ describe('search integration', () => {
     expect(mockQdrant.search).toHaveBeenCalledWith(
       expect.any(Array),
       {
-        must: [{ key: 'org', match: { value: 'llipe' } }],
+        must: [
+          { should: [{ key: 'bank', match: { value: 'kb' } }, { is_empty: { key: 'bank' } }] },
+          { key: 'org', match: { value: 'llipe' } },
+        ],
+        must_not: [
+          { key: 'kind', match: { value: 'self' } },
+          { key: 'archived', match: { value: true } },
+          { key: 'superseded', match: { value: true } },
+        ],
         should: [
           { key: 'repo', match: { value: 'memo-cli' } },
           { key: 'repo', match: { value: 'platform-docs' } },
@@ -135,5 +143,47 @@ describe('search integration', () => {
     expect(stdoutData).toContain('67%');
     expect(stdoutData).not.toContain('91%');
     expect(stdoutData).toContain('Use related scope to expand repo search coverage.');
+  });
+
+  // S2-05 AC3 (PRD AC-2.4): two-bank isolation, verified end-to-end against
+  // a mocked repository that actually evaluates the bank predicate (not
+  // just a structural filter-shape assertion) - `memo search --bank a-memory`
+  // must never surface a `b-memory` entry, and vice versa.
+  describe('AC3 (PRD AC-2.4): two-bank isolation', () => {
+    const corpus = [
+      { id: 'a-1', score: 0.9, payload: { repo: 'memo-cli', bank: 'a-memory', rationale: 'A' } },
+      { id: 'b-1', score: 0.9, payload: { repo: 'memo-cli', bank: 'b-memory', rationale: 'B' } },
+    ];
+
+    function bankOf(filter: Record<string, unknown>): string {
+      const must = (filter['must'] ?? []) as Record<string, unknown>[];
+      const direct = must.find(
+        (c) =>
+          c['key'] === 'bank' && typeof (c['match'] as { value?: unknown })?.value === 'string',
+      );
+      if (direct) return (direct['match'] as { value: string }).value;
+      // The `kb`-default `{ should: [...] }` clause matches only `bank: 'kb'`
+      // (or absent) points, never `a-memory`/`b-memory`.
+      return 'kb';
+    }
+
+    beforeEach(() => {
+      mockQdrant.search.mockImplementation((_vector: number[], filter: Record<string, unknown>) => {
+        const bank = bankOf(filter);
+        return Promise.resolve(corpus.filter((c) => c.payload.bank === bank));
+      });
+    });
+
+    it('memo search --bank a-memory never returns a b-memory entry', async () => {
+      await handleSearch({ query: 'q', bank: 'a-memory', json: true }, deps);
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results.map((r) => r.id)).toEqual(['a-1']);
+    });
+
+    it('memo search --bank b-memory never returns an a-memory entry', async () => {
+      await handleSearch({ query: 'q', bank: 'b-memory', json: true }, deps);
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results.map((r) => r.id)).toEqual(['b-1']);
+    });
   });
 });

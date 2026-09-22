@@ -96,6 +96,8 @@ describe('list integration', () => {
     expect(result['filters']).toEqual({
       scope: 'related',
       repo: 'memo-cli',
+      bank: 'kb',
+      kind: 'all',
       org: 'llipe',
       entry_type: ['integration_point'],
       source: ['manual'],
@@ -137,5 +139,43 @@ describe('list integration', () => {
       }),
       20,
     );
+  });
+
+  // S2-05 AC3 (PRD AC-2.4): two-bank isolation via `list`, confirming
+  // isolation is not search-pipeline-specific (`list` uses `scroll`, not
+  // `search` — E2E-3).
+  describe('AC3 (PRD AC-2.4): two-bank isolation', () => {
+    const corpus = [
+      { id: 'a-1', payload: { repo: 'memo-cli', bank: 'a-memory', rationale: 'A' } },
+      { id: 'b-1', payload: { repo: 'memo-cli', bank: 'b-memory', rationale: 'B' } },
+    ];
+
+    function bankOf(filter: Record<string, unknown>): string {
+      const must = (filter['must'] ?? []) as Record<string, unknown>[];
+      const direct = must.find(
+        (c) =>
+          c['key'] === 'bank' && typeof (c['match'] as { value?: unknown })?.value === 'string',
+      );
+      return direct ? (direct['match'] as { value: string }).value : 'kb';
+    }
+
+    beforeEach(() => {
+      mockQdrant.scroll.mockImplementation((filter: Record<string, unknown>) => {
+        const bank = bankOf(filter);
+        return Promise.resolve(corpus.filter((c) => c.payload.bank === bank));
+      });
+    });
+
+    it('memo list --bank a-memory never returns a b-memory entry', async () => {
+      await handleList({ bank: 'a-memory', json: true }, deps);
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results.map((r) => r.id)).toEqual(['a-1']);
+    });
+
+    it('memo list --bank b-memory never returns an a-memory entry', async () => {
+      await handleList({ bank: 'b-memory', json: true }, deps);
+      const parsed = JSON.parse(stdoutData) as { results: { id: string }[] };
+      expect(parsed.results.map((r) => r.id)).toEqual(['b-1']);
+    });
   });
 });

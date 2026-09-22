@@ -293,26 +293,6 @@ export class QdrantRepository {
   }
 
   /**
-   * Fetches the corpus used for staleness detection (#38 AC5/AC6): one
-   * `scroll` call per `memo search` invocation, filtered to `repos` (the
-   * resolved repo scope - a single repo, or the full `--scope related` set),
-   * ordered by `timestamp_utc` desc via the underlying `scroll()`.
-   *
-   * Bounded at `limit` (default `1,000`) - a config-free constant, not
-   * user-configurable, documented here rather than exposed as a setting;
-   * revisit if a single repo's corpus regularly exceeds this bound.
-   *
-   * Superseded by `fetchStalenessCorpus` (#81/S2-02, spec §18.4/A12), which
-   * adds bank scoping. Left in place here rather than deleted: its only
-   * caller (`src/commands/search.ts`) has not moved to `fetchStalenessCorpus`
-   * yet - that call-site change is S2-05's scope (spec §18.4/AC6 explicitly
-   * allows either story to carry the removal, "must not survive Phase 2").
-   */
-  async fetchByRepo(repos: string[], limit = 1000): Promise<ScrollResult[]> {
-    return this.scroll({ must: [{ key: 'repo', match: { any: repos } }] }, limit);
-  }
-
-  /**
    * Fetches the staleness-detection corpus (#81 AC6, spec §18.4/A12;
    * refactored per the S2-02 Audit Mode drift finding D-2, issue #82 task
    * 3.7): the caller builds `base` via `src/lib/filters.ts`'s

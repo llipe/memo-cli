@@ -1,4 +1,4 @@
-import { normalizeEntry } from '../../../src/lib/entry-normalize';
+import { normalizeEntry, projectV2Fields } from '../../../src/lib/entry-normalize';
 
 const V1_POINT = {
   id: '00000000-0000-0000-0000-000000000001',
@@ -126,5 +126,67 @@ describe('normalizeEntry', () => {
     const a = normalizeEntry(V1_POINT);
     const b = normalizeEntry(V1_POINT);
     expect(a).toEqual(b);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S2-05 AC8: projectV2Fields — additive-only JSON projection for
+// search/list.
+// ---------------------------------------------------------------------------
+describe('projectV2Fields (AC8)', () => {
+  it('always includes bank and kind, even for a v1 point (defaulted)', () => {
+    const result = projectV2Fields(normalizeEntry(V1_POINT));
+    expect(result).toMatchObject({ bank: 'kb', kind: 'semantic' });
+  });
+
+  it('omits archived/superseded/pinned entirely when false (CT-1: no synthesized false)', () => {
+    const result = projectV2Fields(normalizeEntry(V1_POINT));
+    expect(result).not.toHaveProperty('archived');
+    expect(result).not.toHaveProperty('superseded');
+    expect(result).not.toHaveProperty('pinned');
+  });
+
+  it('includes archived/superseded/pinned as true when set (AC6)', () => {
+    const point = {
+      ...V1_POINT,
+      bank: 'jarvis-memory',
+      kind: 'episodic',
+      archived: true,
+      superseded: true,
+      pinned: true,
+    };
+    const result = projectV2Fields(normalizeEntry(point));
+    expect(result).toMatchObject({ archived: true, superseded: true, pinned: true });
+  });
+
+  it('includes session_id/seq/valid_to/superseded_by only when present on the source entry', () => {
+    const withOptional = projectV2Fields(
+      normalizeEntry({
+        ...V1_POINT,
+        bank: 'jarvis-memory',
+        kind: 'episodic',
+        session_id: 'ISSUE-84',
+        seq: 3,
+        valid_to: '2026-06-01T00:00:00.000Z',
+        superseded_by: '00000000-0000-0000-0000-000000000099',
+      }),
+    );
+    expect(withOptional).toMatchObject({
+      session_id: 'ISSUE-84',
+      seq: 3,
+      valid_to: '2026-06-01T00:00:00.000Z',
+      superseded_by: '00000000-0000-0000-0000-000000000099',
+    });
+
+    const withoutOptional = projectV2Fields(normalizeEntry(V1_POINT));
+    expect(withoutOptional).not.toHaveProperty('session_id');
+    expect(withoutOptional).not.toHaveProperty('seq');
+    expect(withoutOptional).not.toHaveProperty('valid_to');
+    expect(withoutOptional).not.toHaveProperty('superseded_by');
+  });
+
+  it('includes valid_from when normalizeEntry derives it for a semantic v1 point', () => {
+    const result = projectV2Fields(normalizeEntry(V1_POINT));
+    expect(result['valid_from']).toBe(V1_POINT.timestamp_utc);
   });
 });
