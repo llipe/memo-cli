@@ -24,6 +24,7 @@ GitHub: [https://github.com/llipe/memo-cli](https://github.com/llipe/memo-cli)
   - [Step 7: Inspect the Knowledge Base](#step-7-inspect-the-knowledge-base)
   - [Step 8: Delete Entries](#step-8-delete-entries)
   - [Step 9: Read a Single Entry](#step-9-read-a-single-entry)
+  - [Step 10: Replay Episodic History](#step-10-replay-episodic-history)
 - [Command Reference](#command-reference)
 - [Agent Integration](#agent-integration)
   - [Agent Skill (memo-cli-usage)](#agent-skill-memo-cli-usage)
@@ -707,20 +708,64 @@ Returns the flat entry payload as JSON, including every v2 field present (`bank`
 
 ---
 
+### Step 10: Replay Episodic History
+
+`memo timeline` replays `episodic` memory in sequence order — it never embeds and never ranks, so a high-similarity entry can never move out of place (PRD AC-2.5).
+
+```bash
+# One session, in seq order
+memo timeline --bank my-agent --session ISSUE-42
+
+# Most recent activity across all sessions in a bank, grouped by session
+memo timeline --bank my-agent
+
+# Only activity since a given date
+memo timeline --bank my-agent --since 2026-04-01
+```
+
+With `--session`, entries come back ordered by `seq` asc, then `timestamp_utc` asc for any tie (only possible with an explicit `--seq` collision) — content and similarity never affect the order. Without `--session`, the most recent `--last` entries (default 50, max 500) are grouped by `session_id`, most-recent-first.
+
+#### JSON mode
+
+```bash
+memo timeline --bank my-agent --session ISSUE-42 --json
+# { "bank": "my-agent", "session_id": "ISSUE-42", "entries": [...], "count": 3 }
+
+memo timeline --bank my-agent --json
+# { "bank": "my-agent", "sessions": [{ "session_id": "...", "entries": [...] }], "count": 12 }
+```
+
+An empty bank or session id exits `0` with `count: 0` — never an error.
+
+#### All timeline flags
+
+| Flag            | Default                                  | Description                                                                                                       |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `--bank`        | `MEMO_BANK`, `config.bank.default`, `kb` | Bank id to read from                                                                                              |
+| `--session`     | —                                        | Restrict to one episodic session, ordered by `seq` asc                                                            |
+| `--last <n>`    | `50`                                     | Maximum number of entries; values above `500` clamp to `500` with a stderr warning; `0` fails `VALIDATION_FAILED` |
+| `--since <iso>` | —                                        | Inclusive ISO 8601 lower bound on `timestamp_utc`; invalid values fail `VALIDATION_FAILED`                        |
+| `--json`        | `false`                                  | Output as JSON                                                                                                    |
+
+Only `kind = episodic` entries are ever returned, with the default `archived`/`superseded` exclusions applied — `self` and `semantic` entries never appear in `memo timeline` output.
+
+---
+
 ## Command Reference
 
-| Command               | Purpose                       | Key Flags                                                                       |
-| --------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
-| `memo setup init`     | Create `memo.config.json`     | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
-| `memo setup show`     | Display current config        | `--json`                                                                        |
-| `memo setup validate` | Check config validity         | —                                                                               |
-| `memo write`          | Capture a decision            | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
-| `memo search <query>` | Semantic search               | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
-| `memo list`           | Chronological listing         | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
-| `memo tags list`      | Browse unique tags            | `--scope`, `--sort`, `--json`                                                   |
-| `memo inspect`        | Discover orgs/repos/domains   | `--orgs`, `--repos`, `--domains`, `--json`                                      |
-| `memo delete`         | Delete entries                | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
-| `memo read`           | Read one specific entry by id | `--id`, `--json`                                                                |
+| Command               | Purpose                                  | Key Flags                                                                       |
+| --------------------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
+| `memo setup init`     | Create `memo.config.json`                | `--repo`, `--org`, `--domain`, `--relates-to`, `--force`                        |
+| `memo setup show`     | Display current config                   | `--json`                                                                        |
+| `memo setup validate` | Check config validity                    | —                                                                               |
+| `memo write`          | Capture a decision                       | `--rationale`, `--tags`, `--entry-type`, `--source`, `--on-duplicate`, `--json` |
+| `memo search <query>` | Semantic search                          | `--scope`, `--tags`, `--entry-type`, `--limit`, `--json`                        |
+| `memo list`           | Chronological listing                    | `--from`, `--to`, `--tags`, `--limit`, `--json`                                 |
+| `memo tags list`      | Browse unique tags                       | `--scope`, `--sort`, `--json`                                                   |
+| `memo inspect`        | Discover orgs/repos/domains              | `--orgs`, `--repos`, `--domains`, `--json`                                      |
+| `memo delete`         | Delete entries                           | `--id`, `--all-by-repo`, `--all-by-org`, `--yes`, `--json`                      |
+| `memo read`           | Read one specific entry by id            | `--id`, `--json`                                                                |
+| `memo timeline`       | Replay episodic memory in sequence order | `--bank`, `--session`, `--last`, `--since`, `--json`                            |
 
 ### Global flags
 
@@ -1008,7 +1053,8 @@ src/
 │   ├── tags.ts           # memo tags list (unique tags with counts)
 │   ├── inspect.ts        # memo inspect (org/repo/domain facets)
 │   ├── delete.ts         # memo delete (safe single + bulk delete)
-│   └── read.ts           # memo read (single entry by ID)
+│   ├── read.ts           # memo read (single entry by ID)
+│   └── timeline.ts       # memo timeline (episodic replay, never ranked)
 ├── lib/
 │   ├── qdrant.ts         # Qdrant collection management & queries
 │   ├── facets.ts         # Scroll-based facet aggregation
