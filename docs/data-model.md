@@ -212,7 +212,7 @@ The schema uses `.passthrough()` to preserve unknown keys for forward compatibil
 
 ### Config v2 (issue #53 / S2-01)
 
-Additive, schema-definition-only in this story (no command wires these blocks into read/write paths yet — see S2-03/S2-05/S2-04). A v1.2.0 config parses unchanged; `bank`, `banks`, and `recall` resolve to their documented defaults even when entirely absent from the file.
+Additive when introduced in S2-01 (no command wired these blocks into read/write paths yet); `memo write` (S2-04, below) is the first command to read `banks.*` policy via `policyFor()`/`resolveBank()`. Read-side wiring (`search`/`list`/`tags`/`read`) remains S2-05. A v1.2.0 config parses unchanged; `bank`, `banks`, and `recall` resolve to their documented defaults even when entirely absent from the file.
 
 | Field                         | Type    | Default        | Constraints                                |
 | ----------------------------- | ------- | -------------- | ------------------------------------------ |
@@ -249,7 +249,25 @@ A single `superRefine` enforces PRD §2.5's rules:
 | `self` carries no retention fields   | `kind === 'self'` with `stability`/`expires_at`/`retrieval_count` rejected (path: `kind`)            |
 | `seq` only on episodic               | `seq !== undefined && kind !== 'episodic'` rejected (path: `seq`)                                    |
 
-`normalizeEntry()` (`src/lib/entry-normalize.ts`, pure) is the read boundary: `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, every boolean (`archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`) `??= false`, and `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. No shipped command calls this yet (S2-03/S2-04 wire it into the read/write paths).
+`normalizeEntry()` (`src/lib/entry-normalize.ts`, pure) is the read boundary: `bank ??= 'kb'`, `kind ??= 'semantic'`, `schema_version ??= '1'`, every boolean (`archived`, `superseded`, `consolidated`, `pinned`, `pending_contradiction`) `??= false`, and `valid_from ??= timestamp_utc` when `kind !== 'episodic'`. `memo write --supersedes` (S2-04, below) is the first command to call it, to check the target's `bank`/`kind`/`superseded` state before writing; other read-side commands remain S2-05.
+
+### `memo write` v2 (issue #83 / S2-04)
+
+`src/commands/write.ts` implements spec §18.6's eleven-step order on top of the S2-01–S2-03 building blocks (`resolveBank`, `defaultKind`, `policyFor`, `buildDedupeKeyV2`, `normalizeEntry`) — none of them are reimplemented here:
+
+1. Resolve `bank` (`--bank` / `MEMO_BANK` / `config.bank.default` / `kb`), `kind` (`--kind` or `defaultKind(bank)`), and `policy` (`policyFor`) — this alone enforces K1 (`--kind self` in `kb` fails `VALIDATION_FAILED`) before any I/O.
+2. Scope: `repo`/`org`/`domain` are required in `kb` (`REPO_CONTEXT_UNRESOLVED` on miss, unchanged from v1) and optional everywhere else.
+3. `--manual` forces `source = 'manual'`; `entry_type` defaults to `observation` for `episodic`, `decision` otherwise.
+4. Build the v2 payload: retention fields (`stability`, `stability_since`, `retrieval_count`, `used_count`) from policy except for `self`; episodic entries get `session_id`, auto-incremented `seq` (`nextSeq`, `scrollOrdered` on `{ bank, kind: episodic, session_id }` ordered `seq desc, limit 1`, `+1`, `0` when empty) and `expires_at` from `--expires-in` (`src/lib/duration.ts`, `\d+[dhm]`) or the policy default.
+5. Validate with `EntryPayloadV2Schema`.
+6. `--supersedes <id>`: `getById` (`ENTRY_NOT_FOUND` on miss) then `normalizeEntry` the target — mismatched `bank`/`kind` or an already-superseded target fails `VALIDATION_FAILED`; a self-reference (`target.id === id`) is rejected before any I/O.
+7. `self` soft-cap: one `count()` of non-superseded `self` entries in the bank; `>= policy.soft_cap` emits a non-blocking warning with the pre-write count (`self entries in <bank>: <n> (soft cap <cap>)`).
+8. Dedupe via `buildDedupeKeyV2`; a `kb` semantic write also probes the v1 `buildDedupeKey` so a pre-migration duplicate is still caught; `self` never dedupes.
+9. Embed and `upsert`, as in v1.
+10. If step 6 applied, `setPayload` the target (`valid_to`, `superseded: true`, `superseded_by`) — not transactional; a failure here after the upsert succeeded exits 2 with `QDRANT_OPERATION_FAILED` naming both the new and target ids.
+11. Result JSON: the full v2 payload plus `created`/`updated`/`duplicate_detected`/`superseded?`/`warnings?`.
+
+Migration note: this story writes v2 payloads but does not migrate existing data. Existing v1 points remain v1 and stay readable via `normalizeEntry` (S2-09 owns the bulk rewrite, `memo migrate --to-v2`). A v2 point written here is still readable by memo-cli 1.2.x as an ordinary entry — its new fields are simply ignored by a reader that never parses `schema_version`.
 
 ---
 
