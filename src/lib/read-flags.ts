@@ -2,6 +2,7 @@ import type { MemoConfig } from '../types/config.js';
 import type { EntryKind } from '../types/entry.js';
 import { resolveBank } from './bank.js';
 import { MemoError } from './errors.js';
+import { DATE_ONLY, ISO_DATETIME, isValidCalendarDate, parseDateParts } from './iso-date.js';
 
 /** Raw, unvalidated CLI-facing flags shared by `search`, `list`, `tags list`, and `read` (spec §18.7). */
 export interface RawReadFlags {
@@ -41,27 +42,6 @@ function parseKind(value: string | undefined): EntryKind | 'all' {
     );
   }
   return normalized as EntryKind | 'all';
-}
-
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
-
-/**
- * True when `y-m-d` is a real calendar date - `new Date(Date.UTC(...))`
- * silently rolls invalid dates over (e.g. `2025-02-30` -> `2025-03-02`), so
- * this re-derives the components and compares them back against the input
- * rather than trusting `Number.isNaN` alone (EC-2).
- */
-function isValidCalendarDate(year: number, month: number, day: number): boolean {
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
-}
-
-function parseDateParts(datePart: string): [number, number, number] {
-  const [year, month, day] = datePart.split('-').map(Number);
-  return [year ?? NaN, month ?? NaN, day ?? NaN];
 }
 
 /**

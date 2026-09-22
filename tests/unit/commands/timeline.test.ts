@@ -169,6 +169,34 @@ describe('handleTimeline', () => {
     expect(mockQdrant.scrollOrdered).not.toHaveBeenCalled();
   });
 
+  it('issue #98: a calendar-invalid --since date-only value (month 13, day 40) fails VALIDATION_FAILED', async () => {
+    await expect(handleTimeline({ bank: 'x', since: '2026-13-40' }, deps)).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+    });
+    expect(mockQdrant.scroll).not.toHaveBeenCalled();
+    expect(mockQdrant.scrollOrdered).not.toHaveBeenCalled();
+  });
+
+  it('issue #98: a calendar-invalid --since date-only value (2025-02-30) fails VALIDATION_FAILED', async () => {
+    await expect(handleTimeline({ bank: 'x', since: '2025-02-30' }, deps)).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+    });
+    expect(mockQdrant.scroll).not.toHaveBeenCalled();
+    expect(mockQdrant.scrollOrdered).not.toHaveBeenCalled();
+  });
+
+  it('issue #98: a valid --since date-only value is unaffected (unchanged behavior)', async () => {
+    await handleTimeline({ bank: 'x', since: '2026-04-01', json: true }, deps);
+    expect(mockQdrant.scroll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        must: expect.arrayContaining([
+          { key: 'timestamp_utc', range: { gte: '2026-04-01T00:00:00.000Z' } },
+        ]),
+      }),
+      50,
+    );
+  });
+
   it('AC4: no createEmbeddings/rankResults call surface exists on the mocked repo (asserted by absence)', async () => {
     mockQdrant.scroll.mockResolvedValueOnce([episodic({ id: 'e1' })]);
     await handleTimeline({ bank: 'x', json: true }, deps);
@@ -205,6 +233,27 @@ describe('handleTimeline', () => {
     expect(stdoutData).toContain('2026-04-10T14:25:01.000Z');
     expect(stdoutData).toContain('First step taken.');
     expect(stdoutData).toContain('entry-a');
+  });
+
+  it('AC2/AC6: no-session human output renders a session header per group, then one line per entry (output.timelineGrouped)', async () => {
+    mockQdrant.scroll.mockResolvedValueOnce([
+      episodic({ id: 'e1', session_id: 's-1', seq: 1, timestamp_utc: '2026-04-10T14:25:01.000Z' }),
+      episodic({ id: 'e2', session_id: 's-2', seq: 1, timestamp_utc: '2026-04-10T14:25:02.000Z' }),
+    ]);
+
+    await handleTimeline({ bank: 'x' }, deps);
+
+    expect(stdoutData).toContain('session: s-1');
+    expect(stdoutData).toContain('session: s-2');
+    expect(stdoutData).toContain('e1');
+    expect(stdoutData).toContain('e2');
+  });
+
+  it('AC5: no-session empty-result human output renders the zero-count message (output.timelineEmpty)', async () => {
+    await handleTimeline({ bank: 'empty-bank' }, deps);
+
+    expect(stdoutData).toContain('No entries found.');
+    expect(stdoutData).toContain('count: 0');
   });
 
   it('EC-1: --last 0 fails VALIDATION_FAILED', async () => {
