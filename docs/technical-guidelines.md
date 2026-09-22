@@ -81,7 +81,11 @@ CLI Entry (src/index.ts)
         ├── commands/tags.ts       → TagsCommand (list unique tags with counts)
         ├── commands/inspect.ts    → InspectCommand (org/repo/domain facets)
         ├── commands/delete.ts     → DeleteCommand (safe single + bulk delete)
-        └── commands/read.ts       → ReadCommand (single-entry lookup by ID)
+        ├── commands/read.ts       → ReadCommand (single-entry lookup by ID)
+        ├── commands/bank.ts       → BankCommand (list / show, PRD-004 Phase 2, issue #82)
+        ├── commands/migrate.ts    → MigrateCommand (v1→v2 payload migration, PRD-004 Phase 2, issue #86)
+        ├── commands/recall.ts     → RecallCommand (SELF + tiered session recall, PRD-004 Phase 2, issue #88)
+        └── commands/timeline.ts   → TimelineCommand (session-ordered listing, PRD-004 Phase 2, issue #85)
 
 lib/
   ├── qdrant.ts            → QdrantRepository (collection mgmt, upsert, search, scroll, deleteById, deleteByFilter, ensureIndexes)
@@ -102,6 +106,11 @@ lib/
   ├── entry-normalize.ts   → `normalizeEntry`: read-side v1→v2 defaulting boundary (PRD-004 Phase 2, issue #79)
   ├── bank.ts              → Bank resolution, kind defaults, policy lookup (PRD-004 Phase 2, issue #82)
   ├── filters.ts           → `buildBaseFilter` (bank/kind/state) + `mergeFilters` (PRD-004 Phase 2, issue #82)
+  ├── migrate.ts           → v1→v2 migration rules (bank/kind/session_id inference, idempotency), PRD-004 Phase 2, issue #86
+  ├── recall.ts            → SELF + tiered candidate assembly, caps, trimming, dedup (PRD-004 Phase 2, issue #88)
+  ├── read-flags.ts        → Shared read-path flag parsing (bank/kind/state), PRD-004 Phase 2, issue #82
+  ├── duration.ts          → Human-readable duration formatting (relative timestamps)
+  ├── iso-date.ts          → ISO-8601 date parsing/formatting helpers
   └── debug.ts             → Conditional debug logging to stderr
 
 adapters/
@@ -437,7 +446,11 @@ memo-cli/
 │   │   ├── tags.ts               ← memo tags list (unique tags with counts)
 │   │   ├── inspect.ts            ← memo inspect (org/repo/domain facets)
 │   │   ├── delete.ts             ← memo delete (safe single + bulk delete)
-│   │   └── read.ts               ← memo read (single entry by ID)
+│   │   ├── read.ts               ← memo read (single entry by ID)
+│   │   ├── bank.ts               ← memo bank list / show (PRD-004 Phase 2)
+│   │   ├── migrate.ts            ← memo migrate --to-v2 (v1→v2 payload migration)
+│   │   ├── recall.ts             ← memo recall (SELF + tiered session recall)
+│   │   └── timeline.ts           ← memo timeline (session-ordered listing)
 │   ├── lib/
 │   │   ├── qdrant.ts             ← QdrantRepository
 │   │   ├── facets.ts             ← Scroll-based aggregation (aggregateField, aggregateMultipleFields)
@@ -457,6 +470,11 @@ memo-cli/
 │   │   ├── entry-normalize.ts    ← `normalizeEntry`: read-side v1→v2 defaulting boundary
 │   │   ├── bank.ts               ← Bank resolution, kind defaults, policy lookup
 │   │   ├── filters.ts            ← `buildBaseFilter` (bank/kind/state) + `mergeFilters`
+│   │   ├── migrate.ts            ← v1→v2 migration rules (bank/kind/session_id inference, idempotency)
+│   │   ├── recall.ts             ← SELF + tiered candidate assembly, caps, trimming, dedup
+│   │   ├── read-flags.ts         ← Shared read-path flag parsing (bank/kind/state)
+│   │   ├── duration.ts           ← Human-readable duration formatting
+│   │   ├── iso-date.ts           ← ISO-8601 date parsing/formatting helpers
 │   │   └── debug.ts              ← Conditional debug logging (MEMO_DEBUG)
 │   ├── adapters/
 │   │   └── openai-embeddings.ts  ← OpenAI text-embedding-3-small
@@ -939,19 +957,21 @@ Auto-write is not part of MVP, but the recommended implementation path is:
 
 ## 18. Environment Variables Reference
 
-| Variable              | Required     | Default                  | Description                                            |
-| --------------------- | ------------ | ------------------------ | ------------------------------------------------------ |
-| `QDRANT_URL`          | ✅           | —                        | Qdrant instance URL (e.g., `https://xyz.qdrant.tech`)  |
-| `QDRANT_API_KEY`      | ✅ for cloud | —                        | Qdrant API key (omit for local unauthenticated)        |
-| `EMBEDDINGS_PROVIDER` | —            | `openai`                 | Provider: `openai` \| `voyage` \| `cohere` \| `ollama` |
-| `EMBEDDINGS_API_KEY`  | ✅           | —                        | API key for the embeddings provider                    |
-| `EMBEDDINGS_MODEL`    | —            | Provider default         | Override embeddings model name                         |
-| `LLM_PROVIDER`        | for scan     | `openai`                 | LLM provider for `memo scan`                           |
-| `LLM_API_KEY`         | for scan     | `EMBEDDINGS_API_KEY`     | LLM API key (defaults to embeddings key for OpenAI)    |
-| `LLM_MODEL`           | —            | `gpt-4o-mini`            | LLM model for scan analysis                            |
-| `OLLAMA_BASE_URL`     | for Ollama   | `http://localhost:11434` | Ollama server base URL                                 |
-| `MEMO_TELEMETRY`      | —            | `false`                  | Enable telemetry: `true` \| `false`                    |
-| `MEMO_DEBUG`          | —            | `false`                  | Enable verbose debug output to stderr                  |
+| Variable              | Required     | Default                       | Description                                                                                                                                                |
+| --------------------- | ------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QDRANT_URL`          | ✅           | —                             | Qdrant instance URL (e.g., `https://xyz.qdrant.tech`)                                                                                                      |
+| `QDRANT_API_KEY`      | ✅ for cloud | —                             | Qdrant API key (omit for local unauthenticated)                                                                                                            |
+| `EMBEDDINGS_PROVIDER` | —            | `openai`                      | Provider: `openai` \| `voyage` \| `cohere` \| `ollama`                                                                                                     |
+| `EMBEDDINGS_API_KEY`  | ✅           | —                             | API key for the embeddings provider                                                                                                                        |
+| `EMBEDDINGS_MODEL`    | —            | Provider default              | Override embeddings model name                                                                                                                             |
+| `LLM_PROVIDER`        | for scan     | `openai`                      | LLM provider for `memo scan`                                                                                                                               |
+| `LLM_API_KEY`         | for scan     | `EMBEDDINGS_API_KEY`          | LLM API key (defaults to embeddings key for OpenAI)                                                                                                        |
+| `LLM_MODEL`           | —            | `gpt-4o-mini`                 | LLM model for scan analysis                                                                                                                                |
+| `OLLAMA_BASE_URL`     | for Ollama   | `http://localhost:11434`      | Ollama server base URL                                                                                                                                     |
+| `MEMO_TELEMETRY`      | —            | `false`                       | Enable telemetry: `true` \| `false`                                                                                                                        |
+| `MEMO_DEBUG`          | —            | `false`                       | Enable verbose debug output to stderr                                                                                                                      |
+| `MEMO_COLLECTION`     | —            | `decisions`                   | Qdrant collection name (e.g., `memo_eval` for the relevance harness/dry runs)                                                                              |
+| `MEMO_BANK`           | —            | `config.bank.default` or `kb` | Default bank id for commands that accept `--bank` (PRD-004 Phase 2); resolution order is `--bank`, then `MEMO_BANK`, then `config.bank.default`, then `kb` |
 
 All variables can be provided via a `.env` file (loaded via `dotenv` in development). In CI/CD and agent environments, inject directly into the process environment — do not use `.env` files in automated pipelines.
 

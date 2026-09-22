@@ -77,6 +77,8 @@ All commands support `--json` for machine-readable output. Human mode uses color
 | `read-flags.ts`      | `parseReadFlags` — shared `--bank`/`--kind`/`--session`/`--include-archived`/`--include-superseded`/`--as-of` parsing for `search`/`list`/`tags list`/`read` (spec §18.7, S2-05)                |
 | `recall.ts`          | `assembleRecall` — pure section dedup/cap/trim for `memo recall` (spec §8.5/§18.9, S2-07); no I/O                                                                                               |
 | `migrate.ts`         | `planMigration` — pure FR-2.8 rule-table planner for `memo migrate --to-v2`; `parseMigrationRules` — `.strict()` Zod rules-file schema with exhaustiveness validation (spec §5.5/§18.11, S2-09) |
+| `duration.ts`        | Human-readable duration formatting/parsing — `--expires-in` (`\d+[dhm]`) for `memo write` retention fields                                                                                      |
+| `iso-date.ts`        | ISO-8601 date parsing/formatting helpers shared by `--from`/`--to`/`--since`/`--as-of` flags                                                                                                    |
 
 ### Adapters (`src/adapters/`)
 
