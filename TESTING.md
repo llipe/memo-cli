@@ -93,21 +93,21 @@ This file previously (incorrectly, describing the wrong project) asserted a "kno
 
 ### Thresholds and current numbers (measured 2026-09-21, task 8.0)
 
-`jest.config.ts` declares global thresholds: `lines: 80`, `functions: 80`, `branches: 75`, `statements: 80` (`collectCoverageFrom: ['src/**/*.ts', '!src/index.ts']`). A real `pnpm run test:coverage` run on this branch measured:
+`jest.config.ts` declares global thresholds: `lines: 80`, `functions: 80`, `branches: 75`, `statements: 80` (`collectCoverageFrom: ['src/**/*.ts', '!src/index.ts']`). A real `pnpm run test:coverage` run on this branch (post-S2-04, issue #83) measured:
 
 | Scope                  | Statements | Branches | Functions | Lines  |
 | ---------------------- | ---------- | -------- | --------- | ------ |
-| **All files** (global) | 82.79%     | 74.69%   | 79.66%    | 83.59% |
-| **`src/lib/`**         | 89.9%      | 78.98%   | 93.1%     | 92.23% |
+| **All files** (global) | 90.12%     | 81.12%   | 87.54%    | 91.29% |
+| **`src/lib/`**         | 91.35%     | 81.04%   | 94.28%    | 93.92% |
 
-**Result: the global `jest.config.ts` threshold gate FAILS** — branches (74.69% < 75%) and functions (79.66% < 80%) are both below their configured floor; statements and lines clear 80%. This is pre-existing debt across the whole repo (present since before Phase 1; the lowest-covered files are `setup.ts` (36.6% stmts), `write.ts` (63.56% stmts), `retry.ts` (18.75% stmts), and `embeddings.ts` (42.85% stmts) — none of these were touched by Phase 1 stories S1-01 through S1-08). `src/lib/` clears the 85% target on statements/functions/lines but not branches (78.98%).
+**Result: the global `jest.config.ts` threshold gate PASSES** on all four metrics. This is an improvement over the pre-S2-04 measurement (branches 74.69%/functions 79.66%, both below floor) — S2-04's `write.ts` test suite expansion (AC1–AC11 plus edge cases) raised `write.ts` itself from 63.56% to 75.71% statements, and the new `src/lib/duration.ts` (100% across all four metrics) added a fully-covered file. The remaining lowest-covered files are `setup.ts` (part of the `commands` bucket, now 96.12% — no longer the outlier it once was), `retry.ts` (18.75% stmts), and `embeddings.ts` (42.85% stmts); neither was touched by S2-04 and both remain pre-existing debt for `qa-engineer`/`housekeeping`.
 
-Do not silently treat this as a pass: `coverage_gate` must be recorded honestly as `FAIL` (global) with the specific numbers above, not skipped or fabricated as passing.
+Do not silently treat a future regression here as unremarkable: `coverage_gate` must always be recorded from a fresh run's actual numbers, never carried forward from this table.
 
 ### Regression policy
 
 - No coverage number may be reported without a fresh `pnpm run test:coverage` (or `npx jest --coverage`) run backing it — never infer or carry forward a stale number.
-- New code added to a low-coverage file (`setup.ts`, `write.ts`, `retry.ts`, `embeddings.ts`) should not further lower that file's coverage; closing the pre-existing gap itself is out of scope for a single story unless the story is explicitly a coverage remediation task.
+- New code added to a low-coverage file (`retry.ts`, `embeddings.ts`) should not further lower that file's coverage; closing the pre-existing gap itself is out of scope for a single story unless the story is explicitly a coverage remediation task.
 
 ## Fixtures and Mocking
 
@@ -122,7 +122,7 @@ memo-cli has no authentication/authorization layer of its own (it is a client au
 
 ## Harness defects to track
 
-1. **Global coverage threshold failure (pre-existing, not Phase 1-introduced):** branches (74.69%) and functions (79.66%) are below `jest.config.ts`'s configured 75%/80% floors. Expected state: raise coverage in the lowest files (`setup.ts`, `write.ts`, `retry.ts`, `embeddings.ts`) or explicitly lower the configured threshold with a documented rationale — this file does not resolve which; it is recorded here as accurate current-state debt for `qa-engineer`/`housekeeping` to pick up.
+1. ~~**Global coverage threshold failure (pre-existing, not Phase 1-introduced)**~~ — **Resolved as of S2-04 (issue #83):** the global gate now passes on all four metrics (see the table above). `retry.ts` (18.75% stmts) and `embeddings.ts` (42.85% stmts) remain the lowest-covered files and are still candidates for a future coverage remediation task, but no longer drag the global gate below its floor.
 2. **CI does not run `format:check` or `test:coverage`:** `.github/workflows/ci.yml` runs `typecheck`/`lint`/`test`/`build`/`audit` but neither formatting verification nor coverage measurement. Expected state: add both to the CI job, or document why they are intentionally excluded.
 3. **Node major version drift:** local `v26.7.0` vs. CI-pinned `24`. Expected state: align local development environments to Node 24, or widen CI's tested matrix.
 4. **`pnpm audit` is `continue-on-error: true` in CI:** audit failures are visible in CI logs but do not fail the workflow. Expected state: decide explicitly whether this should be blocking; currently unchanged from pre-Phase-1 behavior.

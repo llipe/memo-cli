@@ -253,6 +253,43 @@ memo write \
 | `--on-duplicate`   | No       | —           | Duplicate action: `consolidate` \| `update` \| `replace` \| `create-new` |
 | `--json`           | No       | `false`     | Output as JSON                                                           |
 
+#### Banks, kinds, sessions, and supersede (schema v2)
+
+| Flag                 | Required                                               | Default                                                    | Description                                                                                      |
+| -------------------- | ------------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--bank <id>`        | No                                                     | `MEMO_BANK` env var, then `config.bank.default`, then `kb` | Target bank (kebab-case or UUID); `kb` is the shared knowledge base, every other bank is private |
+| `--kind <kind>`      | No                                                     | `episodic` in private banks, `semantic` in `kb`            | `self` \| `episodic` \| `semantic`; `--kind self` in `kb` fails `VALIDATION_FAILED`              |
+| `--session <id>`     | Yes, for `episodic`                                    | —                                                          | Groups episodic entries into a sequence                                                          |
+| `--seq <n>`          | No                                                     | auto-incremented per bank+session                          | Explicit episodic sequence number                                                                |
+| `--context <ctx>`    | No                                                     | —                                                          | Context tag (repeatable, deduplicated)                                                           |
+| `--provenance <csv>` | Yes, for agent-authored `semantic` (unless `--manual`) | —                                                          | Comma-separated UUIDs of the episodic entries this fact was derived from                         |
+| `--manual`           | No                                                     | `false`                                                    | Forces `source = manual` (also satisfies the provenance requirement above)                       |
+| `--supersedes <id>`  | No                                                     | —                                                          | Id of an existing entry this write supersedes (same bank and kind required)                      |
+| `--pin`              | No                                                     | `false`                                                    | Pins the entry (exempt from decay/archival)                                                      |
+| `--expires-in <d>`   | No                                                     | bank/kind policy default (30d private, 90d kb)             | Episodic expiry override: `\d+[dhm]` (e.g. `2d`, `12h`, `30m`)                                   |
+
+A private bank never requires `--repo`/`--org`/`--domain` (they are stored only when given); `kb` still requires them, unchanged from v1. A `self` write against a bank already holding `>= soft_cap` (default 50) non-superseded `self` entries still succeeds, but emits a warning (`self entries in <bank>: <n> (soft cap <cap>)`, on stderr in human mode, in the JSON envelope's `warnings` array otherwise) — the soft cap never blocks a write.
+
+```bash
+# Persona/standing-instruction memory in a private "assistant" bank
+MEMO_BANK=jarvis-memory memo write \
+  --rationale "The owner prefers concise, no-preamble answers." \
+  --tags "persona,preference" \
+  --kind self
+
+# Episodic entry in a session, auto-sequenced
+MEMO_BANK=jarvis-memory memo write \
+  --rationale "Investigated the flaky test; root cause was a shared fixture." \
+  --tags "investigation,tests" \
+  --kind episodic --session s-42
+
+# Supersede an earlier semantic fact with a corrected one
+memo write \
+  --rationale "Retention now uses exponential decay, not linear." \
+  --tags "retention,decay" \
+  --kind semantic --manual --supersedes 3fa85f64-5717-4562-b3fc-2c963f66afa6
+```
+
 #### Duplicate detection
 
 If you write an entry with the same repo + commit + story + entry_type + source combination, memo detects the duplicate:
