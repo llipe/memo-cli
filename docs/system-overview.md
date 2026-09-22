@@ -35,17 +35,18 @@ graph LR
 
 ### Commands (`src/commands/`)
 
-| Command          | File          | Purpose                                                                                                                                         |
-| ---------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `memo setup`     | `setup.ts`    | Initialize `memo.config.json`, show effective config, validate config                                                                           |
-| `memo write`     | `write.ts`    | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant                                                                  |
-| `memo search`    | `search.ts`   | Semantic vector search with exact pre-filters (repo, tags, scope)                                                                               |
-| `memo list`      | `list.ts`     | Chronological entry listing with optional date-range filtering                                                                                  |
-| `memo tags list` | `tags.ts`     | Browse all unique tags stored in the collection with counts and sort options                                                                    |
-| `memo inspect`   | `inspect.ts`  | Discover orgs, repos, and domains across the knowledge base with facet filters                                                                  |
-| `memo delete`    | `delete.ts`   | Safely delete a single entry by ID or bulk-delete by repo/org                                                                                   |
-| `memo read`      | `read.ts`     | Read one exact entry by ID with human or JSON output                                                                                            |
-| `memo timeline`  | `timeline.ts` | Replay `episodic` memory in sequence order — `seq` asc within a session, else grouped by session; never embeds, never ranks (spec §18.8, S2-06) |
+| Command          | File          | Purpose                                                                                                                                                      |
+| ---------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `memo setup`     | `setup.ts`    | Initialize `memo.config.json`, show effective config, validate config                                                                                        |
+| `memo write`     | `write.ts`    | Capture a decision with duplicate detection, embed rationale, upsert to Qdrant                                                                               |
+| `memo search`    | `search.ts`   | Semantic vector search with exact pre-filters (repo, tags, scope)                                                                                            |
+| `memo list`      | `list.ts`     | Chronological entry listing with optional date-range filtering                                                                                               |
+| `memo tags list` | `tags.ts`     | Browse all unique tags stored in the collection with counts and sort options                                                                                 |
+| `memo inspect`   | `inspect.ts`  | Discover orgs, repos, and domains across the knowledge base with facet filters                                                                               |
+| `memo delete`    | `delete.ts`   | Safely delete a single entry by ID or bulk-delete by repo/org                                                                                                |
+| `memo read`      | `read.ts`     | Read one exact entry by ID with human or JSON output                                                                                                         |
+| `memo timeline`  | `timeline.ts` | Replay `episodic` memory in sequence order — `seq` asc within a session, else grouped by session; never embeds, never ranks (spec §18.8, S2-06)              |
+| `memo recall`    | `recall.ts`   | One call to restore context: SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS within a token budget; read-only, embeds exactly once (spec §8.5/§18.9, S2-07) |
 
 All commands support `--json` for machine-readable output. Human mode uses colored text via chalk.
 
@@ -72,6 +73,7 @@ All commands support `--json` for machine-readable output. Human mode uses color
 | `filters.ts`         | `buildBaseFilter` — the one shared bank/kind/state/session/as-of predicate for every read command (spec §8.1/§18.5); `mergeFilters`                                              |
 | `entry-normalize.ts` | `normalizeEntry` — v1→v2 read-side field defaults (spec §18.3); `projectV2Fields` — additive-only JSON projection for `search`/`list` (S2-05 AC8)                                |
 | `read-flags.ts`      | `parseReadFlags` — shared `--bank`/`--kind`/`--session`/`--include-archived`/`--include-superseded`/`--as-of` parsing for `search`/`list`/`tags list`/`read` (spec §18.7, S2-05) |
+| `recall.ts`          | `assembleRecall` — pure section dedup/cap/trim for `memo recall` (spec §8.5/§18.9, S2-07); no I/O                                                                                |
 
 ### Adapters (`src/adapters/`)
 
@@ -187,6 +189,39 @@ Additional providers (Voyage, Cohere, Ollama) ship via the same `EmbeddingsAdapt
 4. **Without `--session`:** the shipped `scroll(filter, limit)` (`timestamp_utc` desc), then grouped by `session_id` client-side, preserving both first-appearance group order and each entry's relative order within its group
 5. Never constructs an embeddings adapter and never calls `rankResults` — this file imports neither
 6. JSON: session shape `{ bank, session_id, entries, count }`; grouped shape `{ bank, sessions: [{ session_id, entries }], count }`. Human: `seq  timestamp  lead  id` per line (spec §10), with a `session: <id>` header per group in the grouped shape. An empty bank/session exits `0` with `count: 0`, never an error.
+
+### Recall Flow (spec §8.5/§18.9, S2-07, PRD FR-2.6/AC-2.6)
+
+`memo recall` is the headline Phase 2 command — one call that restores an agent's context. Command-side gathering (`src/commands/recall.ts`) is separated from assembly (`src/lib/recall.ts`'s pure `assembleRecall`) so caps/dedup/trimming stay unit-testable without any Qdrant/embeddings mock:
+
+```mermaid
+sequenceDiagram
+  participant A as Agent
+  participant C as memo recall
+  participant Q as QdrantRepository
+  participant R as assembleRecall (pure)
+  A->>C: memo recall "<task>" --bank my-agent --json
+  C->>C: embed(task) — exactly once, reused by every section below
+  alt bank != kb
+    C->>Q: scroll SELF (bank, kind=self, superseded != true), soft_cap+1
+  end
+  C->>Q: search POLICIES (kb semantic, entry_type=policy) + rank
+  C->>Q: search SHARED (kb semantic, repo-scoped) via rankCandidates() + rank + stale
+  alt bank != kb
+    C->>Q: search MINE (bank semantic) via rankCandidates() + rank + stale
+    C->>Q: scroll newest episodic, then scrollOrdered LAST SESSION (seq asc, limit 15)
+  end
+  C->>Q: scroll CONFLICTS (bank, pending_contradiction = true)
+  C->>R: assembleRecall(sections, { maxTokens })
+  R-->>C: bundle (dedup, capped, trimmed bottom-up, SELF intact)
+  C-->>A: JSON bundle + query_id (0 writes — A14)
+```
+
+1. Gather, in order, per the §18.9 table: `SELF` (omitted at `bank = kb`), `POLICIES` (never omitted), `SHARED` (never omitted), `MINE` (omitted at `bank = kb`), `LAST SESSION` (omitted at `bank = kb`), `CONFLICTS` (never omitted, always empty until Phase 4's contradiction detection ships)
+2. `SHARED`/`MINE` reuse `src/commands/search.ts`'s extracted `rankCandidates()` helper (over-fetch, lexical union, `rankResults`, staleness) — the exact same ranking pipeline `memo search` uses, with no parallel copy (S2-07 task 7.4, no behavior change to `memo search` itself). `POLICIES` uses a simpler dense-search-then-rank pipeline (no lexical union, no staleness annotation) per the table's literal wording
+3. `assembleRecall` (`src/lib/recall.ts`, pure — no I/O) then: (a) deduplicates ids across sections in canonical order `self, policies, shared, mine, last_session, conflicts`, dropping a later duplicate before any cap is applied; (b) applies section caps (`SHARED` 8, `MINE` 5, `LAST SESSION` 15 most-recent-by-`seq`, `CONFLICTS` 5; `SELF`/`POLICIES` uncapped); (c) trims lowest-priority-first — `conflicts → last_session (oldest first) → mine → shared → policies` — stopping at the first budget that fits; `SELF` is never trimmed, even when it alone exceeds `--max-tokens` (in which case every other active section is trimmed to empty and named in `truncated`, and `budget.used_tokens` is reported honestly, never clamped)
+4. Read-only per decision A14: no `setPayload`/`batchSetPayload` call and no `~/.memo/` filesystem write occurs anywhere in the command — `query_id` is emitted but no snapshot is persisted (that lands in Phase 3 alongside `memo used`)
+5. JSON: `{ query_id, bank, budget: { max_tokens, used_tokens }, sections: { self?, policies, shared, mine?, last_session?: { session_id, entries }, conflicts }, truncated }` — `self`/`mine`/`last_session` are **omitted keys**, not empty arrays, at `bank = kb` (FR-2.6). Human: uppercase section headers, one line per entry (`[tier] score  lead  id`; `SELF`/`CONFLICTS` omit tier/score; `LAST SESSION` is `seq`-prefixed), footer `budget: <used>/<max> tokens · truncated: <list or none>`
 
 ---
 

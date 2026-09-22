@@ -233,6 +233,37 @@ function renderTimelineLine(result: TimelineHumanResult): string {
   return `${chalk.gray(seq)}  ${chalk.gray(timestamp)}  ${chalk.bold(toLead(result.rationale))}  ${chalk.gray(String(result.id))}`;
 }
 
+/**
+ * One `memo recall` section entry as rendered for humans (S2-07, spec §10):
+ * `SELF` and `CONFLICTS` lines carry neither `score`/`confidenceTier` (never
+ * ranked) nor `seq`; `LAST SESSION` lines carry `seq` only; `POLICIES`/
+ * `SHARED`/`MINE` lines carry `score`/`confidenceTier` only.
+ */
+export interface RecallHumanEntry {
+  id: string | number;
+  rationale?: string;
+  confidenceTier?: ConfidenceTierLabel;
+  score?: number;
+  seq?: number;
+}
+
+export interface RecallHumanSection {
+  /** Uppercase section header (`SELF`, `POLICIES`, `SHARED`, `MINE`, `LAST SESSION`, `CONFLICTS`). */
+  header: string;
+  entries: RecallHumanEntry[];
+  /** `true` for `POLICIES`/`SHARED`/`MINE` - drives the `[tier] score` prefix. */
+  ranked: boolean;
+}
+
+function renderRecallLine(entry: RecallHumanEntry, ranked: boolean): string {
+  const seqPrefix = entry.seq !== undefined ? `${chalk.gray(String(entry.seq))}  ` : '';
+  const scorePrefix =
+    ranked && entry.score !== undefined
+      ? `${renderTierPrefix(entry.confidenceTier)}${chalk.gray(`${String(Math.round(entry.score * 100))}%`)}  `
+      : '';
+  return `${seqPrefix}${scorePrefix}${chalk.bold(toLead(entry.rationale))}  ${chalk.gray(String(entry.id))}`;
+}
+
 export const output = {
   result(data: unknown, opts?: { json?: boolean }): void {
     if (opts?.json) {
@@ -375,6 +406,33 @@ export const output = {
   timelineEmpty(): void {
     process.stdout.write(`${chalk.yellow('No entries found.')}\n`);
     process.stdout.write(`${chalk.gray('count: 0')}\n`);
+  },
+
+  /**
+   * `memo recall` human output (S2-07, spec §10): uppercase section header,
+   * one line per entry, an explicit `(none)` placeholder for an empty
+   * section (recall's sections are always structurally present in human
+   * output too - `bank = kb` simply omits the whole section, per AC7).
+   */
+  recallSections(sections: RecallHumanSection[]): void {
+    for (const section of sections) {
+      process.stdout.write(`${chalk.bold.cyan(section.header)}\n`);
+      if (section.entries.length === 0) {
+        process.stdout.write(`${chalk.gray('  (none)')}\n`);
+        continue;
+      }
+      for (const entry of section.entries) {
+        process.stdout.write(`${renderRecallLine(entry, section.ranked)}\n`);
+      }
+    }
+  },
+
+  /** `budget: used/max tokens · truncated: …` footer (S2-07 AC9, spec §10). */
+  recallFooter(usedTokens: number, maxTokens: number, truncated: string[]): void {
+    const truncatedLabel = truncated.length > 0 ? truncated.join(', ') : 'none';
+    process.stdout.write(
+      `${chalk.gray(`budget: ${String(usedTokens)}/${String(maxTokens)} tokens · truncated: ${truncatedLabel}`)}\n`,
+    );
   },
 
   listEmpty(activeFilters: string[]): void {
