@@ -1,0 +1,13 @@
+# pnpm settings (pnpm >= 10 reads overrides/auditConfig from here, not from package.json).
+overrides:
+  # @qdrant/js-client-rest pins undici to an exact 7.29.0, which carries 10 advisories
+  # (GHSA-rfgv-xxqx-mfg5, GHSA-w293-vg96-wgc3, ...). Force the patched 7.x line.
+  undici: '^7.29.1'
+
+auditConfig:
+  # Advisories reviewed and accepted. Every entry MUST have a matching record in
+  # tests/security/advisory-ignores.json; that test fails once the review deadline
+  # passes or a patched version is installed, so these cannot be forgotten.
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm # braces <=3.0.3, dev-only (jest/lint-staged), no patch published
+    - GHSA-hp3w-g68c-fv3c # sprintf-js <=1.1.3, dev-only (jest coverage), no patch published

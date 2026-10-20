@@ -154,7 +154,7 @@ developer: implement
 
 ## Commands
 
-All commands use `pnpm`. Node.js ≥ 24 and pnpm ≥ 9 are required.
+All commands use `pnpm`. Node.js ≥ 24 and pnpm ≥ 10 are required (CI uses pnpm 12; overrides and audit settings live in `pnpm-workspace.yaml`).
 
 ### Build
 
