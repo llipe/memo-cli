@@ -1,0 +1,25 @@
+{
+  "$comment": "Registry of pnpm audit advisories we have reviewed and chosen to ignore. Every GHSA listed under auditConfig.ignoreGhsas in pnpm-workspace.yaml MUST have exactly one entry here. tests/security/ignored-advisories.test.ts fails once reviewBy has passed, once a patched version is installed, or if the two lists drift apart. Re-review: run `npm view <package> versions` and read the advisory; if still unpatched, bump reviewedOn/reviewBy (max 30-day window).",
+  "ignores": [
+    {
+      "ghsa": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "vulnerableUpTo": "3.0.3",
+      "patchedVersions": null,
+      "exposure": "dev-only. Pulled in by micromatch for jest and lint-staged glob expansion; patterns come from repository config, never from untrusted input. Stack-exhaustion DoS is not reachable in production.",
+      "reviewedOn": "2026-10-20",
+      "reviewBy": "2026-11-03",
+      "issue": "https://github.com/llipe/memo-cli/issues/109"
+    },
+    {
+      "ghsa": "GHSA-hp3w-g68c-fv3c",
+      "package": "sprintf-js",
+      "vulnerableUpTo": "1.1.3",
+      "patchedVersions": null,
+      "exposure": "dev-only. Pulled in by argparse 1.x via js-yaml 3.x for jest coverage config loading; format strings are fixed library constants, never user input.",
+      "reviewedOn": "2026-10-20",
+      "reviewBy": "2026-11-03",
+      "issue": "https://github.com/llipe/memo-cli/issues/109"
+    }
+  ]
+}
