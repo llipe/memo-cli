@@ -83,8 +83,7 @@ function parseLimit(value: string | number | undefined): number {
 function buildActiveFilters(filters: ListResponseFilters, repoSet: string[]): string[] {
   const values = filters.repo
     ? [`scope:${String(filters.scope)}`, `repo:${repoSet.join(',')}`]
-    : [];
-  values.unshift(`bank:${filters.bank}`);
+    : [`bank:${filters.bank}`];
   if (filters.org) values.push(`org:${filters.org}`);
   if (filters.entry_type && filters.entry_type.length > 0) {
     values.push(`entry_type:${filters.entry_type.join(',')}`);

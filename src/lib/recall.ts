@@ -98,7 +98,7 @@ const MINE_CAP = 5;
 const LAST_SESSION_CAP = 15;
 const CONFLICTS_CAP = 5;
 
-/** How many top `MINE` entries survive until `SHARED` is empty (issue #118). */
+/** How many top `MINE` entries can survive until `SHARED` is empty (issue #118). */
 const MINE_FLOOR = 2;
 
 /** Canonical order of the `truncated` array (CT-04). */
@@ -109,14 +109,32 @@ const TRIM_ORDER: RecallSectionName[] = ['conflicts', 'last_session', 'mine', 's
  * member. `MINE` appears twice so a bank's best lessons outlast `SHARED`,
  * whose 8 entries alone can exceed the default budget.
  */
-const TRIM_PASSES: { name: RecallSectionName; keep: number }[] = [
-  { name: 'conflicts', keep: 0 },
-  { name: 'last_session', keep: 0 },
-  { name: 'mine', keep: MINE_FLOOR },
-  { name: 'shared', keep: 0 },
-  { name: 'mine', keep: 0 },
-  { name: 'policies', keep: 0 },
-];
+function trimPasses(mineFloor: number): { name: RecallSectionName; keep: number }[] {
+  return [
+    { name: 'conflicts', keep: 0 },
+    { name: 'last_session', keep: 0 },
+    { name: 'mine', keep: mineFloor },
+    { name: 'shared', keep: 0 },
+    { name: 'mine', keep: 0 },
+    { name: 'policies', keep: 0 },
+  ];
+}
+
+/**
+ * How many top `MINE` entries to protect: up to `MINE_FLOOR`, but only those
+ * that fit the budget. Protecting a lesson too long to fit would clear `SHARED`
+ * for nothing.
+ */
+function fittingMineFloor(mine: readonly WorkingEntry[], available: number): number {
+  let floor = 0;
+  let used = 0;
+  for (const entry of mine.slice(0, MINE_FLOOR)) {
+    used += entry.tokens;
+    if (used > available) break;
+    floor += 1;
+  }
+  return floor;
+}
 
 interface WorkingEntry {
   id: string | number;
@@ -213,7 +231,9 @@ function trim(
   let total = selfTokens + activeOrder.reduce((sum, name) => sum + sumTokens(sections[name]), 0);
   const entered = new Set<RecallSectionName>();
 
-  for (const { name, keep } of TRIM_PASSES) {
+  const mineFloor = fittingMineFloor(sections.mine, maxTokens - selfTokens);
+
+  for (const { name, keep } of trimPasses(mineFloor)) {
     if (!activeOrder.includes(name)) continue;
     if (total <= maxTokens) break;
     const arr = sections[name];

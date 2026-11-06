@@ -130,9 +130,24 @@ function recallFields(payload: Record<string, unknown> | undefined): Record<stri
   return fields;
 }
 
-/** Unranked projection shared by `SELF` and `CONFLICTS` (neither is ever ranked, K4). */
-function toUnrankedEntry(point: ScrollResult): RecallEntry {
+/** `SELF` projection (never ranked, K4). */
+function toSelfEntry(point: ScrollResult): RecallEntry {
   const data = { id: point.id, ...recallFields(payloadOf(point)) };
+  return { id: point.id, renderedLine: renderedLineOf(data), data };
+}
+
+/**
+ * `CONFLICTS` projection (never ranked): the section mixes kinds, and a
+ * contradiction is only actionable with the evidence behind it.
+ */
+function toConflictEntry(point: ScrollResult): RecallEntry {
+  const payload = payloadOf(point);
+  const data = {
+    id: point.id,
+    ...recallFields(payload),
+    ...(payload['kind'] !== undefined ? { kind: payload['kind'] } : {}),
+    ...(payload['provenance'] !== undefined ? { provenance: payload['provenance'] } : {}),
+  };
   return { id: point.id, renderedLine: renderedLineOf(data), data };
 }
 
@@ -322,7 +337,7 @@ export async function handleRecall(flags: RecallFlags, deps: RecallDeps = {}): P
         ) + '\n',
       );
     }
-    selfEntries = selfResults.map(toUnrankedEntry);
+    selfEntries = selfResults.map(toSelfEntry);
   }
 
   // POLICIES (never omitted, AC10): kb semantic, entry_type = policy.
@@ -401,7 +416,7 @@ export async function handleRecall(flags: RecallFlags, deps: RecallDeps = {}): P
     must: [{ key: 'pending_contradiction', match: { value: true } }],
   });
   const conflictsResults = await qdrant.scroll(conflictsFilter, CONFLICTS_LIMIT);
-  const conflictsEntries = conflictsResults.map(toUnrankedEntry);
+  const conflictsEntries = conflictsResults.map(toConflictEntry);
 
   const inputs: RecallInputs = {
     bank,

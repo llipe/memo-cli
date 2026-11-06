@@ -567,6 +567,51 @@ describe('handleRecall - entry projection (issue #118, spec §8.5)', () => {
     expect(ep.dedupe_key_sha256).toBeUndefined();
   });
 
+  it('a SELF entry carries no bookkeeping fields', async () => {
+    mockQdrant.scroll.mockImplementation((filter: unknown) =>
+      Promise.resolve(
+        JSON.stringify(filter).includes('"self"')
+          ? [{ id: 'me', payload: { ...STORED, kind: 'self', rationale: 'Who I am.' } }]
+          : [],
+      ),
+    );
+
+    const [self] = (await recallJson())['sections']['self'];
+
+    expect(self.rationale).toBe('Who I am.');
+    expect(self.dedupe_key_sha256).toBeUndefined();
+    expect(self.stability_since).toBeUndefined();
+  });
+
+  it('a CONFLICTS entry keeps its kind and evidence', async () => {
+    mockQdrant.scroll.mockImplementation((filter: unknown) =>
+      Promise.resolve(
+        JSON.stringify(filter).includes('pending_contradiction')
+          ? [{ id: 'c', payload: { ...STORED, provenance: ['episode-1'] } }]
+          : [],
+      ),
+    );
+
+    const [conflict] = (await recallJson())['sections']['conflicts'];
+
+    expect(conflict).toMatchObject({ kind: 'semantic', provenance: ['episode-1'] });
+    expect(conflict.dedupe_key_sha256).toBeUndefined();
+  });
+
+  it('human output names what each section lost', async () => {
+    mockQdrant.search.mockImplementation((_vector: unknown, filter: unknown) =>
+      Promise.resolve(
+        JSON.stringify(filter).includes('"alpha"')
+          ? ['a', 'b', 'c'].map((id) => ({ id, score: 0.9, payload: { ...STORED, id } }))
+          : [],
+      ),
+    );
+
+    await handleRecall({ task: 'x', bank: 'alpha', maxTokens: 150 }, deps());
+
+    expect(stdoutData).toContain('dropped: mine 1');
+  });
+
   it('--json includes the dropped counts', async () => {
     const bundle = await recallJson();
     expect(bundle['dropped']).toEqual({});

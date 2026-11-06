@@ -689,6 +689,16 @@ describe('handleWrite — AC10: dedupe v2, v1 fallback, self never dedupes', () 
     expect(mockQdrant.getByDedupeKey).toHaveBeenCalledTimes(1);
   });
 
+  it('issue #118: two different lessons with no commit or story look up different keys', async () => {
+    mockQdrant.getByDedupeKey.mockResolvedValue(null);
+    const lesson = { tags: 'a,b', kind: 'semantic', manual: true, bank: 'jarvis-memory' };
+    await handleWrite({ ...lesson, rationale: 'Check the connection mode.' }, noCfgDeps());
+    await handleWrite({ ...lesson, rationale: 'Use CSS grid.' }, noCfgDeps());
+
+    const [first, second] = mockQdrant.getByDedupeKey.mock.calls.map((call) => call[0]);
+    expect(first).not.toBe(second);
+  });
+
   it('self writes never call getByDedupeKey', async () => {
     process.env['MEMO_BANK'] = 'jarvis-memory';
     await handleWrite({ rationale: 'x', tags: 'a,b', kind: 'self' }, noCfgDeps());

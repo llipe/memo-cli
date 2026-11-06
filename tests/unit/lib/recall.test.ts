@@ -577,6 +577,28 @@ describe('assembleRecall - MINE floor (issue #118)', () => {
     expect(bundle.truncated).toEqual(['conflicts', 'last_session', 'mine', 'shared']);
   });
 
+  it('a lesson too long to fit is not protected, so SHARED is not cleared for nothing', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.shared = Array.from({ length: 8 }, (_, i) => entry(`shared-${String(i)}`, 400));
+    inputs.mine = [entry('mine-0', 5200), entry('mine-1', 5200)]; // 1300 tokens each.
+    const bundle = assembleRecall(inputs, { maxTokens: 1000 });
+
+    expect(bundle.sections.mine).toEqual([]);
+    expect(bundle.sections.shared).toHaveLength(8);
+    expect(bundle.budget.used_tokens).toBe(800);
+  });
+
+  it('protects only the top lessons that fit, and uses the rest of the budget for SHARED', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.shared = Array.from({ length: 8 }, (_, i) => entry(`shared-${String(i)}`, 400));
+    inputs.mine = [entry('mine-0', 5200), entry('mine-1', 5200)];
+    const bundle = assembleRecall(inputs, { maxTokens: 2000 });
+
+    expect(bundle.sections.mine?.map((e) => e['id'])).toEqual(['mine-0']);
+    expect(bundle.sections.shared).toHaveLength(7);
+    expect(bundle.budget.used_tokens).toBe(2000);
+  });
+
   it('bank = kb is unaffected: SHARED is the first ranked section to shrink', () => {
     const inputs = emptyInputs('kb');
     inputs.shared = [entry('shared-0', 400), entry('shared-1', 400)];

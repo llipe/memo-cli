@@ -177,8 +177,7 @@ export function buildSearchVectorInput(query: string, tags: string[]): string {
 function buildActiveFilters(filters: SearchResponseFilters, repoSet: string[]): string[] {
   const values = filters.repo
     ? [`scope:${String(filters.scope)}`, `repo:${repoSet.join(',')}`]
-    : [];
-  values.unshift(`bank:${filters.bank}`);
+    : [`bank:${filters.bank}`];
   if (filters.org) values.push(`org:${filters.org}`);
   if (filters.tags && filters.tags.length > 0) values.push(`tags:${filters.tags.join(',')}`);
   if (filters.entry_type && filters.entry_type.length > 0) {
