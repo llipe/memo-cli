@@ -5,7 +5,7 @@ overrides:
   undici: '^7.29.1'
   # typescript-estree requires minimatch 10.x, and 10.2.6 carries GHSA-g3hv-75wg-m249.
   # Dev only, and every glob comes from repository config. Force the patched 11.x line.
-  'minimatch@>=10.0.0 <11.0.1': '^11.0.5'
+  'minimatch@>=10.0.0 <11.0.1': '^11.0.1'
 
 auditConfig:
   # Advisories reviewed and accepted. Every entry MUST have a matching record in
@@ -13,7 +13,3 @@ auditConfig:
   # passes or a patched version is installed, so these cannot be forgotten.
   ignoreGhsas:
     - GHSA-gcqx-w48m-w2h4 # deepmerge <=4.3.1, dev-only (jest-config), no patch published
-
-minimumReleaseAgeExclude:
-  - '@isaacs/nonrecursive-glob-match@1.1.0'
-  - minimatch@11.0.5

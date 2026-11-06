@@ -8,7 +8,9 @@ export const KebabString = z
 
 // Spec §18.2: `bank.default` (and, via S2-01's schema-only scope, any future
 // per-entry `bank` field) accepts either a kebab-case bank id or a UUID.
-export const KebabOrUuid = KebabString.or(z.guid());
+export const KebabOrUuid = z.union([KebabString, z.guid()], {
+  error: 'Must be kebab-case (lowercase letters, digits, hyphens only) or a UUID',
+});
 
 // Ranking defaults per issue #34's binding refinement (D1-D9). The three
 // weights are intentionally documented as 0.6/0.3/0.1 even though, in IEEE
@@ -84,7 +86,6 @@ const RankingConfigSchema = z
     // required to flag a result stale.
     staleness_tag_overlap_threshold: z
       .number()
-
       .min(0)
       .max(1)
       .default(DEFAULT_STALENESS_TAG_OVERLAP_THRESHOLD),

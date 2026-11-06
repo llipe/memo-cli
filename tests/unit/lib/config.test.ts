@@ -1149,3 +1149,17 @@ describe('MemoConfigSchema under zod 4 (issue #122)', () => {
     expect(parsed.bank.default).toBe('00000000-0000-0000-0000-000000000001');
   });
 });
+
+describe('KebabOrUuid message (issue #122)', () => {
+  it('a bad bank.default still explains what is allowed', () => {
+    const result = MemoConfigSchema.safeParse({
+      schema_version: '1',
+      repo: 'r',
+      org: 'o',
+      domain: 'd',
+      bank: { default: 'Not Valid' },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain('kebab-case');
+  });
+});
