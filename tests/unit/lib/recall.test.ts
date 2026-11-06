@@ -515,7 +515,7 @@ describe('assembleRecall - randomized property suite', () => {
       expect(tokensOf(high.sections.policies)).toBeGreaterThanOrEqual(
         tokensOf(low.sections.policies),
       );
-      expect(tokensOf(high.sections.shared)).toBeGreaterThanOrEqual(tokensOf(low.sections.shared));
+      // SHARED is left out: a lesson that starts to fit can displace it (issue #118).
       expect(tokensOf(high.sections.mine)).toBeGreaterThanOrEqual(tokensOf(low.sections.mine));
       expect((high.sections.last_session?.entries ?? []).length).toBeGreaterThanOrEqual(
         (low.sections.last_session?.entries ?? []).length,
@@ -597,6 +597,44 @@ describe('assembleRecall - MINE floor (issue #118)', () => {
     expect(bundle.sections.mine?.map((e) => e['id'])).toEqual(['mine-0']);
     expect(bundle.sections.shared).toHaveLength(7);
     expect(bundle.budget.used_tokens).toBe(2000);
+  });
+
+  it('an oversized top lesson does not cost the smaller lessons below it', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.self = [entry('self-0', 3600)]; // 900 tokens.
+    inputs.mine = [entry('too-long', 4800), entry('fits', 320)]; // 1200 and 80 tokens.
+    inputs.shared = Array.from({ length: 8 }, (_, i) => entry(`shared-${String(i)}`, 400));
+    const bundle = assembleRecall(inputs, { maxTokens: 2000 });
+
+    expect(bundle.sections.mine?.map((e) => e['id'])).toEqual(['fits']);
+    expect(bundle.dropped['mine']).toBe(1);
+    expect(bundle.budget.used_tokens).toBeLessThanOrEqual(2000);
+  });
+
+  it('counts POLICIES, which outlast the floor, when deciding what fits', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.policies = [entry('pol-0', 6000)]; // 1500 tokens.
+    inputs.mine = [entry('mine-0', 2400)]; // 600 tokens: cannot fit beside POLICIES.
+    inputs.shared = [entry('shared-0', 1600)]; // 400 tokens: can.
+    const bundle = assembleRecall(inputs, { maxTokens: 2000 });
+
+    expect(bundle.sections.shared).toHaveLength(1);
+    expect(bundle.sections.mine).toEqual([]);
+    expect(bundle.budget.used_tokens).toBe(1900);
+  });
+
+  it('a lesson that starts to fit can displace SHARED: more budget, fewer SHARED entries', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.mine = [entry('mine-0', 600)]; // 150 tokens.
+    inputs.shared = Array.from({ length: 3 }, (_, i) => entry(`shared-${String(i)}`, 200)); // 50 each.
+
+    const low = assembleRecall(inputs, { maxTokens: 100 });
+    const high = assembleRecall(inputs, { maxTokens: 200 });
+
+    expect(low.sections.mine).toEqual([]);
+    expect(low.sections.shared).toHaveLength(2);
+    expect(high.sections.mine).toHaveLength(1);
+    expect(high.sections.shared).toHaveLength(1);
   });
 
   it('bank = kb is unaffected: SHARED is the first ranked section to shrink', () => {

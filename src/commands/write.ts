@@ -398,7 +398,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
   let existing: ScrollResult | null = null;
   if (kind !== 'self') {
     existing = await qdrant.getByDedupeKey(dedupe_key_sha256);
-    const hasIdentity = flags.commit !== undefined || flags.story !== undefined;
+    const hasIdentity = (flags.commit ?? '') !== '' || (flags.story ?? '') !== '';
     if (
       !existing &&
       bank === DEFAULT_BANK_ID &&

@@ -65,7 +65,7 @@ export function buildDedupeKeyV2(params: DedupeKeyV2Params): string {
   }
 
   const key = `v2|${bank}|${repoPart}|${commitPart}|${storyPart}|na|semantic|${entry_type}|${source}`;
-  if (commit !== undefined || story !== undefined || rationale === undefined) return key;
+  if (commit || story || rationale === undefined) return key;
   return `${key}|${createHash('sha256').update(rationale).digest('hex')}`;
 }
 

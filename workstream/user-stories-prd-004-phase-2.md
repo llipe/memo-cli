@@ -5,7 +5,7 @@
 | Version | Date       | Summary                                                                                                                   | Author           |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | 1.0     | 2026-09-21 | Initial Phase 2 stories (S2-01 … S2-11) from spec v1.2 §18, with coverage validation against PRD-004 v1.12 Phase 2 scope. | product-engineer |
-| 1.1     | 2026-11-06 | S2-07 AC3: trim order updated for the `MINE` floor (issue #118).                                                          |
+| 1.1     | 2026-11-06 | S2-07 AC3: trim order updated for the `MINE` floor (issue #118).                                                          | developer        |
 
 ## Scope
 

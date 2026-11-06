@@ -100,7 +100,7 @@ function renderedLineOf(data: Record<string, unknown>): string {
  * The payload fields a recalled entry carries (spec §8.5: "rationale + ids +
  * scores", issue #118). Bookkeeping such as `dedupe_key_sha256` or
  * `stability_since` would cost the budget and tell the agent nothing; `memo
- * read <id>` still returns the whole entry. `pinned`, `files_modified` and
+ * read --id <id>` still returns the whole entry. `pinned`, `files_modified` and
  * other empty-by-default fields are kept only when they say something.
  */
 const RECALL_FIELDS = [

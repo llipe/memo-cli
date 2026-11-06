@@ -809,7 +809,7 @@ memo recall "plan the next story" --bank my-agent --json
 # }
 ```
 
-`truncated` names every section the trim reached, even an empty one; `dropped` counts the entries each section actually lost (`{ "mine": 2 }`), so check `dropped` to learn whether lessons were cut. Each entry carries the rationale, ids, scores and provenance fields; `memo read <id>` returns the whole record.
+`truncated` names every section the trim reached, even an empty one; `dropped` counts the entries each section actually lost (`{ "mine": 2 }`), so check `dropped` to learn whether lessons were cut. Each entry carries its rationale, ids and scores, plus where and when it was recorded; `memo read --id <id>` returns the whole record.
 
 A private bank is not limited by repo or org: `MINE` returns a bank's lessons from any repo, and `memo list`/`memo search --bank <id>` filter by repo or org only when `--repo` or `--org` is passed.
 

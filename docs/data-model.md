@@ -134,7 +134,7 @@ Canonical string format: `v1|<repo>|<commit_or_na>|<story_or_na>|<entry_type>|<s
 
 The canonical string is hashed with SHA-256 to produce `dedupe_key_sha256`.
 
-Schema v2 semantic entries use `v2|<bank>|<repo>|<commit>|<story>|na|semantic|<entry_type>|<source>`, unhashed. When neither commit nor story is set, the key adds a hash of the rationale: two different lessons never collide, and an identical repeat still dedupes.
+Schema v2 semantic entries use `v2|<bank>|<repo>|<commit>|<story>|na|semantic|<entry_type>|<source>`, unhashed. When neither commit nor story is set, the key adds a hash of the rationale: two different lessons never collide, and an identical repeat from the same repo still dedupes. Entries that share a commit or story still share one key, so never use `--on-duplicate consolidate` for different lessons there.
 
 ### Duplicate Resolution
 

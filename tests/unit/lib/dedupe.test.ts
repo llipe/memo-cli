@@ -225,6 +225,22 @@ describe('buildDedupeKeyV2 (AC6/AC7, spec §18.5)', () => {
       );
     });
 
+    it('issue #118: an empty commit or story identifies nothing', () => {
+      const first = buildDedupeKeyV2({
+        ...SEMANTIC_BASE,
+        commit: '',
+        story: '',
+        rationale: 'One.',
+      });
+      const second = buildDedupeKeyV2({
+        ...SEMANTIC_BASE,
+        commit: '',
+        story: '',
+        rationale: 'Two.',
+      });
+      expect(first).not.toBe(second);
+    });
+
     it('issue #118: the same lesson written twice keeps one key, so a true repeat still dedupes', () => {
       const noIds = { ...SEMANTIC_BASE, commit: undefined, story: undefined };
       expect(buildDedupeKeyV2({ ...noIds, rationale: 'Same.' })).toBe(

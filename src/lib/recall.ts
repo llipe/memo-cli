@@ -109,31 +109,42 @@ const TRIM_ORDER: RecallSectionName[] = ['conflicts', 'last_session', 'mine', 's
  * member. `MINE` appears twice so a bank's best lessons outlast `SHARED`,
  * whose 8 entries alone can exceed the default budget.
  */
-function trimPasses(mineFloor: number): { name: RecallSectionName; keep: number }[] {
-  return [
-    { name: 'conflicts', keep: 0 },
-    { name: 'last_session', keep: 0 },
-    { name: 'mine', keep: mineFloor },
-    { name: 'shared', keep: 0 },
-    { name: 'mine', keep: 0 },
-    { name: 'policies', keep: 0 },
-  ];
+const TRIM_PASSES: { name: RecallSectionName; floor: boolean }[] = [
+  { name: 'conflicts', floor: false },
+  { name: 'last_session', floor: false },
+  { name: 'mine', floor: true },
+  { name: 'shared', floor: false },
+  { name: 'mine', floor: false },
+  { name: 'policies', floor: false },
+];
+
+function lastIndexWhere(
+  entries: readonly WorkingEntry[],
+  matches: (entry: WorkingEntry) => boolean,
+): number {
+  for (let i = entries.length - 1; i >= 0; i -= 1) {
+    const entry = entries[i];
+    if (entry !== undefined && matches(entry)) return i;
+  }
+  return -1;
 }
 
 /**
- * How many top `MINE` entries to protect: up to `MINE_FLOOR`, but only those
- * that fit the budget. Protecting a lesson too long to fit would clear `SHARED`
- * for nothing.
+ * The `MINE` entries to protect: the best up to `MINE_FLOOR` that fit beside
+ * `SELF` and `POLICIES`, which both outlast them. Protecting a lesson too long
+ * to fit would clear `SHARED` for nothing, and must not cost a smaller lesson
+ * ranked below it.
  */
-function fittingMineFloor(mine: readonly WorkingEntry[], available: number): number {
-  let floor = 0;
+function protectedMine(mine: readonly WorkingEntry[], available: number): Set<WorkingEntry> {
+  const kept = new Set<WorkingEntry>();
   let used = 0;
-  for (const entry of mine.slice(0, MINE_FLOOR)) {
+  for (const entry of mine) {
+    if (kept.size === MINE_FLOOR) break;
+    if (used + entry.tokens > available) continue;
     used += entry.tokens;
-    if (used > available) break;
-    floor += 1;
+    kept.add(entry);
   }
-  return floor;
+  return kept;
 }
 
 interface WorkingEntry {
@@ -231,15 +242,22 @@ function trim(
   let total = selfTokens + activeOrder.reduce((sum, name) => sum + sumTokens(sections[name]), 0);
   const entered = new Set<RecallSectionName>();
 
-  const mineFloor = fittingMineFloor(sections.mine, maxTokens - selfTokens);
+  const protectedEntries = protectedMine(
+    sections.mine,
+    maxTokens - selfTokens - sumTokens(sections.policies),
+  );
 
-  for (const { name, keep } of trimPasses(mineFloor)) {
+  for (const { name, floor } of TRIM_PASSES) {
     if (!activeOrder.includes(name)) continue;
     if (total <= maxTokens) break;
     const arr = sections[name];
-    if (keep === 0 || arr.length > keep) entered.add(name);
-    while (arr.length > keep && total > maxTokens) {
-      const removed = name === 'last_session' ? arr.shift() : arr.pop();
+    const isRemovable = (entry: WorkingEntry): boolean => !floor || !protectedEntries.has(entry);
+    if (!floor || arr.some(isRemovable)) entered.add(name);
+    while (total > maxTokens) {
+      // `last_session` drops oldest first; the rest drop their lowest-ranked.
+      const index = name === 'last_session' ? 0 : lastIndexWhere(arr, isRemovable);
+      if (index === -1 || arr.length === 0) break;
+      const [removed] = arr.splice(index, 1);
       if (removed === undefined) break;
       total -= removed.tokens;
     }
