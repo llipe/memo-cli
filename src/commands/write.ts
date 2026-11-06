@@ -336,7 +336,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
   // §18.6 step 5: validate.
   const parsed = EntryPayloadV2Schema.safeParse(rawPayload);
   if (!parsed.success) {
-    const messages = parsed.error.errors
+    const messages = parsed.error.issues
       .map((e) => `  • ${e.path.join('.')}: ${e.message}`)
       .join('\n');
     throw new MemoError('VALIDATION_FAILED', `Entry validation failed:\n${messages}`);
