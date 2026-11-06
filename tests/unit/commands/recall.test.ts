@@ -464,3 +464,149 @@ describe('handleRecall - EC-18: embeddings failure', () => {
     // fired, which is the call that actually needs the vector.
   });
 });
+
+describe('handleRecall - entry projection (issue #118, spec §8.5)', () => {
+  const STORED = {
+    id: 'stored-id',
+    schema_version: '2',
+    bank: 'alpha',
+    kind: 'semantic',
+    repo: 'memo-cli',
+    org: 'llipe',
+    domain: 'developer-tools',
+    rationale: 'A lesson.',
+    tags: ['lesson', 'crew'],
+    entry_type: 'decision',
+    source: 'agent',
+    confidence: 'high',
+    timestamp_utc: '2026-11-04T00:00:00.000Z',
+    story: 'ISSUE-1',
+    commit: 'abc123',
+    files_modified: [],
+    pinned: false,
+    archived: false,
+    superseded: false,
+    consolidated: false,
+    pending_contradiction: false,
+    stability: 30,
+    stability_since: '2026-11-04T00:00:00.000Z',
+    retrieval_count: 0,
+    used_count: 0,
+    valid_from: '2026-11-04T00:00:00.000Z',
+    dedupe_key_sha256: 'v2|alpha|memo-cli|abc123|ISSUE-1|na|semantic|decision|agent',
+    dedupe_key_version: 'v2',
+  };
+
+  async function recallJson(): Promise<Record<string, any>> {
+    await handleRecall({ task: 'x', bank: 'alpha', json: true }, deps());
+    return JSON.parse(stdoutData);
+  }
+
+  it('a ranked entry carries the rationale, ids, scores and provenance fields only', async () => {
+    mockQdrant.search.mockImplementation((_vector: unknown, filter: { must: unknown[] }) =>
+      Promise.resolve(
+        JSON.stringify(filter).includes('"alpha"')
+          ? [{ id: 'stored-id', score: 0.9, payload: STORED }]
+          : [],
+      ),
+    );
+
+    const bundle = await recallJson();
+    const [lesson] = bundle['sections']['mine'];
+
+    expect(Object.keys(lesson).sort()).toEqual(
+      [
+        'commit',
+        'confidence_tier',
+        'entry_type',
+        'final_score',
+        'id',
+        'rationale',
+        'repo',
+        'source',
+        'story',
+        'tags',
+        'timestamp_utc',
+      ].sort(),
+    );
+  });
+
+  it('keeps a true pinned flag and non-empty files, which the agent can act on', async () => {
+    mockQdrant.search.mockImplementation((_vector: unknown, filter: { must: unknown[] }) =>
+      Promise.resolve(
+        JSON.stringify(filter).includes('"alpha"')
+          ? [
+              {
+                id: 'stored-id',
+                score: 0.9,
+                payload: { ...STORED, pinned: true, files_modified: ['src/a.ts'] },
+              },
+            ]
+          : [],
+      ),
+    );
+
+    const [lesson] = (await recallJson())['sections']['mine'];
+
+    expect(lesson.pinned).toBe(true);
+    expect(lesson.files_modified).toEqual(['src/a.ts']);
+  });
+
+  it('a LAST SESSION entry keeps session_id and seq', async () => {
+    const episode = { ...STORED, kind: 'episodic', session_id: 'S-1', seq: 3 };
+    mockQdrant.scroll.mockImplementation((filter: unknown) =>
+      Promise.resolve(
+        JSON.stringify(filter).includes('"episodic"') ? [{ id: 'ep', payload: episode }] : [],
+      ),
+    );
+    mockQdrant.scrollOrdered.mockResolvedValue([{ id: 'ep', payload: episode }]);
+
+    const [ep] = (await recallJson())['sections']['last_session']['entries'];
+
+    expect(ep).toMatchObject({ session_id: 'S-1', seq: 3, rationale: 'A lesson.' });
+    expect(ep.dedupe_key_sha256).toBeUndefined();
+  });
+
+  it('--json includes the dropped counts', async () => {
+    const bundle = await recallJson();
+    expect(bundle['dropped']).toEqual({});
+  });
+});
+
+describe('handleRecall - POLICIES keep score and payload paired (issue #118)', () => {
+  it('a re-ranked policy keeps its own rationale', async () => {
+    // Dense order: stale-policy first; recency and source rank fresh-policy above it.
+    const stale = {
+      id: 'stale-policy',
+      score: 0.81,
+      payload: {
+        id: 'stale-policy',
+        rationale: 'Stale policy.',
+        source: 'scan',
+        entry_type: 'policy',
+        timestamp_utc: '2015-01-01T00:00:00.000Z',
+      },
+    };
+    const fresh = {
+      id: 'fresh-policy',
+      score: 0.8,
+      payload: {
+        id: 'fresh-policy',
+        rationale: 'Fresh policy.',
+        source: 'agent',
+        entry_type: 'policy',
+        timestamp_utc: new Date().toISOString(),
+      },
+    };
+    mockQdrant.search.mockImplementation((_vector: unknown, filter: unknown) =>
+      Promise.resolve(JSON.stringify(filter).includes('"policy"') ? [stale, fresh] : []),
+    );
+
+    await handleRecall({ task: 'x', bank: 'alpha', json: true }, deps());
+    const policies = JSON.parse(stdoutData)['sections']['policies'];
+
+    expect(policies.map((p: { id: string }) => p.id)).toEqual(['fresh-policy', 'stale-policy']);
+    expect(policies[0].rationale).toBe('Fresh policy.');
+    expect(policies[0].final_score).toBeGreaterThan(policies[1].final_score);
+  });
+});

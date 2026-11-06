@@ -11,8 +11,9 @@
  *   - per-section caps (`SHARED` 8, `MINE` 5, `LAST SESSION` 15 most-recent
  *     by `seq`, `CONFLICTS` 5; `SELF`/`POLICIES` uncapped);
  *   - token-budget trimming in the fixed order `conflicts → last_session
- *     (oldest first) → mine → shared → policies`, stopping at the first
- *     fitting budget; `SELF` is never trimmed (K4) — even when it alone
+ *     (oldest first) → mine (down to a floor of 2) → shared → mine (the
+ *     floor) → policies`, stopping at the first fitting budget; `SELF` is
+ *     never trimmed (K4) — even when it alone
  *     exceeds `max_tokens`, in which case every other active section is
  *     trimmed to empty and reported in `truncated`, and `budget.used_tokens`
  *     is reported honestly (never clamped);
@@ -83,6 +84,8 @@ export interface RecallBundle {
     conflicts: Record<string, unknown>[];
   };
   truncated: RecallSectionName[];
+  /** Entries each section lost to the budget; a section that lost none is absent. */
+  dropped: Partial<Record<RecallSectionName, number>>;
 }
 
 /** Token estimate: `ceil(chars / 4)` of the rendered line (spec §8.5/§18.9, AC3). */
@@ -95,8 +98,25 @@ const MINE_CAP = 5;
 const LAST_SESSION_CAP = 15;
 const CONFLICTS_CAP = 5;
 
-/** Trim order (AC3): lowest-priority section first; `self` is never a member. */
+/** How many top `MINE` entries survive until `SHARED` is empty (issue #118). */
+const MINE_FLOOR = 2;
+
+/** Canonical order of the `truncated` array (CT-04). */
 const TRIM_ORDER: RecallSectionName[] = ['conflicts', 'last_session', 'mine', 'shared', 'policies'];
+
+/**
+ * Trim passes (AC3, issue #118): lowest-priority first; `self` is never a
+ * member. `MINE` appears twice so a bank's best lessons outlast `SHARED`,
+ * whose 8 entries alone can exceed the default budget.
+ */
+const TRIM_PASSES: { name: RecallSectionName; keep: number }[] = [
+  { name: 'conflicts', keep: 0 },
+  { name: 'last_session', keep: 0 },
+  { name: 'mine', keep: MINE_FLOOR },
+  { name: 'shared', keep: 0 },
+  { name: 'mine', keep: 0 },
+  { name: 'policies', keep: 0 },
+];
 
 interface WorkingEntry {
   id: string | number;
@@ -172,12 +192,14 @@ function dedupeSections(
 }
 
 /**
- * Applies the trimming algorithm (AC2/AC3): visits `TRIM_ORDER` in sequence;
+ * Applies the trimming algorithm (AC2/AC3): visits `TRIM_PASSES` in sequence;
  * a section is entered (and added to `truncated`) as soon as `total` still
  * exceeds `maxTokens` when the loop reaches it — even if the section has no
  * entries to remove — because the algorithm is still "attempting" to trim it
  * to satisfy the budget (AC2's literal "every other section is trimmed to
- * empty and listed in truncated" when `SELF` alone exceeds the budget).
+ * empty and listed in truncated" when `SELF` alone exceeds the budget). The
+ * one exception is the `MINE` floor pass, which only counts when it removes
+ * something: a `MINE` wholly inside its floor was not cut.
  * Entries are removed one at a time (oldest-first for `last_session`,
  * otherwise from the tail — the lowest-ranked end of an already-ranked
  * array) until the section is empty or the budget fits.
@@ -189,20 +211,21 @@ function trim(
   activeOrder: RecallSectionName[],
 ): { truncated: RecallSectionName[]; usedTokens: number } {
   let total = selfTokens + activeOrder.reduce((sum, name) => sum + sumTokens(sections[name]), 0);
-  const truncated: RecallSectionName[] = [];
+  const entered = new Set<RecallSectionName>();
 
-  for (const name of activeOrder) {
+  for (const { name, keep } of TRIM_PASSES) {
+    if (!activeOrder.includes(name)) continue;
     if (total <= maxTokens) break;
-    truncated.push(name);
     const arr = sections[name];
-    while (arr.length > 0 && total > maxTokens) {
+    if (keep === 0 || arr.length > keep) entered.add(name);
+    while (arr.length > keep && total > maxTokens) {
       const removed = name === 'last_session' ? arr.shift() : arr.pop();
       if (removed === undefined) break;
       total -= removed.tokens;
     }
   }
 
-  return { truncated, usedTokens: total };
+  return { truncated: activeOrder.filter((name) => entered.has(name)), usedTokens: total };
 }
 
 function projectAll(entries: readonly WorkingEntry[]): Record<string, unknown>[] {
@@ -260,11 +283,16 @@ export function assembleRecall(inputs: RecallInputs, budget: RecallBudget): Reca
     : TRIM_ORDER;
 
   const selfTokens = sumTokens(deduped.self);
+  const countsBeforeTrim = activeOrder.map((name) => [name, sections[name].length] as const);
   const { truncated, usedTokens } = trim(sections, selfTokens, budget.maxTokens, activeOrder);
 
-  // TRIM_ORDER's iteration order feeds `truncated` directly, so the array is
-  // already in `conflicts -> last_session -> mine -> shared -> policies`
-  // order (CT-04) with no further sort needed.
+  // `truncated` also names a section that had nothing to cut (AC2); `dropped`
+  // says what was actually lost, so "no lessons" never reads as "lessons cut".
+  const dropped: RecallBundle['dropped'] = {};
+  for (const [name, before] of countsBeforeTrim) {
+    const lost = before - sections[name].length;
+    if (lost > 0) dropped[name] = lost;
+  }
 
   return {
     query_id: inputs.queryId,
@@ -286,5 +314,6 @@ export function assembleRecall(inputs: RecallInputs, budget: RecallBudget): Reca
       conflicts: projectAll(sections.conflicts),
     },
     truncated,
+    dropped,
   };
 }

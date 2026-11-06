@@ -526,3 +526,92 @@ describe('assembleRecall - randomized property suite', () => {
     }
   });
 });
+
+describe('assembleRecall - MINE floor (issue #118)', () => {
+  function crowded(mineCount: number): RecallInputs {
+    const inputs = emptyInputs('alpha');
+    inputs.shared = Array.from({ length: 8 }, (_, i) => entry(`shared-${String(i)}`, 1200));
+    inputs.mine = Array.from({ length: mineCount }, (_, i) => entry(`mine-${String(i)}`, 400));
+    return inputs;
+  }
+
+  it('keeps the top 2 MINE entries and cuts SHARED to make room', () => {
+    // SHARED 2400 tokens alone; MINE 500. Budget 2000.
+    const bundle = assembleRecall(crowded(5), { maxTokens: 2000 });
+
+    expect(bundle.sections.mine?.map((e) => e['id'])).toEqual(['mine-0', 'mine-1']);
+    expect(bundle.sections.shared?.length).toBeGreaterThan(0);
+    expect(bundle.sections.shared?.length).toBeLessThan(8);
+    expect(bundle.budget.used_tokens).toBeLessThanOrEqual(2000);
+  });
+
+  it('a MINE entirely inside the floor is not reported as truncated', () => {
+    const bundle = assembleRecall(crowded(2), { maxTokens: 2000 });
+
+    expect(bundle.sections.mine).toHaveLength(2);
+    expect(bundle.truncated).toEqual(['conflicts', 'last_session', 'shared']);
+    expect(bundle.dropped).toEqual({ shared: 2 });
+  });
+
+  it('cuts MINE above the floor before touching SHARED', () => {
+    // Removing 2 of 4 MINE entries is enough; SHARED stays whole.
+    const inputs = crowded(4);
+    inputs.shared = [entry('shared-0', 1200)]; // 300 tokens; MINE 400; total 700.
+    const bundle = assembleRecall(inputs, { maxTokens: 500 });
+
+    expect(bundle.sections.mine?.map((e) => e['id'])).toEqual(['mine-0', 'mine-1']);
+    expect(bundle.sections.shared).toHaveLength(1);
+    expect(bundle.dropped).toEqual({ mine: 2 });
+  });
+
+  it('the floor gives way only after SHARED is empty, and before POLICIES', () => {
+    const inputs = crowded(2);
+    inputs.shared = [entry('shared-0', 400)];
+    inputs.policies = [entry('pol-0', 400)]; // 100 tokens.
+    // 400 tokens in all: SHARED's 100 go first, then one MINE entry.
+    const bundle = assembleRecall(inputs, { maxTokens: 200 });
+
+    expect(bundle.sections.shared).toEqual([]);
+    expect(bundle.sections.mine?.map((e) => e['id'])).toEqual(['mine-0']);
+    expect(bundle.sections.policies).toHaveLength(1);
+    expect(bundle.truncated).toEqual(['conflicts', 'last_session', 'mine', 'shared']);
+  });
+
+  it('bank = kb is unaffected: SHARED is the first ranked section to shrink', () => {
+    const inputs = emptyInputs('kb');
+    inputs.shared = [entry('shared-0', 400), entry('shared-1', 400)];
+    inputs.policies = [entry('pol-0', 400)];
+    const bundle = assembleRecall(inputs, { maxTokens: 200 });
+
+    expect(bundle.sections.shared).toHaveLength(1);
+    expect(bundle.sections.policies).toHaveLength(1);
+    expect(bundle.truncated).toEqual(['conflicts', 'shared']);
+  });
+});
+
+describe('assembleRecall - dropped counts (issue #118)', () => {
+  it('is empty when nothing was cut', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.mine = [entry('mine-0', 40)];
+    expect(assembleRecall(inputs, { maxTokens: 2000 }).dropped).toEqual({});
+  });
+
+  it('names only sections that lost entries, unlike truncated', () => {
+    // No lessons at all: `mine` must not read as "your lessons were cut".
+    const inputs = emptyInputs('alpha');
+    inputs.shared = [entry('shared-0', 4000), entry('shared-1', 4000)];
+    const bundle = assembleRecall(inputs, { maxTokens: 1000 });
+
+    expect(bundle.dropped).toEqual({ shared: 1 });
+    expect(bundle.dropped['mine']).toBeUndefined();
+  });
+
+  it('counts budget cuts only, not entries past a section cap', () => {
+    const inputs = emptyInputs('alpha');
+    inputs.mine = Array.from({ length: 7 }, (_, i) => entry(`mine-${String(i)}`, 40));
+    const bundle = assembleRecall(inputs, { maxTokens: 2000 });
+
+    expect(bundle.sections.mine).toHaveLength(5);
+    expect(bundle.dropped).toEqual({});
+  });
+});

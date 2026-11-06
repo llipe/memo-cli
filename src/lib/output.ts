@@ -428,10 +428,20 @@ export const output = {
   },
 
   /** `budget: used/max tokens · truncated: …` footer (S2-07 AC9, spec §10). */
-  recallFooter(usedTokens: number, maxTokens: number, truncated: string[]): void {
+  recallFooter(
+    usedTokens: number,
+    maxTokens: number,
+    truncated: string[],
+    dropped: Record<string, number> = {},
+  ): void {
     const truncatedLabel = truncated.length > 0 ? truncated.join(', ') : 'none';
+    const droppedEntries = Object.entries(dropped);
+    const droppedLabel =
+      droppedEntries.length > 0
+        ? ` · dropped: ${droppedEntries.map(([name, count]) => `${name} ${String(count)}`).join(', ')}`
+        : '';
     process.stdout.write(
-      `${chalk.gray(`budget: ${String(usedTokens)}/${String(maxTokens)} tokens · truncated: ${truncatedLabel}`)}\n`,
+      `${chalk.gray(`budget: ${String(usedTokens)}/${String(maxTokens)} tokens · truncated: ${truncatedLabel}${droppedLabel}`)}\n`,
     );
   },
 
