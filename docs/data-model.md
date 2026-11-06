@@ -265,7 +265,7 @@ A single `superRefine` enforces PRD §2.5's rules:
 5. Validate with `EntryPayloadV2Schema`.
 6. `--supersedes <id>`: `getById` (`ENTRY_NOT_FOUND` on miss) then `normalizeEntry` the target — mismatched `bank`/`kind` or an already-superseded target fails `VALIDATION_FAILED`; a self-reference (`target.id === id`) is rejected before any I/O.
 7. `self` soft-cap: one `count()` of non-superseded `self` entries in the bank; `>= policy.soft_cap` emits a non-blocking warning with the pre-write count (`self entries in <bank>: <n> (soft cap <cap>)`).
-8. Dedupe via `buildDedupeKeyV2`; a `kb` semantic write also probes the v1 `buildDedupeKey` so a pre-migration duplicate is still caught; `self` never dedupes.
+8. Dedupe via `buildDedupeKeyV2`; a `kb` semantic write with a commit or story also probes the v1 `buildDedupeKey` so a pre-migration duplicate is still caught; `self` never dedupes.
 9. Embed and `upsert`, as in v1.
 10. If step 6 applied, `setPayload` the target (`valid_to`, `superseded: true`, `superseded_by`) — not transactional; a failure here after the upsert succeeded exits 2 with `QDRANT_OPERATION_FAILED` naming both the new and target ids.
 11. Result JSON: the full v2 payload plus `created`/`updated`/`duplicate_detected`/`superseded?`/`warnings?`.

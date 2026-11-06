@@ -5,6 +5,7 @@
 | Version | Date       | Summary                                                                                                                   | Author           |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | 1.0     | 2026-09-21 | Initial Phase 2 stories (S2-01 … S2-11) from spec v1.2 §18, with coverage validation against PRD-004 v1.12 Phase 2 scope. | product-engineer |
+| 1.1     | 2026-11-06 | S2-07 AC3: trim order updated for the `MINE` floor (issue #118).                                                          |
 
 ## Scope
 
@@ -578,7 +579,7 @@ Spec §8.5 and §18.9; PRD FR-2.6, AC-2.6, goal 3. Per A14, Phase 2 `recall` is 
 
 - [ ] **AC1** — `memo recall "<task>" --bank x` returns sections in the order `SELF`, `POLICIES`, `SHARED`, `MINE`, `LAST SESSION`, `CONFLICTS`; `SELF` contains every non-superseded `self` entry of the bank, newest first, and omits superseded ones. (PRD AC-2.6)
 - [ ] **AC2** — With `--max-tokens` smaller than `SELF` alone, `SELF` is returned intact, every other section is trimmed to empty and listed in `truncated`, and `budget.used_tokens > max_tokens` is reported honestly.
-- [ ] **AC3** — Trimming proceeds `conflicts → last_session (oldest first) → mine → shared → policies`; the first budget that fits stops trimming; token estimate is `ceil(chars / 4)` of the rendered line.
+- [ ] **AC3** — Trimming proceeds `conflicts → last_session (oldest first) → mine (down to its top 2 that fit, issue #118) → shared → mine (the rest) → policies`; the first budget that fits stops trimming; token estimate is `ceil(chars / 4)` of the rendered line.
 - [ ] **AC4** — An id returned in an earlier section never appears in a later one; the bundle carries exactly one `query_id` (UUID v4).
 - [ ] **AC5** — Section caps: `SHARED` 8, `MINE` 5, `LAST SESSION` 15 (most recent by `seq`), `CONFLICTS` 5, `POLICIES` all, `SELF` all (stderr warning above `soft_cap`).
 - [ ] **AC6** — `SHARED` and `MINE` are ranked by `rankResults` with tiers and `stale`/`stale_by` exactly as `memo search` (same config, same corpus rules); `LAST SESSION` is `seq`-ordered; `SELF` lines carry no score or tier.

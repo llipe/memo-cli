@@ -295,7 +295,7 @@ memo write \
 
 #### Duplicate detection
 
-If you write an entry with the same repo + commit + story + entry_type + source combination, memo detects the duplicate:
+If you write an entry with the same repo + commit + story + entry_type + source combination, memo detects the duplicate. A semantic entry with neither commit nor story is also compared by its rationale, so two different lessons never collide:
 
 - **Interactive (TTY):** prompts you to choose an action (consolidate, update, replace, create new)
 - **Agent/JSON mode:** requires `--on-duplicate` flag to resolve programmatically
@@ -772,7 +772,7 @@ Returns six sections, in this fixed order:
 | `LAST SESSION` | The bank's most recent episodic session, in `seq` order       | 15                       |
 | `CONFLICTS`    | Entries flagged `pending_contradiction` (empty until Phase 4) | 5                        |
 
-An id kept in an earlier section never repeats in a later one (cross-section dedup). If the total would exceed `--max-tokens`, sections are trimmed lowest-priority first — `conflicts → last_session (oldest first) → mine (down to its top 2) → shared → mine (the rest) → policies` — until it fits; `SELF` is **never** trimmed, even if it alone exceeds the budget (the response still reports the true `used_tokens`, honestly, rather than pretending it fit).
+An id kept in an earlier section never repeats in a later one (cross-section dedup). If the total would exceed `--max-tokens`, sections are trimmed lowest-priority first — `conflicts → last_session (oldest first) → mine (down to its top 2 that fit) → shared → mine (the rest) → policies` — until it fits; `SELF` is **never** trimmed, even if it alone exceeds the budget (the response still reports the true `used_tokens`, honestly, rather than pretending it fit).
 
 ```bash
 # Override the token budget (default: config.recall.max_tokens, 2000)
