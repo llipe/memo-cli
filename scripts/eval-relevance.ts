@@ -100,7 +100,7 @@ const KebabString = z.string().regex(KEBAB_CASE, 'must be kebab-case');
  */
 export const EvalEntrySeedSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.guid(),
     repo: KebabString,
     org: KebabString,
     domain: KebabString,
