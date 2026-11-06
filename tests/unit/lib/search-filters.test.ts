@@ -114,6 +114,27 @@ describe('buildSearchFilters — base merge semantics (AC5, CT-3/CT-4)', () => {
 });
 
 describe('buildSearchFilters — conditional repo clause (AC5, CT-5)', () => {
+  it('issue #118: a private bank ignores the org inherited from config', () => {
+    const filter = buildSearchFilters({
+      repo: 'memo-cli',
+      scope: 'repo',
+      org: 'llipe',
+      bank: 'jarvis-memory',
+    }) as { must?: unknown[] };
+    expect(filter.must ?? []).not.toContainEqual({ key: 'org', match: { value: 'llipe' } });
+  });
+
+  it('issue #118: a private bank with an explicit --org still adds the org clause', () => {
+    const filter = buildSearchFilters({
+      repo: 'memo-cli',
+      scope: 'repo',
+      org: 'llipe',
+      bank: 'jarvis-memory',
+      explicitOrg: true,
+    }) as { must?: unknown[] };
+    expect(filter.must).toContainEqual({ key: 'org', match: { value: 'llipe' } });
+  });
+
   it('EC-38: bank="kb" with no explicit --repo still adds the repo clause', () => {
     const filter = shape(buildSearchFilters({ repo: 'memo-cli', scope: 'repo', bank: 'kb' }));
     expect(filter.must).toContainEqual({ key: 'repo', match: { value: 'memo-cli' } });

@@ -17,6 +17,12 @@ export interface BuildSearchFiltersInput {
   bank?: string;
   /** Set when the caller passed an explicit `--repo` flag (AC5). */
   explicitRepo?: boolean;
+  /**
+   * Set when the caller passed an explicit `--org` flag. A private bank is not
+   * scoped by the config's org, as with `repo` (PRD B2, issue #118); its
+   * entries may carry no org at all.
+   */
+  explicitOrg?: boolean;
 }
 
 function unique(values: string[]): string[] {
@@ -46,7 +52,9 @@ export function buildSearchFilters(
     }
   }
 
-  if (input.org) {
+  const orgClauseAllowed = (input.bank ?? 'kb') === 'kb' || input.explicitOrg === true;
+
+  if (input.org && orgClauseAllowed) {
     must.push({ key: 'org', match: { value: input.org } });
   }
 

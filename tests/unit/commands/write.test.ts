@@ -651,7 +651,14 @@ describe('handleWrite — AC10: dedupe v2, v1 fallback, self never dedupes', () 
     });
 
     await handleWrite(
-      { ...BASE_FLAGS, kind: 'semantic', manual: true, onDuplicate: 'update', json: true },
+      {
+        ...BASE_FLAGS,
+        kind: 'semantic',
+        commit: 'abc123',
+        manual: true,
+        onDuplicate: 'update',
+        json: true,
+      },
       deps(),
     );
 
@@ -671,6 +678,25 @@ describe('handleWrite — AC10: dedupe v2, v1 fallback, self never dedupes', () 
     mockQdrant = createMockQdrant();
     await handleWrite({ rationale: 'x', tags: 'a,b', kind: 'semantic', manual: true }, noCfgDeps());
     expect(mockQdrant.getByDedupeKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('issue #118: a kb semantic write with no commit or story skips the v1 key, which identifies nothing', async () => {
+    mockQdrant.getByDedupeKey.mockResolvedValue(null);
+    await handleWrite(
+      { rationale: 'x', tags: 'a,b', kind: 'semantic', manual: true, json: true },
+      deps(),
+    );
+    expect(mockQdrant.getByDedupeKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('issue #118: two different lessons with no commit or story look up different keys', async () => {
+    mockQdrant.getByDedupeKey.mockResolvedValue(null);
+    const lesson = { tags: 'a,b', kind: 'semantic', manual: true, bank: 'jarvis-memory' };
+    await handleWrite({ ...lesson, rationale: 'Check the connection mode.' }, noCfgDeps());
+    await handleWrite({ ...lesson, rationale: 'Use CSS grid.' }, noCfgDeps());
+
+    const [first, second] = mockQdrant.getByDedupeKey.mock.calls.map((call) => call[0]);
+    expect(first).not.toBe(second);
   });
 
   it('self writes never call getByDedupeKey', async () => {

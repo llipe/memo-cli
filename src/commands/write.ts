@@ -287,6 +287,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
     seq,
     entry_type,
     source,
+    rationale: flags.rationale,
   });
 
   // §18.6 step 4 (cont'd): full v2 payload build.
@@ -336,7 +337,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
   // §18.6 step 5: validate.
   const parsed = EntryPayloadV2Schema.safeParse(rawPayload);
   if (!parsed.success) {
-    const messages = parsed.error.errors
+    const messages = parsed.error.issues
       .map((e) => `  • ${e.path.join('.')}: ${e.message}`)
       .join('\n');
     throw new MemoError('VALIDATION_FAILED', `Entry validation failed:\n${messages}`);
@@ -397,9 +398,17 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
   let existing: ScrollResult | null = null;
   if (kind !== 'self') {
     existing = await qdrant.getByDedupeKey(dedupe_key_sha256);
-    if (!existing && bank === DEFAULT_BANK_ID && kind === 'semantic' && repo !== undefined) {
+    const hasIdentity = (flags.commit ?? '') !== '' || (flags.story ?? '') !== '';
+    if (
+      !existing &&
+      bank === DEFAULT_BANK_ID &&
+      kind === 'semantic' &&
+      repo !== undefined &&
+      hasIdentity
+    ) {
       // AC10: a `kb` semantic write also checks the v1 key so a pre-migration
-      // duplicate is detected.
+      // duplicate is detected. Without a commit or story that key identifies
+      // nothing (issue #118).
       const v1Key = buildDedupeKey({
         repo,
         commit: flags.commit,

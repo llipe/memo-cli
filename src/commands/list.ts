@@ -10,6 +10,7 @@ import { parseReadFlags } from '../lib/read-flags.js';
 import type { RawReadFlags } from '../lib/read-flags.js';
 import { resolveScopeRepos } from '../lib/registry.js';
 import type { ScrollResult } from '../lib/qdrant.js';
+import { DEFAULT_BANK_ID } from '../types/config.js';
 import type { MemoConfig } from '../types/config.js';
 
 export interface ListFlags extends RawReadFlags {
@@ -32,8 +33,8 @@ export interface ListDeps {
 }
 
 export interface ListResponseFilters {
-  scope: 'repo' | 'related';
-  repo: string;
+  scope?: 'repo' | 'related';
+  repo?: string;
   bank: string;
   kind: string;
   session?: string;
@@ -80,7 +81,9 @@ function parseLimit(value: string | number | undefined): number {
 }
 
 function buildActiveFilters(filters: ListResponseFilters, repoSet: string[]): string[] {
-  const values = [`scope:${filters.scope}`, `repo:${repoSet.join(',')}`];
+  const values = filters.repo
+    ? [`scope:${String(filters.scope)}`, `repo:${repoSet.join(',')}`]
+    : [`bank:${filters.bank}`];
   if (filters.org) values.push(`org:${filters.org}`);
   if (filters.entry_type && filters.entry_type.length > 0) {
     values.push(`entry_type:${filters.entry_type.join(',')}`);
@@ -174,18 +177,24 @@ export async function handleList(flags: ListFlags, deps: ListDeps = {}): Promise
       to,
       bank: readFlags.bank,
       explicitRepo: flags.repo !== undefined,
+      explicitOrg: flags.org !== undefined,
     },
     base,
   );
 
+  // Echo only what the query applied (issue #118): a private bank has no repo
+  // or org clause unless one was asked for.
+  const isKb = readFlags.bank === DEFAULT_BANK_ID;
+  const repoApplied = isKb || flags.repo !== undefined;
+  const orgApplied = isKb || flags.org !== undefined;
+
   const responseFilters: ListResponseFilters = {
-    scope,
-    repo,
+    ...(repoApplied ? { scope, repo } : {}),
     bank: readFlags.bank,
     kind: readFlags.kind,
     ...(readFlags.session !== undefined ? { session: readFlags.session } : {}),
     ...(readFlags.asOf !== undefined ? { as_of: readFlags.asOf } : {}),
-    ...(org ? { org } : {}),
+    ...(org && orgApplied ? { org } : {}),
     ...(tags.length > 0 ? { tags } : {}),
     ...(entryTypes.length > 0 ? { entry_type: entryTypes } : {}),
     ...(sources.length > 0 ? { source: sources } : {}),

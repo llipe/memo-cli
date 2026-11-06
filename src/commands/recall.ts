@@ -5,7 +5,6 @@ import { policyFor } from '../lib/bank.js';
 import { resolveBank } from '../lib/bank.js';
 import { loadConfig } from '../lib/config.js';
 import { createEmbeddingsAdapter } from '../lib/embeddings.js';
-import { normalizeEntry, projectV2Fields } from '../lib/entry-normalize.js';
 import { MemoError } from '../lib/errors.js';
 import { buildBaseFilter, mergeFilters } from '../lib/filters.js';
 import { output } from '../lib/output.js';
@@ -89,14 +88,6 @@ function parseMaxTokens(value: string | number | undefined, config?: MemoConfig 
   return parsed;
 }
 
-function omitStoredConfidence(
-  payload: Record<string, unknown> | undefined,
-): Record<string, unknown> {
-  if (!payload) return {};
-  const { confidence: _confidence, ...rest } = payload;
-  return rest;
-}
-
 function payloadOf(point: ScrollResult): Record<string, unknown> {
   return point.payload ?? {};
 }
@@ -105,21 +96,65 @@ function renderedLineOf(data: Record<string, unknown>): string {
   return JSON.stringify(data);
 }
 
-/** Unranked projection shared by `SELF` and `CONFLICTS` (neither is ever ranked, K4). */
-function toUnrankedEntry(point: ScrollResult): RecallEntry {
+/**
+ * The payload fields a recalled entry carries (spec §8.5: "rationale + ids +
+ * scores", issue #118). Bookkeeping such as `dedupe_key_sha256` or
+ * `stability_since` would cost the budget and tell the agent nothing; `memo
+ * read --id <id>` still returns the whole entry. `pinned`, `files_modified` and
+ * other empty-by-default fields are kept only when they say something.
+ */
+const RECALL_FIELDS = [
+  'rationale',
+  'repo',
+  'entry_type',
+  'source',
+  'tags',
+  'timestamp_utc',
+  'story',
+  'commit',
+  'files_modified',
+  'session_id',
+  'seq',
+  'superseded_by',
+  'pinned',
+] as const;
+
+function recallFields(payload: Record<string, unknown> | undefined): Record<string, unknown> {
+  const fields: Record<string, unknown> = {};
+  for (const key of RECALL_FIELDS) {
+    const value = payload?.[key];
+    if (value === undefined || value === null || value === false) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    fields[key] = value;
+  }
+  return fields;
+}
+
+/** `SELF` projection (never ranked, K4). */
+function toSelfEntry(point: ScrollResult): RecallEntry {
+  const data = { id: point.id, ...recallFields(payloadOf(point)) };
+  return { id: point.id, renderedLine: renderedLineOf(data), data };
+}
+
+/**
+ * `CONFLICTS` projection (never ranked): the section mixes kinds, and a
+ * contradiction is only actionable with the evidence behind it.
+ */
+function toConflictEntry(point: ScrollResult): RecallEntry {
   const payload = payloadOf(point);
   const data = {
     id: point.id,
-    ...omitStoredConfidence(payload),
-    ...projectV2Fields(normalizeEntry(payload)),
+    ...recallFields(payload),
+    ...(payload['kind'] !== undefined ? { kind: payload['kind'] } : {}),
+    ...(payload['provenance'] !== undefined ? { provenance: payload['provenance'] } : {}),
   };
   return { id: point.id, renderedLine: renderedLineOf(data), data };
 }
 
-/** `LAST SESSION` projection: mirrors `timeline.ts`'s `toJsonEntry` (id + full payload + v2 fields), plus `seq` for trimming. */
+/** `LAST SESSION` projection: `seq` also orders trimming. */
 function toLastSessionEntry(point: ScrollResult): RecallEntry {
   const payload = payloadOf(point);
-  const data = { id: point.id, ...payload, ...projectV2Fields(normalizeEntry(payload)) };
+  const data = { id: point.id, ...recallFields(payload) };
   const seq = typeof payload['seq'] === 'number' ? payload['seq'] : undefined;
   return {
     id: point.id,
@@ -137,11 +172,9 @@ function toLastSessionEntry(point: ScrollResult): RecallEntry {
  * decide relevance and detect staleness survive.
  */
 function toRankedEntry(result: StaleAnnotated<RankedSearchResult>): RecallEntry {
-  const payload = result.payload;
   const data: Record<string, unknown> = {
     id: result.id,
-    ...omitStoredConfidence(payload),
-    ...projectV2Fields(normalizeEntry(payload ?? {})),
+    ...recallFields(result.payload),
     final_score: result.final_score,
     confidence_tier: result.confidence_tier,
     ...(result.stale ? { stale: true as const, stale_by: result.stale_by } : {}),
@@ -178,19 +211,22 @@ async function rankPolicies(
     rankingConfig?.confidence_thresholds ?? DEFAULT_CONFIDENCE_THRESHOLDS;
 
   const rawResults: SearchResult[] = await qdrant.search(vector, filters, POLICIES_LIMIT);
-  const rankable: RankableEntry[] = rawResults.map((result) => {
-    const payload = result.payload;
-    const timestampUtc =
-      typeof payload?.['timestamp_utc'] === 'string' ? payload['timestamp_utc'] : undefined;
-    const rawTags = payload?.['tags'];
-    return {
-      id: result.id,
-      similarity: result.score,
-      timestampUtc,
-      source: payload?.['source'],
-      tags: Array.isArray(rawTags) ? rawTags : undefined,
-    };
-  });
+  const rankable: (RankableEntry & { payload?: Record<string, unknown> })[] = rawResults.map(
+    (result) => {
+      const payload = result.payload;
+      const timestampUtc =
+        typeof payload?.['timestamp_utc'] === 'string' ? payload['timestamp_utc'] : undefined;
+      const rawTags = payload?.['tags'];
+      return {
+        id: result.id,
+        similarity: result.score,
+        timestampUtc,
+        source: payload?.['source'],
+        tags: Array.isArray(rawTags) ? rawTags : undefined,
+        payload,
+      };
+    },
+  );
   const ranked = rankResults(
     rankable,
     weights,
@@ -201,12 +237,10 @@ async function rankPolicies(
     confidenceThresholds,
   );
 
-  return ranked.map((entry, i) => {
-    const payload = rawResults[i]?.payload;
+  return ranked.map((entry) => {
     const data: Record<string, unknown> = {
       id: entry.id,
-      ...omitStoredConfidence(payload),
-      ...projectV2Fields(normalizeEntry(payload ?? {})),
+      ...recallFields(entry.payload),
       final_score: entry.final_score,
       confidence_tier: entry.confidence_tier,
     };
@@ -303,7 +337,7 @@ export async function handleRecall(flags: RecallFlags, deps: RecallDeps = {}): P
         ) + '\n',
       );
     }
-    selfEntries = selfResults.map(toUnrankedEntry);
+    selfEntries = selfResults.map(toSelfEntry);
   }
 
   // POLICIES (never omitted, AC10): kb semantic, entry_type = policy.
@@ -382,7 +416,7 @@ export async function handleRecall(flags: RecallFlags, deps: RecallDeps = {}): P
     must: [{ key: 'pending_contradiction', match: { value: true } }],
   });
   const conflictsResults = await qdrant.scroll(conflictsFilter, CONFLICTS_LIMIT);
-  const conflictsEntries = conflictsResults.map(toUnrankedEntry);
+  const conflictsEntries = conflictsResults.map(toConflictEntry);
 
   const inputs: RecallInputs = {
     bank,
@@ -473,7 +507,12 @@ export async function handleRecall(flags: RecallFlags, deps: RecallDeps = {}): P
   ];
 
   output.recallSections(sections);
-  output.recallFooter(bundle.budget.used_tokens, bundle.budget.max_tokens, bundle.truncated);
+  output.recallFooter(
+    bundle.budget.used_tokens,
+    bundle.budget.max_tokens,
+    bundle.truncated,
+    bundle.dropped,
+  );
 }
 
 const recall = new Command('recall')
