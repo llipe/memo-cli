@@ -146,6 +146,26 @@ describe('buildListFilters — conditional repo clause (AC5, CT-5)', () => {
     expect(filter.must).toContainEqual({ key: 'repo', match: { value: 'memo-cli' } });
   });
 
+  it('issue #118: a private bank ignores the org inherited from config', () => {
+    const filter = shape(
+      buildListFilters({ repo: 'memo-cli', scope: 'repo', org: 'llipe', bank: 'jarvis-memory' }),
+    );
+    expect(filter.must ?? []).not.toContainEqual({ key: 'org', match: { value: 'llipe' } });
+  });
+
+  it('issue #118: a private bank with an explicit --org still adds the org clause', () => {
+    const filter = shape(
+      buildListFilters({
+        repo: 'memo-cli',
+        scope: 'repo',
+        org: 'llipe',
+        bank: 'jarvis-memory',
+        explicitOrg: true,
+      }),
+    );
+    expect(filter.must).toContainEqual({ key: 'org', match: { value: 'llipe' } });
+  });
+
   it('EC-41: does not mutate the base object across two calls with the same base reference', () => {
     const base = shape(buildBaseFilter({ bank: 'kb', kind: 'all' }));
     const beforeMustLength = (base.must ?? []).length;

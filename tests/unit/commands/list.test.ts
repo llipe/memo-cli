@@ -184,6 +184,35 @@ describe('handleList', () => {
       });
     });
 
+    it('issue #118: a private bank is not filtered by the org from config', async () => {
+      await handleList({ bank: 'a-memory' }, deps);
+      const filter = mockQdrant.scroll.mock.calls[0][0] as { must: unknown[] };
+      expect(JSON.stringify(filter.must)).not.toContain('"org"');
+    });
+
+    it('issue #118: an explicit --org still filters a private bank', async () => {
+      await handleList({ bank: 'a-memory', org: 'llipe' }, deps);
+      const filter = mockQdrant.scroll.mock.calls[0][0] as { must: unknown[] };
+      expect(filter.must).toContainEqual({ key: 'org', match: { value: 'llipe' } });
+    });
+
+    it('issue #118: the JSON filters echo only what a private bank applied', async () => {
+      await handleList({ json: true, bank: 'a-memory' }, deps);
+      const filters = JSON.parse(stdoutData)['filters'];
+      expect(filters).toMatchObject({ bank: 'a-memory' });
+      expect(filters).not.toHaveProperty('repo');
+      expect(filters).not.toHaveProperty('scope');
+      expect(filters).not.toHaveProperty('org');
+    });
+
+    it('issue #118: an explicit --repo on a private bank is applied and echoed', async () => {
+      await handleList({ json: true, bank: 'a-memory', repo: 'other-repo' }, deps);
+      expect(JSON.parse(stdoutData)['filters']).toMatchObject({
+        bank: 'a-memory',
+        repo: 'other-repo',
+      });
+    });
+
     it('AC8: JSON rows add bank/kind, and archived/superseded only when true (CT-1)', async () => {
       mockQdrant.scroll.mockResolvedValueOnce([
         { id: 'active', payload: { repo: 'memo-cli', rationale: 'Active' } },
