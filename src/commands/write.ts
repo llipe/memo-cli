@@ -287,6 +287,7 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
     seq,
     entry_type,
     source,
+    rationale: flags.rationale,
   });
 
   // §18.6 step 4 (cont'd): full v2 payload build.
@@ -397,9 +398,17 @@ export async function handleWrite(flags: WriteFlags, deps: WriteDeps = {}): Prom
   let existing: ScrollResult | null = null;
   if (kind !== 'self') {
     existing = await qdrant.getByDedupeKey(dedupe_key_sha256);
-    if (!existing && bank === DEFAULT_BANK_ID && kind === 'semantic' && repo !== undefined) {
+    const hasIdentity = flags.commit !== undefined || flags.story !== undefined;
+    if (
+      !existing &&
+      bank === DEFAULT_BANK_ID &&
+      kind === 'semantic' &&
+      repo !== undefined &&
+      hasIdentity
+    ) {
       // AC10: a `kb` semantic write also checks the v1 key so a pre-migration
-      // duplicate is detected.
+      // duplicate is detected. Without a commit or story that key identifies
+      // nothing (issue #118).
       const v1Key = buildDedupeKey({
         repo,
         commit: flags.commit,

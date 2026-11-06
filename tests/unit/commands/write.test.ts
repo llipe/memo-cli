@@ -651,7 +651,14 @@ describe('handleWrite — AC10: dedupe v2, v1 fallback, self never dedupes', () 
     });
 
     await handleWrite(
-      { ...BASE_FLAGS, kind: 'semantic', manual: true, onDuplicate: 'update', json: true },
+      {
+        ...BASE_FLAGS,
+        kind: 'semantic',
+        commit: 'abc123',
+        manual: true,
+        onDuplicate: 'update',
+        json: true,
+      },
       deps(),
     );
 
@@ -670,6 +677,15 @@ describe('handleWrite — AC10: dedupe v2, v1 fallback, self never dedupes', () 
 
     mockQdrant = createMockQdrant();
     await handleWrite({ rationale: 'x', tags: 'a,b', kind: 'semantic', manual: true }, noCfgDeps());
+    expect(mockQdrant.getByDedupeKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('issue #118: a kb semantic write with no commit or story skips the v1 key, which identifies nothing', async () => {
+    mockQdrant.getByDedupeKey.mockResolvedValue(null);
+    await handleWrite(
+      { rationale: 'x', tags: 'a,b', kind: 'semantic', manual: true, json: true },
+      deps(),
+    );
     expect(mockQdrant.getByDedupeKey).toHaveBeenCalledTimes(1);
   });
 

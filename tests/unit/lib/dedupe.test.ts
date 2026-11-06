@@ -215,6 +215,32 @@ describe('buildDedupeKeyV2 (AC6/AC7, spec §18.5)', () => {
       );
     });
 
+    it('issue #118: two different lessons with no commit or story get different keys', () => {
+      const noIds = { ...SEMANTIC_BASE, commit: undefined, story: undefined };
+      const first = buildDedupeKeyV2({ ...noIds, rationale: 'Check the connection mode.' });
+      const second = buildDedupeKeyV2({ ...noIds, rationale: 'Use CSS grid.' });
+      expect(first).not.toBe(second);
+      expect(first.startsWith('v2|jarvis-memory|my-repo|na|na|na|semantic|decision|agent|')).toBe(
+        true,
+      );
+    });
+
+    it('issue #118: the same lesson written twice keeps one key, so a true repeat still dedupes', () => {
+      const noIds = { ...SEMANTIC_BASE, commit: undefined, story: undefined };
+      expect(buildDedupeKeyV2({ ...noIds, rationale: 'Same.' })).toBe(
+        buildDedupeKeyV2({ ...noIds, rationale: 'Same.' }),
+      );
+    });
+
+    it('issue #118: a commit or story still identifies the entry, whatever the rationale', () => {
+      expect(buildDedupeKeyV2({ ...SEMANTIC_BASE, rationale: 'Any text.' })).toBe(
+        'v2|jarvis-memory|my-repo|abc123|SP-1|na|semantic|decision|agent',
+      );
+      expect(buildDedupeKeyV2({ ...SEMANTIC_BASE, commit: undefined, rationale: 'Any.' })).toBe(
+        'v2|jarvis-memory|my-repo|na|SP-1|na|semantic|decision|agent',
+      );
+    });
+
     it('EC-44: ignores stray session_id/seq passed to the semantic branch', () => {
       const withoutExtras = buildDedupeKeyV2(SEMANTIC_BASE);
       const withExtras = buildDedupeKeyV2({
