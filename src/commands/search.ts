@@ -82,8 +82,8 @@ export interface SearchDeps {
 }
 
 export interface SearchResponseFilters {
-  scope: 'repo' | 'related';
-  repo: string;
+  scope?: 'repo' | 'related';
+  repo?: string;
   bank: string;
   kind: string;
   session?: string;
@@ -175,7 +175,9 @@ export function buildSearchVectorInput(query: string, tags: string[]): string {
 }
 
 function buildActiveFilters(filters: SearchResponseFilters, repoSet: string[]): string[] {
-  const values = [`scope:${filters.scope}`, `repo:${repoSet.join(',')}`];
+  const values = filters.repo
+    ? [`scope:${String(filters.scope)}`, `repo:${repoSet.join(',')}`]
+    : [`bank:${filters.bank}`];
   if (filters.org) values.push(`org:${filters.org}`);
   if (filters.tags && filters.tags.length > 0) values.push(`tags:${filters.tags.join(',')}`);
   if (filters.entry_type && filters.entry_type.length > 0) {
@@ -529,18 +531,24 @@ export async function handleSearch(flags: SearchFlags, deps: SearchDeps = {}): P
       sources,
       bank: readFlags.bank,
       explicitRepo: flags.repo !== undefined,
+      explicitOrg: flags.org !== undefined,
     },
     base,
   );
 
+  // Echo only what the query applied (issue #118): a private bank has no repo
+  // or org clause unless one was asked for.
+  const isKb = readFlags.bank === DEFAULT_BANK_ID;
+  const repoApplied = isKb || flags.repo !== undefined;
+  const orgApplied = isKb || flags.org !== undefined;
+
   const responseFilters: SearchResponseFilters = {
-    scope,
-    repo,
+    ...(repoApplied ? { scope, repo } : {}),
     bank: readFlags.bank,
     kind: readFlags.kind,
     ...(readFlags.session !== undefined ? { session: readFlags.session } : {}),
     ...(readFlags.asOf !== undefined ? { as_of: readFlags.asOf } : {}),
-    ...(org ? { org } : {}),
+    ...(org && orgApplied ? { org } : {}),
     ...(tags.length > 0 ? { tags } : {}),
     ...(entryTypes.length > 0 ? { entry_type: entryTypes } : {}),
     ...(sources.length > 0 ? { source: sources } : {}),

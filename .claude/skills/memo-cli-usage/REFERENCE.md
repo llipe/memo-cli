@@ -335,7 +335,7 @@ memo write \
 - `--json` — Machine-readable output (**always use in agent mode**)
 
 **Duplicate handling:**
-When memo detects a duplicate (same `repo + commit + story + entry_type + source`, or the equivalent v2 key including `bank`/`kind`/`session`/`seq`), interactive mode prompts for resolution. In `--json` mode you **MUST** supply `--on-duplicate` or the command will fail.
+When memo detects a duplicate (same `repo + commit + story + entry_type + source`, or the equivalent v2 key including `bank`/`kind`/`session`/`seq`, plus a hash of the rationale on a semantic entry with no commit or story, from 1.3.1), interactive mode prompts for resolution. In `--json` mode you **MUST** supply `--on-duplicate` or the command will fail.
 
 **Note:** `--confidence` is not a valid flag — confidence is inferred from `--source`.
 
@@ -500,7 +500,7 @@ The 1.3.0 replacement for the four-command session-start sequence (`list` + `tag
 - `--max-tokens <n>` — Token budget (default: `config.recall.max_tokens`, `2000`)
 - `--json` — Machine-readable output
 
-When the budget is tight, sections are trimmed in this order: `conflicts` → `last_session` (oldest entries first) → `mine` → `shared` → `policies`. `SELF` is **never** trimmed, even if it alone exceeds the budget — in that case `truncated` lists every other section and the response honestly reports `budget.used_tokens > max_tokens` rather than silently cutting `SELF`. `recall` performs zero writes.
+When the budget is tight, sections are trimmed in this order: `conflicts` → `last_session` (oldest entries first) → `mine` (down to its top 2 that fit, from 1.3.1) → `shared` → `mine` (the rest) → `policies`. From 1.3.1, `dropped` counts what each section lost; `truncated` also names sections that had nothing to cut. `SELF` is **never** trimmed, even if it alone exceeds the budget — in that case `truncated` lists every other section and the response honestly reports `budget.used_tokens > max_tokens` rather than silently cutting `SELF`. `recall` performs zero writes.
 
 **On failure:** `memo recall` exits `2` on an embeddings failure (`EMBEDDING_API_ERROR`) or a mid-gather Qdrant failure (`QDRANT_OPERATION_FAILED`) — there is no partial-bundle fallback. Treat this the same as any other exit-`2` failure: surface the warning, and continue the session without recalled context rather than blocking on it.
 

@@ -16,25 +16,25 @@ export const BootstrapEntrySchema = z
 
 export type BootstrapEntry = z.infer<typeof BootstrapEntrySchema>;
 
-export function formatZodIssue(issue: z.ZodIssue, itemIndex: number): string {
+export function formatZodIssue(issue: z.core.$ZodIssue, itemIndex: number): string {
   const path = [`[${itemIndex}]`, ...issue.path.map(String)].join('.');
 
   if (issue.code === 'invalid_type') {
-    return `${path}: expected ${issue.expected}, received ${issue.received}`;
+    return `${path}: ${issue.message.replace(/^Invalid input: /, '')}`;
   }
 
-  if (issue.code === 'invalid_enum_value') {
-    return `${path}: expected one of ${issue.options.join(', ')}, received ${String(issue.received)}`;
+  if (issue.code === 'invalid_value') {
+    return `${path}: expected one of ${issue.values.join(', ')}, received ${String(issue.input)}`;
   }
 
   if (issue.code === 'too_small') {
-    const typeLabel = issue.type === 'array' ? 'items' : issue.type;
-    return `${path}: expected at least ${issue.minimum} ${typeLabel}`;
+    const typeLabel = issue.origin === 'array' ? 'items' : issue.origin;
+    return `${path}: expected at least ${String(issue.minimum)} ${typeLabel}`;
   }
 
   if (issue.code === 'too_big') {
-    const typeLabel = issue.type === 'array' ? 'items' : issue.type;
-    return `${path}: expected at most ${issue.maximum} ${typeLabel}`;
+    const typeLabel = issue.origin === 'array' ? 'items' : issue.origin;
+    return `${path}: expected at most ${String(issue.maximum)} ${typeLabel}`;
   }
 
   if (issue.code === 'unrecognized_keys') {
@@ -52,7 +52,7 @@ export function validateBootstrapItems(input: unknown): string[] {
   const errors: string[] = [];
 
   input.forEach((item, index) => {
-    const result = BootstrapEntrySchema.safeParse(item);
+    const result = BootstrapEntrySchema.safeParse(item, { reportInput: true });
     if (!result.success) {
       for (const issue of result.error.issues) {
         errors.push(formatZodIssue(issue, index));

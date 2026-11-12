@@ -55,14 +55,14 @@ const MigrationRuleSetSchema = z
   .superRefine((data, ctx) => {
     if (data.kind !== 'episodic' && data.session_from !== undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['session_from'],
         message: '"session_from" is only valid when "kind" is "episodic"',
       });
     }
     if (data.kind !== 'episodic' && data.expires_in_days !== undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['expires_in_days'],
         message: '"expires_in_days" is only valid when "kind" is "episodic"',
       });
@@ -72,7 +72,7 @@ const MigrationRuleSetSchema = z
 const MigrationRuleSchema = z
   .object({
     name: z.string().min(1),
-    when: MigrationRuleWhenSchema.default({}),
+    when: MigrationRuleWhenSchema.prefault({}),
     set: MigrationRuleSetSchema,
   })
   .strict();

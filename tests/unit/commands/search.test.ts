@@ -852,6 +852,20 @@ describe('handleSearch', () => {
       });
     });
 
+    it('issue #118: a private bank is not filtered by the org from config', async () => {
+      await handleSearch({ query: 'q', bank: 'a-memory' }, deps);
+      const filter = mockQdrant.search.mock.calls[0][1] as { must: unknown[] };
+      expect(JSON.stringify(filter.must)).not.toContain('"org"');
+    });
+
+    it('issue #118: the JSON filters echo only what a private bank applied', async () => {
+      await handleSearch({ query: 'q', json: true, bank: 'a-memory' }, deps);
+      const filters = JSON.parse(stdoutData)['filters'];
+      expect(filters).not.toHaveProperty('repo');
+      expect(filters).not.toHaveProperty('scope');
+      expect(filters).not.toHaveProperty('org');
+    });
+
     it('AC3 (PRD AC-2.4): --bank pins the bank clause and never mixes in the sibling bank', async () => {
       await handleSearch({ query: 'q', bank: 'a-memory' }, deps);
       expect(mockQdrant.search).toHaveBeenCalledWith(

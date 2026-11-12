@@ -26,6 +26,7 @@ export interface DedupeKeyV2Params {
   seq?: number;
   entry_type: string;
   source: string;
+  rationale?: string;
 }
 
 /**
@@ -39,9 +40,15 @@ export interface DedupeKeyV2Params {
  * passes for those fields (they belong only to the `episodic` shape).
  * `episodic` keys always carry both; `seq = 0` serializes to the literal
  * `"0"`, not `'na'` (0 is a valid, meaningful sequence position).
+ *
+ * A `semantic` entry with neither commit nor story has nothing that identifies
+ * it, so its key adds a hash of the rationale (issue #118): otherwise every
+ * such lesson in a bank collides, and `--on-duplicate consolidate` would
+ * silently discard the shorter one.
  */
 export function buildDedupeKeyV2(params: DedupeKeyV2Params): string {
-  const { bank, kind, repo, commit, story, session_id, seq, entry_type, source } = params;
+  const { bank, kind, repo, commit, story, session_id, seq, entry_type, source, rationale } =
+    params;
 
   if (kind === 'self') {
     return createHash('sha256').update(`self|${randomUUID()}`).digest('hex');
@@ -57,7 +64,9 @@ export function buildDedupeKeyV2(params: DedupeKeyV2Params): string {
     return `v2|${bank}|${repoPart}|${commitPart}|${storyPart}|${sessionPart}|${seqPart}|episodic|${entry_type}|${source}`;
   }
 
-  return `v2|${bank}|${repoPart}|${commitPart}|${storyPart}|na|semantic|${entry_type}|${source}`;
+  const key = `v2|${bank}|${repoPart}|${commitPart}|${storyPart}|na|semantic|${entry_type}|${source}`;
+  if (commit || story || rationale === undefined) return key;
+  return `${key}|${createHash('sha256').update(rationale).digest('hex')}`;
 }
 
 export function sourceToConfidence(source: 'agent' | 'manual' | 'scan'): 'high' | 'medium' | 'low' {

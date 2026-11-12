@@ -250,6 +250,7 @@ describe('write integration', () => {
       {
         rationale: 'Pre-migration decision.',
         tags: 'a,b',
+        commit: 'abc123',
         manual: true,
         onDuplicate: 'update',
         json: true,

@@ -96,3 +96,37 @@ describe('validateBootstrapItems', () => {
     expect(errors.some((error) => error.includes('[0].files_modified'))).toBe(true);
   });
 });
+
+describe('validateBootstrapItems messages (issue #122)', () => {
+  const valid = {
+    entry_type: 'structure',
+    tags: ['cli', 'commands'],
+    files_modified: ['src/index.ts'],
+    rationale: 'CLI entrypoint wires command modules.',
+    relates_to: [],
+  };
+
+  it('reports too few tags in items', () => {
+    expect(validateBootstrapItems([{ ...valid, tags: ['one'] }])).toContain(
+      '[0].tags: expected at least 2 items',
+    );
+  });
+
+  it('reports a wrong type with what it received', () => {
+    expect(validateBootstrapItems([{ ...valid, rationale: 7 }])).toContain(
+      '[0].rationale: expected string, received number',
+    );
+  });
+
+  it('reports a bad enum value with the options and the value', () => {
+    const [message] = validateBootstrapItems([{ ...valid, entry_type: 'nope' }]);
+    expect(message).toContain('[0].entry_type: expected one of');
+    expect(message).toContain('received nope');
+  });
+
+  it('reports unknown fields', () => {
+    expect(validateBootstrapItems([{ ...valid, extra: 1 }])).toContain(
+      '[0]: unexpected field(s): extra',
+    );
+  });
+});

@@ -5,7 +5,7 @@ const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 const KebabString = z.string().regex(KEBAB_CASE, 'Must be kebab-case');
 
 export const EntryPayloadSchema = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   repo: KebabString,
   org: KebabString,
   domain: KebabString,
@@ -58,7 +58,7 @@ export type ArchivedReason = z.infer<typeof ArchivedReasonSchema>;
  */
 export const EntryPayloadV2Schema = z
   .object({
-    id: z.string().uuid(),
+    id: z.guid(),
     schema_version: z.literal('2').default('2'),
     bank: KebabOrUuid,
     kind: EntryKindSchema,
@@ -78,11 +78,11 @@ export const EntryPayloadV2Schema = z
     session_id: z.string().min(1).max(128).optional(),
     seq: z.number().int().min(0).optional(),
     contexts: z.array(KebabString).optional(),
-    provenance: z.array(z.string().uuid()).optional(),
+    provenance: z.array(z.guid()).optional(),
     valid_from: z.string().optional(),
     valid_to: z.string().optional(),
     superseded: z.boolean().default(false),
-    superseded_by: z.string().uuid().optional(),
+    superseded_by: z.guid().optional(),
     consolidated: z.boolean().default(false),
     consolidated_at: z.string().optional(),
     pinned: z.boolean().default(false),
@@ -103,7 +103,7 @@ export const EntryPayloadV2Schema = z
     // K1 — `self` only in private banks.
     if (data.kind === 'self' && data.bank === 'kb') {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['kind'],
         message: '"self" entries are not allowed in the "kb" bank (K1)',
       });
@@ -113,7 +113,7 @@ export const EntryPayloadV2Schema = z
     // backstop, the command layer raises REPO_CONTEXT_UNRESOLVED first.
     if (data.bank === 'kb' && !(data.repo && data.org && data.domain)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['repo'],
         message: '"repo", "org", and "domain" are required for entries in the "kb" bank (K2)',
       });
@@ -122,7 +122,7 @@ export const EntryPayloadV2Schema = z
     // episodic entries need a session.
     if (data.kind === 'episodic' && !data.session_id) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['session_id'],
         message: '"session_id" is required for "episodic" entries',
       });
@@ -135,7 +135,7 @@ export const EntryPayloadV2Schema = z
       (data.provenance ?? []).length === 0
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['provenance'],
         message: 'agent-authored "semantic" entries require at least one "provenance" id (K3)',
       });
@@ -149,7 +149,7 @@ export const EntryPayloadV2Schema = z
         data.retrieval_count !== undefined)
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['kind'],
         message: '"self" entries must not carry stability, expires_at, or retrieval_count',
       });
@@ -158,7 +158,7 @@ export const EntryPayloadV2Schema = z
     // `seq` only on episodic.
     if (data.seq !== undefined && data.kind !== 'episodic') {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['seq'],
         message: '"seq" is only valid on "episodic" entries',
       });

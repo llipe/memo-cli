@@ -1124,3 +1124,42 @@ describe('MemoConfigSchema', () => {
     });
   });
 });
+
+describe('MemoConfigSchema under zod 4 (issue #122)', () => {
+  const minimal = { schema_version: '1', repo: 'r', org: 'o', domain: 'd' };
+
+  it('still fills nested defaults from a partial block', () => {
+    const parsed = MemoConfigSchema.parse({ ...minimal, ranking: {}, banks: { kb: {} } });
+    expect(parsed.ranking.confidence_thresholds.exact).toBe(0.88);
+    expect(parsed.banks.private.self.soft_cap).toBe(50);
+    expect(parsed.banks.kb.semantic.purge_after_days).toBeNull();
+  });
+
+  it('still keeps unknown top-level and ranking keys', () => {
+    const parsed = MemoConfigSchema.parse({ ...minimal, future_key: 1, ranking: { future: 2 } });
+    expect((parsed as Record<string, unknown>)['future_key']).toBe(1);
+    expect((parsed.ranking as Record<string, unknown>)['future']).toBe(2);
+  });
+
+  it('still accepts a bank id in any UUID shape, not only RFC versions', () => {
+    const parsed = MemoConfigSchema.parse({
+      ...minimal,
+      bank: { default: '00000000-0000-0000-0000-000000000001' },
+    });
+    expect(parsed.bank.default).toBe('00000000-0000-0000-0000-000000000001');
+  });
+});
+
+describe('KebabOrUuid message (issue #122)', () => {
+  it('a bad bank.default still explains what is allowed', () => {
+    const result = MemoConfigSchema.safeParse({
+      schema_version: '1',
+      repo: 'r',
+      org: 'o',
+      domain: 'd',
+      bank: { default: 'Not Valid' },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain('kebab-case');
+  });
+});
