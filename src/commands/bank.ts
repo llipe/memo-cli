@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { loadConfig, writeConfig } from '../lib/config.js';
 import { buildBaseFilter } from '../lib/filters.js';
 import { aggregateField } from '../lib/facets.js';
@@ -418,13 +418,18 @@ const bankList = new Command('list')
 
 const bankShow = new Command('show')
   .description("Show a bank's self entries and counts per kind/state")
-  .requiredOption('--id <id>', 'bank id')
+  .option('--id <id>', 'bank id')
+  .addOption(new Option('--bank <id>', 'alias for --id').conflicts('id'))
   .option('--json', 'output as JSON')
-  .action(async (opts: Record<string, unknown>) => {
-    await handleBankShow({
-      id: opts['id'] as string,
-      json: opts['json'] as boolean | undefined,
-    });
+  .action(async (opts: Record<string, unknown>, command: Command) => {
+    const id = (opts['id'] ?? opts['bank']) as string | undefined;
+    if (id === undefined) {
+      command.error("error: specify either '--id <id>' or '--bank <id>'", {
+        code: 'commander.missingMandatoryOptionValue',
+      });
+    }
+
+    await handleBankShow({ id, json: opts['json'] as boolean | undefined });
   });
 
 const bank = new Command('bank').description('Manage memory banks (PRD B5)');
