@@ -861,7 +861,7 @@ memo bank list --json
 # Show one bank's non-superseded self entries (newest first), counts per
 # kind AND per state (active/archived/superseded), and the last session id
 memo bank show --id my-agent
-memo bank show --id my-agent --json
+memo bank show --bank my-agent --json  # --bank is an alias for --id
 ```
 
 An unknown bank id is not an error for `list`/`show` — `show --id never-created` exits `0` with zero counts and an empty entries list; there's no ownership check on any bank id (PRD §9, bank ids are labels, not identities).
@@ -953,7 +953,7 @@ memo migrate --to-v2 --dry-run --rules ./custom-migration-rules.json
 | `memo recall <task>`   | One call to restore context (SELF/POLICIES/SHARED/MINE/LAST SESSION/CONFLICTS) | `--bank`, `--scope`, `--max-tokens`, `--json`                                   |
 | `memo bank init`       | Create a bank (writes its first `self` entry)                                  | `--id`, `--rationale`, `--tags`, `--set-default`, `--json`                      |
 | `memo bank list`       | List every bank with per-kind counts                                           | `--json`                                                                        |
-| `memo bank show`       | Show a bank's self entries and per-kind/per-state counts                       | `--id`, `--json`                                                                |
+| `memo bank show`       | Show a bank's self entries and per-kind/per-state counts                       | `--id` or `--bank`, `--json`                                                    |
 | `memo migrate --to-v2` | Idempotently rewrite v1 payloads to schema v2                                  | `--dry-run`, `--rules`, `--json`                                                |
 
 ### Global flags
